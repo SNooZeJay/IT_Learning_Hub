@@ -15,13 +15,26 @@ export default defineConfigWithVueTs(
 
   {
     name: 'app/files-to-ignore',
-    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**'],
+    ignores: [
+      '**/dist/**',
+      '**/dist-ssr/**',
+      '**/coverage/**',
+      // Vendored skill scripts. `.agents/skills/impeccable/scripts/` ships
+      // prebuilt, minified JavaScript that we neither author nor ship. Linting
+      // it produced 94 findings on code that is never edited here, which would
+      // make the lint gate meaningless: a green run has to mean "our code is
+      // clean", and that signal is destroyed by a permanently red third-party
+      // bundle. The skill's markdown references and launcher stay linted.
+      '.agents/skills/*/scripts/**/*.js',
+      // Built engine binary, also ignored by git for the same reason.
+      '.agents/skills/*/scripts/bin/**',
+    ],
   },
 
   pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
   skipFormatting,
-   {
+  {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       'vue/multi-word-component-names': 'off',

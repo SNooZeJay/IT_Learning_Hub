@@ -38,3 +38,10 @@ coverage
 # Seed credentials. The committed example has placeholder values; the real
 # one holds the service-role key and passwords and must never be pushed.
 scripts/*.local.json
+
+# Impeccable's compiled engine binary, 16MB and platform-specific. The skill's
+# own launcher downloads this on first run when it is missing, so excluding it
+# costs a fresh clone nothing and keeps a windows-x64 executable out of a repo
+# that also builds on macOS and Linux. The launcher, its hash check and every
+# markdown reference stay committed.
+.agents/skills/impeccable/scripts/bin/
