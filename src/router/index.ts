@@ -35,7 +35,9 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     name: 'landing',
     component: () => import('@/views/auth/Landing.vue'),
-    meta: { title: 'IT Learning Hub', public: true },
+    // No meta.title: this is the brand page, and the guard falls back to the
+    // bare brand name rather than rendering "IT Learning Hub | IT Learning Hub".
+    meta: { public: true },
   },
 
   // ---- Authentication -----------------------------------------------------
@@ -259,7 +261,9 @@ const routes: RouteRecordRaw[] = [
   // ---- Shared -------------------------------------------------------------
   {
     path: '/profile',
-    name: 'profile',
+    // No name on the parent: Vue Router rejects a child route that shares its
+    // ancestor's name, and this parent exists only to attach AppLayout. The
+    // child below owns the name 'profile'.
     component: () => import('@/layouts/AppLayout.vue'),
     children: [
       {
