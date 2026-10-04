@@ -4,6 +4,35 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Preload Inter's variable font, latin subset.
+
+      The stylesheet that requests Inter is itself a network round trip, so
+      without this the browser only discovers the font after the CSS has parsed
+      and then swaps it in, re-flowing every heading. Preloading the one file lets
+      the font arrive in parallel with the CSS instead.
+
+      This exact URL was read out of the served Google Fonts CSS, not guessed.
+      Google returns seven @font-face blocks for this request, one per subset,
+      and English text only ever loads the latin one. Preloading any other subset
+      would fetch a file the page never renders with - a wasted download that
+      delays the one that matters.
+
+      `crossorigin` is required even here: fonts are always fetched in CORS mode,
+      and omitting the attribute makes the preload silently miss and then fetch
+      the same file a second time.
+
+      If the Google CSS ever changes this filename, the preload goes stale and
+      costs one wasted request. It cannot cause a wrong font to render, since the
+      @font-face rules remain the authority on what to use.
+    -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2"
+      crossorigin
+    />
     <meta
       name="description"
       content="IT Learning Hub - practical IT training with courses, quizzes and assignments."
@@ -21,7 +50,8 @@
         align-items: center;
         justify-content: center;
         background: #ffffff;
-        font-family: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial,
+          sans-serif;
       }
       html.dark #app-loading {
         background: #161616;
@@ -58,6 +88,32 @@
         }
       }
     </style>
+    <!--
+      Apply the saved theme before the first paint.
+
+      Without this, `dark` is only added once Vue mounts, so a dark-mode visitor
+      sees a white flash on every page load and then a hard switch to dark. This
+      runs synchronously during head parsing, ahead of any rendering, so the very
+      first frame is already the right colour.
+
+      Deliberately duplicated rather than shared with ThemeProvider: this has to
+      be inline and blocking, because a module import would not run in time.
+      The localStorage key is the one thing the two must agree on.
+    -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('theme')
+          var dark =
+            saved === 'dark' ||
+            (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) document.documentElement.classList.add('dark')
+        } catch (e) {
+          /* Private browsing can throw on localStorage. Light theme is a safe
+             default to fall through to. */
+        }
+      })()
+    </script>
   </head>
   <body class="dark:bg-gray-900">
     <div id="app">

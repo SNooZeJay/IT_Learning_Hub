@@ -3,17 +3,22 @@
     <CommonGridShape />
 
     <!--
-      The way back to the landing page.
+      A row holding the two things a visitor needs regardless of what they came
+      here to do: the way out, and the theme switch.
 
-      A visitor who followed "Sign in" from the marketing page has to be able to
-      undo that. Without this the only way out is the browser back button, which
-      loses the page they came from, or the logo, which is not obviously a link.
-      It sits in its own row rather than being overlaid on the card so the card
-      stays optically centred and the link has a real hit target on a phone.
+      The back link exists because a visitor who followed "Sign in" from the
+      marketing page has to be able to undo that. Without it the only way out is
+      the browser back button, which loses the page they came from, or the logo,
+      which is not obviously a link. It sits in its own row rather than over the
+      card so the card stays optically centred and the link gets a real hit target
+      on a phone.
+
+      The toggle sits opposite it at the same height as on the landing page, so
+      the control does not appear to jump when you navigate.
     -->
-    <div class="relative z-10 px-4 pt-5 sm:px-6 sm:pt-6">
+    <div class="relative z-10 flex items-center justify-between gap-3 px-4 pt-5 sm:px-6 sm:pt-6">
       <!--
-        py-1 and ps-2/negative pe give the link a 28px tall hit area while keeping
+        py-1 and px-2 give the link a 28px tall hit area while keeping
         the text optically aligned to the page edge. A bare text link measures
         about 20px, which is under the 24px minimum target size and awkward to
         hit on a phone.
@@ -26,6 +31,8 @@
         <ArrowLeft class="size-4 shrink-0 rtl:rotate-180" />
         Back to home
       </RouterLink>
+
+      <ThemeToggleButton />
     </div>
 
     <div class="relative flex flex-1 items-center justify-center px-4 py-8 sm:py-10">
@@ -68,6 +75,7 @@
 import { RouterLink } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
 import CommonGridShape from '@/components/common/CommonGridShape.vue'
+import ThemeToggleButton from '@/components/common/ThemeToggleButton.vue'
 
 defineProps<{
   /** Heading for the card. Plain text: every page here uses a plain sentence. */

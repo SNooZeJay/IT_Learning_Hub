@@ -1,20 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&display=swap')
-layer(base);
+/*
+  Inter, loaded as a variable font.
+
+  This is the typeface Notion actually renders. "Notion Sans" is Notion's own
+  Inter fork and is not licensed for third-party use, so Inter is the real
+  answer rather than an approximation of one - the proportions are the same
+  faces. Loaded as a variable font so weight 600 on a heading costs no extra
+  request, and preloaded so headings do not reflow on first paint.
+*/
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap') layer(base);
 
 @import 'tailwindcss';
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* IBM Plex Sans. Carbon sets display type at weight 300, so headings use
-     font-light and body copy 400. --font-outfit is kept as an alias so the
-     build never breaks while components migrate across; it is not a second
-     typeface. See AGENTS.md. */
+  /* Inter. --font-outfit and --font-plex are kept as aliases so the several
+     hundred existing `font-outfit` usages across the imported TailAdmin code
+     keep resolving; they are not second typefaces. See AGENTS.md. */
   --font-*: initial;
-  --font-plex: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
-  --font-outfit: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
-  --font-sans: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-plex: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-outfit:
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
   /* Carbon geometry: flat-square. Everything caps at 4px. --radius-full stays
      for avatars and status dots, which are circles by intent rather than
@@ -40,22 +48,45 @@ layer(base);
   --breakpoint-xl: 1280px;
   --breakpoint-2xl: 1536px;
 
+  /* Notion's type scale. The sizes are kept from the previous Carbon scale so
+     no existing layout reflows, but the weight and tracking now follow Notion:
+     600 on every display size with negative tracking that grows as the type gets
+     larger, 500 on UI labels, 400 on body.
+
+     This is the part that made the old build read as "basic". Carbon sets display
+     type at weight 300, and three components hardcoded font-light on their
+     largest text, so headings rendered thin and grey rather than solid. Notion
+     holds 600 all the way up. The weight lives on the token, so it applies to
+     every page at once instead of needing a class per heading. */
   --text-title-2xl: 72px;
-  --text-title-2xl--line-height: 90px;
+  --text-title-2xl--line-height: 78px;
+  --text-title-2xl--font-weight: 600;
+  --text-title-2xl--letter-spacing: -0.025em;
   --text-title-xl: 60px;
-  --text-title-xl--line-height: 72px;
+  --text-title-xl--line-height: 66px;
+  --text-title-xl--font-weight: 600;
+  --text-title-xl--letter-spacing: -0.02em;
   --text-title-lg: 48px;
-  --text-title-lg--line-height: 60px;
+  --text-title-lg--line-height: 55px;
+  --text-title-lg--font-weight: 600;
+  --text-title-lg--letter-spacing: -0.015em;
   --text-title-md: 36px;
-  --text-title-md--line-height: 44px;
+  --text-title-md--line-height: 43px;
+  --text-title-md--font-weight: 600;
+  --text-title-md--letter-spacing: -0.01em;
   --text-title-sm: 30px;
   --text-title-sm--line-height: 38px;
+  --text-title-sm--font-weight: 600;
+  --text-title-sm--letter-spacing: -0.005em;
   --text-theme-xl: 20px;
-  --text-theme-xl--line-height: 30px;
+  --text-theme-xl--line-height: 28px;
+  --text-theme-xl--font-weight: 600;
   --text-theme-sm: 14px;
   --text-theme-sm--line-height: 20px;
+  --text-theme-sm--font-weight: 500;
   --text-theme-xs: 12px;
-  --text-theme-xs--line-height: 18px;
+  --text-theme-xs--line-height: 16px;
+  --text-theme-xs--font-weight: 500;
 
   --color-current: currentColor;
   --color-transparent: transparent;
@@ -75,8 +106,6 @@ layer(base);
   --color-brand-900: #001d6c;
   --color-brand-950: #000d2d;
 
-
-
   --color-gray-25: #fafafa;
   --color-gray-50: #f4f4f4;
   --color-gray-100: #e0e0e0;
@@ -90,8 +119,6 @@ layer(base);
   --color-gray-900: #161616;
   --color-gray-950: #000000;
   --color-gray-dark: #262626;
-
-
 
   --color-success-25: #f6fef9;
   --color-success-50: #ecfdf3;
@@ -182,8 +209,21 @@ layer(base);
   [role='button']:not(:disabled) {
     cursor: pointer;
   }
+  html {
+    /* Inter's own metrics: the taller x-height and single-storey a are what
+       make it read as Notion rather than as a generic UI sans. Without these
+       the browser draws the fallback and the page reflows when Inter arrives. */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply relative font-normal font-outfit z-1 bg-gray-50;
+    /* Notion's body leading is 1.55, looser than the 1.5 that shipped with the
+       template. Course descriptions and lesson text are the bulk of what a
+       learner reads here, so the extra leading is where it earns its keep. */
+    line-height: 1.55;
   }
 }
 
@@ -621,8 +661,8 @@ html.dark .fc-daygrid-day.fc-classic-Jk3 {
   background-color: transparent !important;
 }
 
-html.dark [role="dialog"],
-html.dark [role="dialog"].fc-classic-Jk3,
+html.dark [role='dialog'],
+html.dark [role='dialog'].fc-classic-Jk3,
 html.dark .fc-popover,
 html.dark .fc-popover.fc-classic-Jk3,
 html.dark .fc-more-popover {
@@ -643,7 +683,7 @@ html.dark .fc-classic-C1x {
   color: #ffffff !important;
 }
 
-:root[data-color-scheme="dark"],
+:root[data-color-scheme='dark'],
 :root.dark,
 html.dark,
 html.dark body,
@@ -726,9 +766,7 @@ html.dark full-calendar,
 .fc-header-toolbar.fc-toolbar .fc-toolbar-chunk:last-child .fc-button {
   @apply !h-auto !w-auto rounded-md !border-0 bg-transparent !px-5 !py-2 text-sm font-medium text-gray-500 hover:text-gray-700 focus:!shadow-none dark:text-gray-400;
 }
-.fc-header-toolbar.fc-toolbar
-  .fc-toolbar-chunk:last-child
-  .fc-button.fc-button-active {
+.fc-header-toolbar.fc-toolbar .fc-toolbar-chunk:last-child .fc-button.fc-button-active {
   @apply text-gray-900 bg-white dark:bg-gray-800 dark:text-white;
 }
 .fc-theme-standard th {
@@ -930,12 +968,12 @@ html.dark full-calendar,
 }
 
 /* Update year view to show bookmark trigger */
-.custom-calendar.fc-multimonth [role="gridcell"] > .fc-g2,
-.custom-calendar .fc-multimonth [role="gridcell"] > .fc-g2,
-.custom-calendar.fc-multimonth [role="gridcell"] > .fc-GV,
-.custom-calendar .fc-multimonth [role="gridcell"] > .fc-GV,
-.custom-calendar.fc-multimonth [role="gridcell"] > div:nth-child(2),
-.custom-calendar .fc-multimonth [role="gridcell"] > div:nth-child(2) {
+.custom-calendar.fc-multimonth [role='gridcell'] > .fc-g2,
+.custom-calendar .fc-multimonth [role='gridcell'] > .fc-g2,
+.custom-calendar.fc-multimonth [role='gridcell'] > .fc-GV,
+.custom-calendar .fc-multimonth [role='gridcell'] > .fc-GV,
+.custom-calendar.fc-multimonth [role='gridcell'] > div:nth-child(2),
+.custom-calendar .fc-multimonth [role='gridcell'] > div:nth-child(2) {
   max-height: 0 !important;
   min-height: 0 !important;
   flex-grow: 0 !important;
@@ -950,10 +988,10 @@ html.dark full-calendar,
   }
 
   /* Month Title sticks below the dashboard AppHeader (56px) */
-  .custom-calendar:has(.fc-multimonth) [role="grid"] [id*="month-"],
-  .custom-calendar .fc-multimonth [role="grid"] [id*="month-"],
-  .custom-calendar.fc-multimonth [role="grid"] [id*="month-"],
-  .custom-calendar [role="grid"].fc-multimonth [id*="month-"] {
+  .custom-calendar:has(.fc-multimonth) [role='grid'] [id*='month-'],
+  .custom-calendar .fc-multimonth [role='grid'] [id*='month-'],
+  .custom-calendar.fc-multimonth [role='grid'] [id*='month-'],
+  .custom-calendar [role='grid'].fc-multimonth [id*='month-'] {
     position: sticky !important;
     top: 56px !important;
     z-index: 10 !important;
@@ -962,111 +1000,74 @@ html.dark full-calendar,
     padding-top: 8px !important;
     padding-bottom: 8px !important;
   }
-  .dark .custom-calendar:has(.fc-multimonth) [role="grid"] [id*="month-"],
-  .dark .custom-calendar .fc-multimonth [role="grid"] [id*="month-"],
-  .dark .custom-calendar.fc-multimonth [role="grid"] [id*="month-"],
-  .dark .custom-calendar [role="grid"].fc-multimonth [id*="month-"] {
+  .dark .custom-calendar:has(.fc-multimonth) [role='grid'] [id*='month-'],
+  .dark .custom-calendar .fc-multimonth [role='grid'] [id*='month-'],
+  .dark .custom-calendar.fc-multimonth [role='grid'] [id*='month-'],
+  .dark .custom-calendar [role='grid'].fc-multimonth [id*='month-'] {
     background-color: #111827 !important;
   }
 
   /* Day Header (SUN MON TUE...) sticks directly below the Month Title */
-  .custom-calendar:has(.fc-multimonth)
-    [role="grid"]
-    [role="row"]:has([role="columnheader"]),
-  .custom-calendar:has(.fc-multimonth)
-    [role="grid"]
-    .fc-multimonth-day-header-row,
-  .custom-calendar:has(.fc-multimonth) [role="grid"] .fc-daygrid-header,
-  .custom-calendar
-    .fc-multimonth
-    [role="grid"]
-    [role="row"]:has([role="columnheader"]),
-  .custom-calendar .fc-multimonth [role="grid"] .fc-multimonth-day-header-row,
-  .custom-calendar .fc-multimonth [role="grid"] .fc-daygrid-header,
-  .custom-calendar.fc-multimonth
-    [role="grid"]
-    [role="row"]:has([role="columnheader"]),
-  .custom-calendar.fc-multimonth [role="grid"] .fc-multimonth-day-header-row,
-  .custom-calendar.fc-multimonth [role="grid"] .fc-daygrid-header,
-  .custom-calendar
-    [role="grid"].fc-multimonth
-    [role="row"]:has([role="columnheader"]),
-  .custom-calendar [role="grid"].fc-multimonth .fc-multimonth-day-header-row,
-  .custom-calendar [role="grid"].fc-multimonth .fc-daygrid-header {
+  .custom-calendar:has(.fc-multimonth) [role='grid'] [role='row']:has([role='columnheader']),
+  .custom-calendar:has(.fc-multimonth) [role='grid'] .fc-multimonth-day-header-row,
+  .custom-calendar:has(.fc-multimonth) [role='grid'] .fc-daygrid-header,
+  .custom-calendar .fc-multimonth [role='grid'] [role='row']:has([role='columnheader']),
+  .custom-calendar .fc-multimonth [role='grid'] .fc-multimonth-day-header-row,
+  .custom-calendar .fc-multimonth [role='grid'] .fc-daygrid-header,
+  .custom-calendar.fc-multimonth [role='grid'] [role='row']:has([role='columnheader']),
+  .custom-calendar.fc-multimonth [role='grid'] .fc-multimonth-day-header-row,
+  .custom-calendar.fc-multimonth [role='grid'] .fc-daygrid-header,
+  .custom-calendar [role='grid'].fc-multimonth [role='row']:has([role='columnheader']),
+  .custom-calendar [role='grid'].fc-multimonth .fc-multimonth-day-header-row,
+  .custom-calendar [role='grid'].fc-multimonth .fc-daygrid-header {
     position: sticky !important;
     top: 92px !important;
     z-index: 9 !important;
     background-color: #f9fafb !important;
   }
-  .dark
-    .custom-calendar:has(.fc-multimonth)
-    [role="grid"]
-    [role="row"]:has([role="columnheader"]),
-  .dark
-    .custom-calendar:has(.fc-multimonth)
-    [role="grid"]
-    .fc-multimonth-day-header-row,
-  .dark .custom-calendar:has(.fc-multimonth) [role="grid"] .fc-daygrid-header,
-  .dark
-    .custom-calendar
-    .fc-multimonth
-    [role="grid"]
-    [role="row"]:has([role="columnheader"]),
-  .dark
-    .custom-calendar
-    .fc-multimonth
-    [role="grid"]
-    .fc-multimonth-day-header-row,
-  .dark .custom-calendar .fc-multimonth [role="grid"] .fc-daygrid-header,
-  .dark
-    .custom-calendar.fc-multimonth
-    [role="grid"]
-    [role="row"]:has([role="columnheader"]),
-  .dark
-    .custom-calendar.fc-multimonth
-    [role="grid"]
-    .fc-multimonth-day-header-row,
-  .dark .custom-calendar.fc-multimonth [role="grid"] .fc-daygrid-header,
-  .dark
-    .custom-calendar
-    [role="grid"].fc-multimonth
-    [role="row"]:has([role="columnheader"]),
-  .dark
-    .custom-calendar
-    [role="grid"].fc-multimonth
-    .fc-multimonth-day-header-row,
-  .dark .custom-calendar [role="grid"].fc-multimonth .fc-daygrid-header {
+  .dark .custom-calendar:has(.fc-multimonth) [role='grid'] [role='row']:has([role='columnheader']),
+  .dark .custom-calendar:has(.fc-multimonth) [role='grid'] .fc-multimonth-day-header-row,
+  .dark .custom-calendar:has(.fc-multimonth) [role='grid'] .fc-daygrid-header,
+  .dark .custom-calendar .fc-multimonth [role='grid'] [role='row']:has([role='columnheader']),
+  .dark .custom-calendar .fc-multimonth [role='grid'] .fc-multimonth-day-header-row,
+  .dark .custom-calendar .fc-multimonth [role='grid'] .fc-daygrid-header,
+  .dark .custom-calendar.fc-multimonth [role='grid'] [role='row']:has([role='columnheader']),
+  .dark .custom-calendar.fc-multimonth [role='grid'] .fc-multimonth-day-header-row,
+  .dark .custom-calendar.fc-multimonth [role='grid'] .fc-daygrid-header,
+  .dark .custom-calendar [role='grid'].fc-multimonth [role='row']:has([role='columnheader']),
+  .dark .custom-calendar [role='grid'].fc-multimonth .fc-multimonth-day-header-row,
+  .dark .custom-calendar [role='grid'].fc-multimonth .fc-daygrid-header {
     background-color: #111827 !important;
   }
 
   /* Reset FullCalendar margin math to avoid whitespace gaps */
-  .custom-calendar:has(.fc-multimonth) [role="grid"] > div,
-  .custom-calendar .fc-multimonth [role="grid"] > div,
-  .custom-calendar.fc-multimonth [role="grid"] > div,
-  .custom-calendar [role="grid"].fc-multimonth > div {
+  .custom-calendar:has(.fc-multimonth) [role='grid'] > div,
+  .custom-calendar .fc-multimonth [role='grid'] > div,
+  .custom-calendar.fc-multimonth [role='grid'] > div,
+  .custom-calendar [role='grid'].fc-multimonth > div {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
   }
-  .custom-calendar:has(.fc-multimonth) [role="grid"] > div > div,
-  .custom-calendar .fc-multimonth [role="grid"] > div > div,
-  .custom-calendar.fc-multimonth [role="grid"] > div > div,
-  .custom-calendar [role="grid"].fc-multimonth > div > div {
+  .custom-calendar:has(.fc-multimonth) [role='grid'] > div > div,
+  .custom-calendar .fc-multimonth [role='grid'] > div > div,
+  .custom-calendar.fc-multimonth [role='grid'] > div > div,
+  .custom-calendar [role='grid'].fc-multimonth > div > div {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
   }
 
   /* Remove inner month border and border radius on small devices */
-  .custom-calendar:has(.fc-multimonth) [role="grid"] > div:last-child,
-  .custom-calendar .fc-multimonth [role="grid"] > div:last-child,
-  .custom-calendar.fc-multimonth [role="grid"] > div:last-child,
-  .custom-calendar [role="grid"].fc-multimonth > div:last-child {
+  .custom-calendar:has(.fc-multimonth) [role='grid'] > div:last-child,
+  .custom-calendar .fc-multimonth [role='grid'] > div:last-child,
+  .custom-calendar.fc-multimonth [role='grid'] > div:last-child,
+  .custom-calendar [role='grid'].fc-multimonth > div:last-child {
     border: 0 !important;
     border-radius: 0 !important;
   }
-  .custom-calendar:has(.fc-multimonth) [role="grid"] [role="columnheader"],
-  .custom-calendar .fc-multimonth [role="grid"] [role="columnheader"],
-  .custom-calendar.fc-multimonth [role="grid"] [role="columnheader"],
-  .custom-calendar [role="grid"].fc-multimonth [role="columnheader"] {
+  .custom-calendar:has(.fc-multimonth) [role='grid'] [role='columnheader'],
+  .custom-calendar .fc-multimonth [role='grid'] [role='columnheader'],
+  .custom-calendar.fc-multimonth [role='grid'] [role='columnheader'],
+  .custom-calendar [role='grid'].fc-multimonth [role='columnheader'] {
     border-radius: 0 !important;
   }
 }
@@ -1093,7 +1094,6 @@ html.dark full-calendar,
   right: auto;
   left: 0;
 }
-
 
 .social-button {
   @apply flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-gray-300 bg-white text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200;
@@ -1375,18 +1375,14 @@ pre[class*='language-'] {
   animation: fadeIn 0.15s ease-out forwards;
 }
 
-
-
 /* Force code blocks and syntax highlighting to always remain LTR */
 pre,
 code,
 pre code,
 .line-numbers,
-[class*="language-"],
+[class*='language-'],
 .prism-code {
   direction: ltr !important;
   text-align: left !important;
   unicode-bidi: isolate;
 }
-
-

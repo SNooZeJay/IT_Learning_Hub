@@ -75,7 +75,7 @@
         class="items-center justify-between w-full gap-4 px-5 py-4 shadow-theme-md xl:flex xl:justify-end xl:px-0 xl:shadow-none"
       >
         <div class="flex items-center gap-2 2xsm:gap-3">
-          <ThemeToggler />
+          <ThemeToggleButton />
           <NotificationMenu />
         </div>
         <UserMenu />
@@ -87,7 +87,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useSidebar } from '@/composables/useSidebar'
-import ThemeToggler from '../common/ThemeToggler.vue'
+import ThemeToggleButton from '../common/ThemeToggleButton.vue'
 import SearchBar from './header/SearchBar.vue'
 import HeaderLogo from './header/HeaderLogo.vue'
 import NotificationMenu from './header/NotificationMenu.vue'

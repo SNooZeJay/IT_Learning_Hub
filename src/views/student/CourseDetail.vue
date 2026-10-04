@@ -18,7 +18,9 @@
       <div class="grid gap-6 lg:grid-cols-3">
         <!-- Curriculum -->
         <div class="lg:col-span-2">
-          <div class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+          <div
+            class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+          >
             <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
               <h2 class="text-title-sm text-gray-900 dark:text-white/90">Curriculum</h2>
               <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -43,7 +45,9 @@
               />
               <EmptyState
                 v-else
-                :title="isPaidCourse ? 'Enrol to unlock the curriculum' : 'Enrol to see the lessons'"
+                :title="
+                  isPaidCourse ? 'Enrol to unlock the curriculum' : 'Enrol to see the lessons'
+                "
                 :description="
                   isPaidCourse
                     ? `The module list for this course is only visible once you have a place. Enrol for ${formatPeso(course.priceCentavos)} to unlock every lesson.`
@@ -53,7 +57,11 @@
               >
                 <Button variant="primary" :disabled="isActing" @click="handleEnrol">
                   <LoaderCircle v-if="isActing" class="size-4 animate-spin" />
-                  {{ isPaidCourse ? `Enrol for ${formatPeso(course.priceCentavos)}` : 'Enrol for free' }}
+                  {{
+                    isPaidCourse
+                      ? `Enrol for ${formatPeso(course.priceCentavos)}`
+                      : 'Enrol for free'
+                  }}
                 </Button>
               </EmptyState>
             </div>
@@ -79,7 +87,10 @@
                       :to="`/student/lessons/${lesson.id}`"
                       class="flex items-center gap-2.5 rounded px-2 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.06]"
                     >
-                      <PlayCircle v-if="lesson.lessonType === 'video'" class="size-4 shrink-0 text-gray-400" />
+                      <PlayCircle
+                        v-if="lesson.lessonType === 'video'"
+                        class="size-4 shrink-0 text-gray-400"
+                      />
                       <FileText v-else class="size-4 shrink-0 text-gray-400" />
                       <span class="text-gray-700 dark:text-gray-300">{{ lesson.title }}</span>
                       <span
@@ -117,8 +128,10 @@
 
         <!-- Enrolment panel -->
         <div>
-          <div class="sticky top-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-            <p class="text-2xl font-light text-gray-900 dark:text-white/90">
+          <div
+            class="sticky top-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+          >
+            <p class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white/90">
               {{ priceLabel }}
             </p>
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -128,7 +141,9 @@
             <dl class="mt-5 space-y-2.5 text-sm">
               <div class="flex items-center justify-between">
                 <dt class="text-gray-500 dark:text-gray-400">Level</dt>
-                <dd class="font-medium capitalize text-gray-900 dark:text-white/90">{{ course.level }}</dd>
+                <dd class="font-medium capitalize text-gray-900 dark:text-white/90">
+                  {{ course.level }}
+                </dd>
               </div>
               <div v-if="course.durationMinutes" class="flex items-center justify-between">
                 <dt class="text-gray-500 dark:text-gray-400">Duration</dt>
@@ -136,7 +151,9 @@
               </div>
               <div v-if="course.passingScore" class="flex items-center justify-between">
                 <dt class="text-gray-500 dark:text-gray-400">Pass mark</dt>
-                <dd class="font-medium text-gray-900 dark:text-white/90">{{ course.passingScore }}%</dd>
+                <dd class="font-medium text-gray-900 dark:text-white/90">
+                  {{ course.passingScore }}%
+                </dd>
               </div>
             </dl>
 
@@ -165,7 +182,9 @@
                 @click="handleEnrol"
               >
                 <LoaderCircle v-if="isActing" class="size-4 animate-spin" />
-                {{ isActing ? 'Opening checkout...' : `Enrol for ${formatPeso(course.priceCentavos)}` }}
+                {{
+                  isActing ? 'Opening checkout...' : `Enrol for ${formatPeso(course.priceCentavos)}`
+                }}
               </Button>
 
               <Button
@@ -180,9 +199,12 @@
               </Button>
             </div>
 
-            <p v-if="isPaidCourse && !isEnrolledHere" class="mt-3 text-xs text-gray-500 dark:text-gray-400">
-              Payment is processed by PayMongo. Your place is created once payment is
-              confirmed, so closing this page will not lose it.
+            <p
+              v-if="isPaidCourse && !isEnrolledHere"
+              class="mt-3 text-xs text-gray-500 dark:text-gray-400"
+            >
+              Payment is processed by PayMongo. Your place is created once payment is confirmed, so
+              closing this page will not lose it.
             </p>
           </div>
         </div>
@@ -194,14 +216,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import {
-  BookOpen,
-  CircleCheck,
-  FileText,
-  LoaderCircle,
-  Lock,
-  PlayCircle,
-} from 'lucide-vue-next'
+import { BookOpen, CircleCheck, FileText, LoaderCircle, Lock, PlayCircle } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
@@ -279,8 +294,7 @@ async function load(): Promise<void> {
       enrolledHere.value = enrolment?.status === 'active' || enrolment?.status === 'completed'
     }
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Could not load this course.'
+    errorMessage.value = error instanceof Error ? error.message : 'Could not load this course.'
   } finally {
     isLoading.value = false
   }
@@ -294,8 +308,7 @@ async function handleEnrol(): Promise<void> {
     await enrollInFreeCourse(course.value, auth.profile.id)
     enrolledHere.value = true
   } catch (error) {
-    actionError.value =
-      error instanceof Error ? error.message : 'Could not enrol in this course.'
+    actionError.value = error instanceof Error ? error.message : 'Could not enrol in this course.'
   } finally {
     isActing.value = false
   }

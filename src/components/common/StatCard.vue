@@ -1,5 +1,7 @@
 <template>
-  <div class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+  <div
+    class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+  >
     <div class="flex items-center gap-3">
       <span
         class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
@@ -8,7 +10,10 @@
       </span>
       <div class="min-w-0">
         <p class="text-sm text-gray-500 dark:text-gray-400">{{ label }}</p>
-        <p class="truncate text-2xl font-light text-gray-900 dark:text-white/90">
+        <!-- font-semibold, not the font-light this used to carry. A dashboard
+             figure at weight 300 is the first thing that reads as unfinished,
+             and it is the number a learner came to see. -->
+        <p class="truncate text-2xl font-semibold tracking-tight text-gray-900 dark:text-white/90">
           {{ value }}
         </p>
       </div>

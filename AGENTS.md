@@ -13,7 +13,7 @@ looks**. The design of record for the foundation is
 
 **Precedence.** `DESIGN.md` decides appearance. The `@theme` tokens in
 `src/assets/main.css` are the single implementation of that decision: Carbon
-colours and IBM Plex live in token *values*, never in component classes. This file
+colours and Inter live in token _values_, never in component classes. This file
 decides construction. On appearance `DESIGN.md` wins; on construction this file
 wins.
 
@@ -24,7 +24,7 @@ gates are `npm run type-check`, `npm run lint` and `npm run build`; all three
 must be clean. Quote the output that shows it rather than summarising what it
 probably said.
 
-This is the project's **evidence** rule: *evidence, not assertion*. An unrun
+This is the project's **evidence** rule: _evidence, not assertion_. An unrun
 command is an open question, and an open question reported as a conclusion is the
 one failure this project cannot ship.
 
@@ -45,7 +45,7 @@ src/
 │   └── main.css                  # Tailwind CSS v4 theme (@theme), global utility classes & 3rd party overrides
 ├── components/
 │   ├── charts/                   # ApexChart subcomponents (BarChart, LineChart)
-│   ├── common/                   # Shared wrappers (ComponentCard, PageBreadcrumb, ThemeToggler)
+│   ├── common/                   # Shared wrappers (ComponentCard, PageBreadcrumb, ThemeToggleButton)
 │   ├── forms/                    # Form controls and layouts (FormElements)
 │   ├── layout/                   # Admin shell (AdminLayout, AppHeader, AppSidebar, Backdrop, FullScreenLayout, header/)
 │   ├── profile/                  # User profile widgets (ProfileCard, AddressCard, PersonalInfoCard, Security, DangerZone, Modal)
