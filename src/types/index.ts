@@ -33,6 +33,15 @@ export type PaymentRow = Row<'payments'>
 // View models, what components actually consume
 // ---------------------------------------------------------------------------
 
+export interface Enrollment {
+  id: string
+  courseId: string
+  studentId: string
+  status: EnrollmentStatus
+  enrolledAt: string
+  completedAt: string | null
+}
+
 export interface Profile {
   id: string
   role: Role
@@ -59,6 +68,14 @@ export interface Course {
   priceCentavos: number
   createdBy: string
   publishedAt: string | null
+}
+
+export interface Module {
+  id: string
+  courseId: string
+  title: string
+  description: string | null
+  position: number
 }
 
 export interface Lesson {
