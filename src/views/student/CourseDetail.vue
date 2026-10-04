@@ -170,7 +170,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import {
   BookOpen,
   CircleCheck,
@@ -194,7 +194,6 @@ import type { Course, Lesson, Module } from '@/types'
 type ModuleWithLessons = Module & { lessons: Lesson[] }
 
 const route = useRoute()
-const router = useRouter()
 const auth = useAuthStore()
 
 const course = ref<Course | null>(null)
