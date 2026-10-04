@@ -1,8 +1,38 @@
-# AGENTS.md — TailAdmin Vue Free
+# AGENTS.md — IT Learning Hub LMS
 
-> Vue 3 administrative dashboard template · Composition API · Tailwind CSS v4 · ApexCharts · FullCalendar · Swiper · Flatpickr · Leaflet · vuedraggable · RTL Support
+> Built on TailAdmin Vue Free (MIT). Composition API · TypeScript · Tailwind CSS v4 · ApexCharts · FullCalendar · Flatpickr · Lucide · RTL Support
+
+## This project
+
+**IT Learning Hub LMS.** A role-based Learning Management System with three
+roles (Admin, Instructor, Student), built on Vue 3, Tailwind CSS v4 and Supabase.
+
+This file governs **how the project is built**. `DESIGN.md` governs **how it
+looks**. The design of record for the foundation is
+[`docs/superpowers/specs/2026-10-04-lms-foundation-design.md`](./docs/superpowers/specs/2026-10-04-lms-foundation-design.md).
+
+**Precedence.** `DESIGN.md` decides appearance. The `@theme` tokens in
+`src/assets/main.css` are the single implementation of that decision: Carbon
+colours and IBM Plex live in token *values*, never in component classes. This file
+decides construction. On appearance `DESIGN.md` wins; on construction this file
+wins.
+
+## Evidence before assertions
+
+Report a task complete only after running the check and reading its output. The
+gates are `npm run type-check`, `npm run lint` and `npm run build`; all three
+must be clean. Quote the output that shows it rather than summarising what it
+probably said.
+
+This is the project's **evidence** rule: *evidence, not assertion*. An unrun
+command is an open question, and an open question reported as a conclusion is the
+one failure this project cannot ship.
 
 ## Repo Map
+
+Describes the TailAdmin baseline. The LMS target layout is section 7.2 of the
+foundation spec; where the two differ, the spec is current and this map is
+history.
 
 ```
 src/
@@ -35,14 +65,26 @@ src/
 
 ## Stack
 
+Lists the TailAdmin baseline. Dependency changes for the LMS are specified in
+section 7.4 of the foundation spec; `package.json` is the authority on what is
+actually installed.
+
 - **Vue 3** with **Composition API** (`<script setup lang="ts">`) and **Vue Router 4**.
 - **TypeScript ~5.7**: Strict type safety throughout components, composables, and router.
 - **Tailwind CSS v4**: Configured with `@tailwindcss/postcss` and `@theme` tokens in `src/assets/main.css`. No `tailwind.config.js`.
 - Path alias: `@/*` → `src/*` (configured in `vite.config.ts`).
 - **Vite 6** with `@vitejs/plugin-vue` and `@vitejs/plugin-vue-jsx`.
-- **State Management via Composables**:
-  - `useSidebar`: Manages sidebar expand/collapse, mobile drawer visibility, and hover state.
-  - `useRTL`: Manages RTL direction (`dir="rtl"` / `dir="ltr"`, `.rtl` class, synced with `localStorage`).
+- **State: Pinia holds application state, composables hold UI state.**
+  - Pinia (`src/stores/`) owns state that outlives a single view and is shared
+    across routes: the auth session, the current profile, the current role.
+  - Composables own state local to the UI shell: `useSidebar` (expand/collapse,
+    mobile drawer, hover) and `useRTL` (direction, synced to `localStorage`).
+  - The test: if unmounting the component would sensibly discard it, it is
+    component state or composable state, never Pinia.
+- **Data access: `src/services/` owns every Supabase query.**
+  Views and stores call typed service functions and never import the Supabase
+  client. Services own their `.select()` shape and their return type, and throw
+  `ServiceError` rather than leaking `PostgrestError` to a component.
 - **Third-Party Libraries**:
   - **vue3-apexcharts & apexcharts**: Interactive charts and data visualizations.
   - **@fullcalendar/vue3 & fullcalendar**: Event calendar with DayGrid, TimeGrid, MultiMonth, and Interaction plugins.
@@ -73,9 +115,14 @@ src/
   - Use **PascalCase** filenames (`MonthlySalesChart.vue`) with a `<script setup lang="ts">` block.
   - Use `defineProps<{...}>()` and `defineEmits<{...}>()` with explicit TypeScript types.
 - **Icons**:
-  - Icons live in `src/icons/` as Vue SFCs (e.g., `BellIcon.vue`, `BoxIcon.vue`).
-  - Import directly: `import BellIcon from '@/icons/BellIcon.vue'` or `from '@/icons'`.
-  - Use `fill-current` / `stroke-current` and `w-*` / `h-*` tokens inside icon components for adaptive theming.
+  - One icon system: Lucide, imported directly from the package.
+    `import { Bell, BookOpen, GraduationCap } from 'lucide-vue-next'`
+  - Size with `w-*` / `h-*` and colour with `text-*` tokens, so an icon inherits
+    the surface it sits on.
+  - Align an icon to adjacent text or an input using `inline-flex items-center`
+    and a matching `size-*`.
+  - The upstream `src/icons/` SFC directory is gone. Reach for a Lucide export
+    rather than reintroducing a second icon system.
 - **Charts**:
   - Import `vue3-apexcharts` as a component; guard chart rendering with `v-if="isMounted"` (set via `onMounted`) to avoid SSR issues.
   - Declare options as `ref<ApexCharts.ApexOptions>({...})` and pass to `<VueApexCharts :options="..." :series="..." />`.
