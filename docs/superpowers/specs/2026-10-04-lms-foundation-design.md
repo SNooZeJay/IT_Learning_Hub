@@ -29,6 +29,19 @@ Also deferred from the database: `course_progress`, `quiz_*`, `assignments`,
 `assignment_submissions`, `announcements`, `notifications`, `calendar_events`.
 Rationale in §5.3.
 
+**Amended 2026-10-04.** Two additions were approved after this spec was first
+written:
+
+- **Payments** — a mixed free/paid course catalogue settled in Philippine pesos
+   through PayMongo. Designed in §12; it adds `payments`, the price columns on
+   `courses`, and two Supabase Edge Functions. Folding it in here rather than
+   splitting it into a separate spec, because it is two tables and two
+   functions and it is a precondition for enrolment rather than an independent
+   feature.
+- **A `visitor` state** — the unsigned-in visitor described in
+   `docs/role-flowchart.md`. This is *not* a fourth database role; it is the
+   absence of a session, so §5.1's three-role enum is unchanged.
+
 ---
 
 ## 2. Repository baseline
@@ -514,7 +527,119 @@ Stages 1–7 are gated on:
 
 ---
 
-## 12. Definition of done
+## 12. Payments — PayMongo, Philippine pesos
+
+Added 2026-10-04. Courses are a mix of free and paid; a free course enrols
+immediately, a paid course unlocks only after PayMongo confirms payment out of
+band. The user-facing journey is drawn in `docs/role-flowchart.md` §7.
+
+### 12.1 Where the secret key lives
+
+The PayMongo secret key (`sk_test_` / `sk_live_`) is **never** a `VITE_`
+variable and never enters the frontend bundle. PayMongo requires it for two
+operations — creating a checkout session and verifying webhook signatures — and
+neither can be done safely from a browser. A `VITE_`-prefixed value is compiled
+into public JavaScript and readable in devtools, which would let any visitor
+create or refund payments.
+
+It is held as a **Supabase secret** and read only inside a **Supabase Edge
+Function**. This was chosen over a Vercel serverless function because §2 rules out
+a separate backend and unnecessary API servers, and an Edge Function is part of
+Supabase, which is already the locked backend. Only `VITE_SUPABASE_ANON_KEY`
+reaches the browser.
+
+Environment, all server-side, none committed:
+
+```
+PAYMONGO_SECRET_KEY=sk_test_...        # Supabase secret, never VITE_
+PAYMONGO_WEBHOOK_SECRET=...           # if webhook signing is enabled
+SUPABASE_SERVICE_ROLE_KEY=...         # used only inside the Edge Function
+```
+
+`.env.example` documents the two browser variables and states that the PayMongo
+secret is set in Supabase, not in a `.env` file in the repository.
+
+### 12.2 Schema
+
+`courses` gains one column:
+
+- `price_centavos integer not null default 0` — a course is paid iff
+  `price_centavos > 0`. No separate boolean flag: a flag would be able to
+  disagree with the price.
+
+New table `payments`:
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid` PK | |
+| `student_id` | `uuid` FK → `profiles` cascade | who paid |
+| `course_id` | `uuid` FK → `courses` cascade | what for |
+| `amount_centavos` | `integer` | copied from `courses` at checkout; the browser never supplies it |
+| `currency` | `text` default `'PHP'` | |
+| `status` | `payment_status` | `pending` → `paid` \| `failed` \| `refunded` |
+| `provider` | `text` default `'paymongo'` | |
+| `provider_payment_id` | `text` | PayMongo payment intent id |
+| `provider_checkout_id` | `text` | PayMongo checkout session id |
+| `reference_number` | `text` unique | human-readable, shown to the student |
+| `paid_at` | `timestamptz` | set only by the verified webhook |
+| `created_at` / `updated_at` | `timestamptz` | |
+
+Amounts are stored as **integer centavos**, never floats. PHP has two decimal
+places and float arithmetic loses cents.
+
+A partial unique index allows repeated attempts but permits only one live charge:
+
+```sql
+create unique index payments_one_paid_per_student_course
+  on payments (student_id, course_id)
+  where status = 'paid';
+```
+
+### 12.3 RLS
+
+| Operation | Who |
+|---|---|
+| select | the student who paid; admins all. Instructors see none. |
+| insert / update | nobody directly. The Edge Function writes using the service role, which bypasses RLS by design. |
+| delete | admins only |
+
+The service role is the reason this is safe: a browser cannot write a
+`status = 'paid'` row, so payment state cannot be forged from the client.
+
+### 12.4 Edge Functions
+
+**`create-checkout`** — authenticated.
+1. Verify the caller's JWT, resolve `auth.uid()`.
+2. Load the course. Reject if `price_centavos = 0` (free courses enrol directly).
+3. Reject if already enrolled, or if a `paid` payment already exists.
+4. Re-read the amount **from the database** — never from the request body.
+5. Create a `pending` payment row and a PayMongo checkout session.
+6. Return the redirect URL.
+
+**`paymongo-webhook`** — public, signature-verified.
+1. Verify the PayMongo signature with the shared secret. An unverified webhook
+   is treated as hostile input and dropped.
+2. On a paid event, mark the payment `paid` and set `paid_at`.
+3. Create the enrollment, or upgrade an existing one to `active`.
+4. Idempotent: the same event delivered twice must not create two enrollments.
+
+### 12.5 Rules
+
+1. **The amount comes from the school's records.** The client sends a course id
+   and nothing else.
+2. **Enrolment follows the webhook, not the browser.** Closing the tab mid-payment
+   cannot lose a payment or strand an enrolment.
+3. **Free and paid share one enrolment path.** Only the trigger differs, so
+   there is no second code path to keep in sync.
+4. **Refunds are admin-only**, recorded as a new `refunded` status rather than
+   by deleting the row, so the ledger stays auditable.
+5. **Test keys first.** All development and the school demo run on `sk_test_`.
+   Live keys are introduced only at deployment, and only ever as a Supabase
+   secret.
+
+---
+
+## 13. Definition of done
 
 - [ ] `pinia` and `@supabase/supabase-js` installed; 9 unused packages removed
 - [ ] Schema applied: 9 tables, 4 helper functions, 3 triggers, RLS on every table
@@ -533,3 +658,6 @@ Stages 1–7 are gated on:
 - [ ] Loading, empty and error states on every async view
 - [ ] `type-check`, `lint`, `build` clean; manual smoke test passed including the privilege-escalation check
 - [ ] `AGENTS.md` amended for the icon rule and the `DESIGN.md` precedence note
+- [ ] `courses.price_centavos` added; `payments` table, partial unique index and RLS applied
+- [ ] `create-checkout` and `paymongo-webhook` Edge Functions deployed; secret held as a Supabase secret and absent from the bundle
+- [ ] Free course enrols immediately; paid course enrols only after a verified webhook; duplicate webhook is idempotent
