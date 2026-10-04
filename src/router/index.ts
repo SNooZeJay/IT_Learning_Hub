@@ -42,6 +42,22 @@ const routes: RouteRecordRaw[] = [
 
   // ---- Authentication -----------------------------------------------------
   {
+    // The public catalogue. This is where the landing page's primary action
+    // goes, so a visitor who is not ready to make an account can still see what
+    // they would be enrolling in. Declared before /courses/:slug so the static
+    // segment wins over the parameter.
+    path: '/courses',
+    name: 'catalog',
+    component: () => import('@/views/auth/Catalog.vue'),
+    meta: { title: 'Courses', public: true },
+  },
+  {
+    path: '/courses/:slug',
+    name: 'public-course',
+    component: () => import('@/views/auth/CoursePage.vue'),
+    meta: { title: 'Course', public: true },
+  },
+  {
     path: '/auth/login',
     name: 'login',
     component: () => import('@/views/auth/Login.vue'),
@@ -318,9 +334,7 @@ router.beforeEach(async (to) => {
   // on a deep link bounces a signed-in user to the sign-in page.
   await auth.ensureReady()
 
-  document.title = to.meta.title
-    ? `${to.meta.title} | IT Learning Hub`
-    : 'IT Learning Hub'
+  document.title = to.meta.title ? `${to.meta.title} | IT Learning Hub` : 'IT Learning Hub'
 
   if (to.meta.public) {
     // A signed-in user has no business on the landing page or the sign-in form.

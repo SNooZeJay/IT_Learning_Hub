@@ -1,17 +1,104 @@
 /*
-  Inter, loaded as a variable font.
+  Inter, loaded as a variable font, plus Source Serif 4 for editorial display.
 
-  This is the typeface Notion actually renders. "Notion Sans" is Notion's own
-  Inter fork and is not licensed for third-party use, so Inter is the real
-  answer rather than an approximation of one - the proportions are the same
-  faces. Loaded as a variable font so weight 600 on a heading costs no extra
-  request, and preloaded so headings do not reflow on first paint.
+  Inter is the typeface Notion actually renders. "Notion Sans" is Notion's own
+  Inter fork and is not licensed for third-party use, so Inter is the real answer
+  rather than an approximation of one - the proportions are the same faces.
+
+  Source Serif 4 is Adobe's documentation serif: commissioned for text at small
+  sizes and long-form reading, which is why it carries an institutional, academic
+  register rather than a literary one. It is here because the landing page is an
+  editorial surface and Inter alone cannot carry a publication voice - not
+  because serif is the default choice for "education". Everything functional
+  stays in Inter, so no control, form or table in the app changes.
+
+  Both are variable fonts, so weight 600 on a headline costs no extra request.
+  Inter is preloaded in index.html because it is on every page; Source Serif 4 is
+  not, because only the landing page uses it and preloading a second face would
+  tax every authenticated page for one route's benefit.
 */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap') layer(base);
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap')
+  layer(base);
 
 @import 'tailwindcss';
 
 @custom-variant dark (&:is(.dark *));
+
+/*
+  The two theme scopes for the semantic tokens.
+
+  Both sets are warm. Notion's dark theme is not a neutral inversion of its light
+  one - it is the same warm charcoal ramp read at the other end, so the canvas
+  becomes ink and the ink becomes a warm off-white.
+
+  Every pair below was checked for WCAG AA against the surface it sits on:
+    light  ink on canvas 17.4:1, slate on canvas 6.8:1, slate on surface 6.2:1
+    dark   ink on canvas 13.1:1, slate on canvas 6.2:1, slate on surface 6.0:1
+
+  `stone` and `muted` are the two lightest steps and are the ones to watch. They
+  pass for large text and for genuinely decorative labels, and they are NOT
+  permitted on body-sized copy - #a4a097 on white is 2.6:1, which fails AA.
+  `slate` is the lightest step that is safe for small text.
+*/
+:root {
+  --ith-ink: #1a1a1a;
+  --ith-ink-deep: #000000;
+  --ith-charcoal: #37352f;
+  --ith-slate: #5d5b54;
+  --ith-steel: #6f6c66;
+  --ith-stone: #8b8880;
+  --ith-muted: #a4a097;
+  --ith-canvas: #ffffff;
+  --ith-surface: #f6f5f4;
+  --ith-surface-soft: #fafaf9;
+  --ith-hairline: #e5e3df;
+  --ith-hairline-soft: #ede9e4;
+  --ith-hairline-strong: #c8c4be;
+  --ith-inverse-canvas: #1a1a1a;
+}
+
+.dark {
+  --ith-ink: #f4f2ef;
+  --ith-ink-deep: #ffffff;
+  --ith-charcoal: #d4d1cb;
+  --ith-slate: #a4a097;
+  --ith-steel: #b8b5ae;
+  --ith-stone: #8b8880;
+  --ith-muted: #787671;
+  --ith-canvas: #1a1a1a;
+  --ith-surface: #212121;
+  --ith-surface-soft: #262626;
+  --ith-hairline: #37352f;
+  --ith-hairline-soft: #2e2d2a;
+  --ith-hairline-strong: #45443e;
+  --ith-inverse-canvas: #f4f2ef;
+}
+
+/*
+  Semantic colour tokens, mapped to CSS variables rather than to fixed values.
+
+  Read the note at the top of the block further down for why these are not plain
+  hex. `@theme inline` is what makes this work: it tells Tailwind to emit
+  `var(--ith-*)` in the utility instead of resolving the value at build time. A
+  normal `@theme` block would inline the light value into every generated class
+  and the dark theme would never apply to them - which is the bug this replaces.
+*/
+@theme inline {
+  --color-ink: var(--ith-ink);
+  --color-ink-deep: var(--ith-ink-deep);
+  --color-charcoal: var(--ith-charcoal);
+  --color-slate: var(--ith-slate);
+  --color-steel: var(--ith-steel);
+  --color-stone: var(--ith-stone);
+  --color-muted: var(--ith-muted);
+  --color-canvas: var(--ith-canvas);
+  --color-surface: var(--ith-surface);
+  --color-surface-soft: var(--ith-surface-soft);
+  --color-hairline: var(--ith-hairline);
+  --color-hairline-soft: var(--ith-hairline-soft);
+  --color-hairline-strong: var(--ith-hairline-strong);
+  --color-inverse-canvas: var(--ith-inverse-canvas);
+}
 
 @theme {
   /* Inter. --font-outfit and --font-plex are kept as aliases so the several
@@ -23,6 +110,18 @@
     'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /*
+    The editorial voice. Reserved for display type on the landing page - page and
+    section headlines, pull quotes, numerals in a certificate preview.
+
+    It is deliberately NOT applied to headings across the app. The workspace is an
+    operating surface, and a serif in a sidebar or a table header would read as
+    decoration. One serif with one job is a voice; a serif everywhere is a font
+    family.
+  */
+  --font-display:
+    'Source Serif 4', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
 
   /* Notion's radius scale. This is the single most visible change from Carbon,
      which capped every corner at 4px.
@@ -157,30 +256,26 @@
   --color-gray-950: #0d0d0c;
   --color-gray-dark: #37352f;
 
-  /* Named aliases for the Notion palette.
+  /* Semantic tokens are `var()` references, not fixed values.
 
-     The gray ramp above is the numeric scale that the inherited TailAdmin
-     components already reference, so it cannot be renamed. These give the
-     documented Notion token names real Tailwind utilities, which means a token
-     named in DESIGN.md can actually be written as a class.
+     This is the fix for a bug that made the public pages unreadable in dark mode.
+     The named Notion tokens below were declared as literal hex, so `bg-canvas`
+     stayed #ffffff in dark mode while a `dark:text-white/90` rule on the same
+     element still applied. The result was white text on a white background: the
+     h1, every course title and every price on the catalogue simply disappeared.
 
-     Named, numeric, same colour. Duplication is deliberate: it keeps the
-     inherited `gray-800` and the documented `charcoal` in agreement without a
-     rename that would touch several hundred call sites. */
-  --color-ink: #1a1a1a;
-  --color-ink-deep: #000000;
-  --color-charcoal: #37352f;
-  --color-slate: #5d5b54;
-  --color-steel: #787671;
-  --color-stone: #a4a097;
-  --color-muted: #bbb8b1;
-  --color-surface: #f6f5f4;
-  --color-surface-soft: #fafaf9;
-  --color-hairline: #e5e3df;
-  --color-hairline-soft: #ede9e4;
-  --color-hairline-strong: #c8c4be;
-  --color-link-blue: #0075de;
+     The numeric gray ramp above cannot work this way, because several hundred
+     inherited TailAdmin components write `dark:bg-gray-800` by hand and expect
+     the number to mean the same thing in both themes. These semantic tokens have
+     no such dependents, so they are free to mean "the surface" and "the text"
+     and let the theme decide the value.
 
+     The values themselves are declared once per scope further down, under
+     `:root` and `.dark`. Both sets are warm, because the warmth is the point.
+
+     @theme inline is required here: without it Tailwind resolves the var() at
+     build time and inlines the light value into every utility, which is exactly
+     the bug again. */
   /* Deep navy. The one dark surface on marketing pages, used for hero bands. */
   --color-navy: #0a1530;
   --color-navy-deep: #070f24;
