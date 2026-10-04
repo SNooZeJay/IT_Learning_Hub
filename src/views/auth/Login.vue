@@ -1,111 +1,112 @@
 <template>
-  <div class="relative isolate flex min-h-screen items-center justify-center overflow-hidden">
-    <CommonGridShape />
+  <AuthShell title="Welcome back" description="Sign in to continue your learning.">
+    <Alert
+      v-if="errorMessage"
+      variant="error"
+      title="Could not sign in"
+      :message="errorMessage"
+      class="mb-5"
+    />
 
-    <div class="relative w-full max-w-md px-4 py-10">
-      <div class="mb-8 flex flex-col items-center text-center">
-        <img src="/images/logo/logo-icon.svg" alt="IT Learning Hub" class="size-12" />
-        <h1 class="mt-4 text-title-lg text-gray-900 dark:text-white/90">Welcome back</h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Sign in to continue your learning.
+    <form class="flex flex-col gap-5" novalidate @submit.prevent="handleSubmit">
+      <div>
+        <label
+          for="email"
+          class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          Email address
+        </label>
+        <input
+          id="email"
+          v-model.trim="email"
+          type="email"
+          name="email"
+          autocomplete="email"
+          required
+          placeholder="you@school.edu.ph"
+          :class="inputClass"
+          :aria-invalid="Boolean(fieldErrors.email)"
+          :aria-describedby="fieldErrors.email ? 'email-error' : undefined"
+        />
+        <p
+          v-if="fieldErrors.email"
+          id="email-error"
+          class="mt-1.5 text-xs text-error-600 dark:text-error-400"
+        >
+          {{ fieldErrors.email }}
         </p>
       </div>
 
-      <Alert
-        v-if="errorMessage"
-        variant="error"
-        title="Could not sign in"
-        :message="errorMessage"
-        class="mb-5"
-      />
-
-      <form class="flex flex-col gap-5" novalidate @submit.prevent="handleSubmit">
-        <div>
-          <label for="email" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Email address
+      <div>
+        <div class="mb-1.5 flex items-center justify-between">
+          <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Password
           </label>
+          <router-link
+            to="/auth/forgot-password"
+            class="text-xs text-brand-600 hover:underline dark:text-brand-400"
+          >
+            Forgot password?
+          </router-link>
+        </div>
+        <div class="relative">
           <input
-            id="email"
-            v-model.trim="email"
-            type="email"
-            name="email"
-            autocomplete="email"
+            id="password"
+            v-model="password"
+            :type="showPassword ? 'text' : 'password'"
+            name="password"
+            autocomplete="current-password"
             required
-            placeholder="you@school.edu.ph"
-            :class="inputClass"
-            :aria-invalid="Boolean(fieldErrors.email)"
-            :aria-describedby="fieldErrors.email ? 'email-error' : undefined"
+            :class="[inputClass, 'pe-11']"
+            :aria-invalid="Boolean(fieldErrors.password)"
+            :aria-describedby="fieldErrors.password ? 'password-error' : undefined"
           />
-          <p v-if="fieldErrors.email" id="email-error" class="mt-1.5 text-xs text-error-600 dark:text-error-400">
-            {{ fieldErrors.email }}
-          </p>
+          <button
+            type="button"
+            class="absolute inset-y-0 end-0 flex items-center px-3 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
+            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+            @click="showPassword = !showPassword"
+          >
+            <EyeOff v-if="showPassword" class="size-5" />
+            <Eye v-else class="size-5" />
+          </button>
         </div>
-
-        <div>
-          <div class="mb-1.5 flex items-center justify-between">
-            <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Password
-            </label>
-            <router-link
-              to="/auth/forgot-password"
-              class="text-xs text-brand-600 hover:underline dark:text-brand-400"
-            >
-              Forgot password?
-            </router-link>
-          </div>
-          <div class="relative">
-            <input
-              id="password"
-              v-model="password"
-              :type="showPassword ? 'text' : 'password'"
-              name="password"
-              autocomplete="current-password"
-              required
-              :class="[inputClass, 'pe-11']"
-              :aria-invalid="Boolean(fieldErrors.password)"
-              :aria-describedby="fieldErrors.password ? 'password-error' : undefined"
-            />
-            <button
-              type="button"
-              class="absolute inset-y-0 end-0 flex items-center px-3 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
-              :aria-label="showPassword ? 'Hide password' : 'Show password'"
-              @click="showPassword = !showPassword"
-            >
-              <EyeOff v-if="showPassword" class="size-5" />
-              <Eye v-else class="size-5" />
-            </button>
-          </div>
-          <p v-if="fieldErrors.password" id="password-error" class="mt-1.5 text-xs text-error-600 dark:text-error-400">
-            {{ fieldErrors.password }}
-          </p>
-        </div>
-
-        <label class="flex cursor-pointer items-center gap-2.5 text-sm text-gray-600 dark:text-gray-400">
-          <input
-            v-model="rememberMe"
-            type="checkbox"
-            class="size-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
-          />
-          Keep me signed in
-        </label>
-
-        <Button type="submit" class="w-full justify-center" :disabled="isSubmitting">
-          <LoaderCircle v-if="isSubmitting" class="size-4 animate-spin" />
-          {{ isSubmitting ? 'Signing in...' : 'Sign in' }}
-        </Button>
-      </form>
-
-      <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-        New to IT Learning Hub?
-        <router-link
-          to="/auth/register"
-          class="font-medium text-brand-600 hover:underline dark:text-brand-400"
+        <p
+          v-if="fieldErrors.password"
+          id="password-error"
+          class="mt-1.5 text-xs text-error-600 dark:text-error-400"
         >
-          Create an account
-        </router-link>
-      </p>
-    </div>
-  </div>
+          {{ fieldErrors.password }}
+        </p>
+      </div>
+
+      <label
+        class="flex cursor-pointer items-center gap-2.5 text-sm text-gray-600 dark:text-gray-400"
+      >
+        <input
+          v-model="rememberMe"
+          type="checkbox"
+          class="size-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
+        />
+        Keep me signed in
+      </label>
+
+      <Button type="submit" class="w-full justify-center" :disabled="isSubmitting">
+        <LoaderCircle v-if="isSubmitting" class="size-4 animate-spin" />
+        {{ isSubmitting ? 'Signing in...' : 'Sign in' }}
+      </Button>
+    </form>
+
+    <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+      New to IT Learning Hub?
+      <router-link
+        to="/auth/register"
+        class="font-medium text-brand-600 hover:underline dark:text-brand-400"
+      >
+        Create an account
+      </router-link>
+    </p>
+  </AuthShell>
 </template>
 
 <script setup lang="ts">
@@ -114,7 +115,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Eye, EyeOff, LoaderCircle } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
 import Button from '@/components/ui/Button.vue'
-import CommonGridShape from '@/components/common/CommonGridShape.vue'
+import AuthShell from '@/components/auth/AuthShell.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()

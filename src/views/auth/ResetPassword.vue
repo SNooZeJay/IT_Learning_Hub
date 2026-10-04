@@ -1,96 +1,101 @@
 <template>
-  <div class="relative isolate flex min-h-screen items-center justify-center overflow-hidden">
-    <CommonGridShape />
-
-    <div class="relative w-full max-w-md px-4 py-10">
-      <div class="mb-8 flex flex-col items-center text-center">
-        <img src="/images/logo/logo-icon.svg" alt="IT Learning Hub" class="size-12" />
-        <h1 class="mt-4 text-title-lg text-gray-900 dark:text-white/90">Choose a new password</h1>
-      </div>
-
-      <!--
+  <AuthShell title="Choose a new password">
+    <!--
         Supabase puts a recovery token in the URL fragment, not the query string.
         If it is missing there is no recovery session, so submitting a new
         password could never succeed. Say that plainly instead of showing a form
         that silently fails.
       -->
-      <Alert
-        v-if="!hasRecoverySession"
-        variant="warning"
-        title="This reset link is not valid"
-        message="Open the link from your email on this device. Links expire after one hour and can only be used once."
-        class="mb-5"
-      />
-      <Alert
-        v-if="saved"
-        variant="success"
-        title="Password updated"
-        message="You are signed in with your new password."
-        class="mb-5"
-      />
-      <Alert
-        v-else-if="errorMessage"
-        variant="error"
-        title="Could not update your password"
-        :message="errorMessage"
-        class="mb-5"
-      />
+    <Alert
+      v-if="!hasRecoverySession"
+      variant="warning"
+      title="This reset link is not valid"
+      message="Open the link from your email on this device. Links expire after one hour and can only be used once."
+      class="mb-5"
+    />
+    <Alert
+      v-if="saved"
+      variant="success"
+      title="Password updated"
+      message="You are signed in with your new password."
+      class="mb-5"
+    />
+    <Alert
+      v-else-if="errorMessage"
+      variant="error"
+      title="Could not update your password"
+      :message="errorMessage"
+      class="mb-5"
+    />
 
-      <form v-if="hasRecoverySession && !saved" class="flex flex-col gap-5" novalidate @submit.prevent="handleSubmit">
-        <div>
-          <label for="password" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            New password
-          </label>
-          <input
-            id="password"
-            v-model="password"
-            type="password"
-            name="password"
-            autocomplete="new-password"
-            required
-            :class="inputClass"
-            :aria-invalid="Boolean(fieldErrors.password)"
-          />
-          <p v-if="fieldErrors.password" class="mt-1.5 text-xs text-error-600 dark:text-error-400">
-            {{ fieldErrors.password }}
-          </p>
-        </div>
-
-        <div>
-          <label for="confirmPassword" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Confirm new password
-          </label>
-          <input
-            id="confirmPassword"
-            v-model="confirmPassword"
-            type="password"
-            name="confirmPassword"
-            autocomplete="new-password"
-            required
-            :class="inputClass"
-            :aria-invalid="Boolean(fieldErrors.confirmPassword)"
-          />
-          <p v-if="fieldErrors.confirmPassword" class="mt-1.5 text-xs text-error-600 dark:text-error-400">
-            {{ fieldErrors.confirmPassword }}
-          </p>
-        </div>
-
-        <Button type="submit" class="w-full justify-center" :disabled="isSubmitting">
-          <LoaderCircle v-if="isSubmitting" class="size-4 animate-spin" />
-          {{ isSubmitting ? 'Saving...' : 'Save new password' }}
-        </Button>
-      </form>
-
-      <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-        <router-link
-          to="/auth/login"
-          class="font-medium text-brand-600 hover:underline dark:text-brand-400"
+    <form
+      v-if="hasRecoverySession && !saved"
+      class="flex flex-col gap-5"
+      novalidate
+      @submit.prevent="handleSubmit"
+    >
+      <div>
+        <label
+          for="password"
+          class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
         >
-          Back to sign in
-        </router-link>
-      </p>
-    </div>
-  </div>
+          New password
+        </label>
+        <input
+          id="password"
+          v-model="password"
+          type="password"
+          name="password"
+          autocomplete="new-password"
+          required
+          :class="inputClass"
+          :aria-invalid="Boolean(fieldErrors.password)"
+        />
+        <p v-if="fieldErrors.password" class="mt-1.5 text-xs text-error-600 dark:text-error-400">
+          {{ fieldErrors.password }}
+        </p>
+      </div>
+
+      <div>
+        <label
+          for="confirmPassword"
+          class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          Confirm new password
+        </label>
+        <input
+          id="confirmPassword"
+          v-model="confirmPassword"
+          type="password"
+          name="confirmPassword"
+          autocomplete="new-password"
+          required
+          :class="inputClass"
+          :aria-invalid="Boolean(fieldErrors.confirmPassword)"
+        />
+        <p
+          v-if="fieldErrors.confirmPassword"
+          class="mt-1.5 text-xs text-error-600 dark:text-error-400"
+        >
+          {{ fieldErrors.confirmPassword }}
+        </p>
+      </div>
+
+      <Button type="submit" class="w-full justify-center" :disabled="isSubmitting">
+        <LoaderCircle v-if="isSubmitting" class="size-4 animate-spin" />
+        {{ isSubmitting ? 'Saving...' : 'Save new password' }}
+      </Button>
+    </form>
+
+    <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+      <router-link
+        to="/auth/login"
+        class="font-medium text-brand-600 hover:underline dark:text-brand-400"
+      >
+        Back to sign in
+      </router-link>
+    </p>
+  </AuthShell>
 </template>
 
 <script setup lang="ts">
@@ -98,7 +103,7 @@ import { onMounted, ref } from 'vue'
 import { LoaderCircle } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
 import Button from '@/components/ui/Button.vue'
-import CommonGridShape from '@/components/common/CommonGridShape.vue'
+import AuthShell from '@/components/auth/AuthShell.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
