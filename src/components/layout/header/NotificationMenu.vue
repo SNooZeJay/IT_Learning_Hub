@@ -113,88 +113,21 @@ const dropdownOpen = ref(false)
 const notifying = ref(true)
 const dropdownRef = ref<HTMLElement | null>(null)
 
-const notifications = ref([
-  {
-    id: 1,
-    userName: 'Terry Franci',
-    userImage: '/images/user/user-02.jpg',
-    action: 'requests permission to change',
-    project: 'Project - Nganter App',
-    type: 'Project',
-    time: '5 min ago',
-    status: 'online',
-  },
-  {
-    id: 2,
-    userName: 'Terry Franci',
-    userImage: '/images/user/user-03.jpg',
-    action: 'requests permission to change',
-    project: 'Project - Nganter App',
-    type: 'Project',
-    time: '5 min ago',
-    status: 'offline',
-  },
-  {
-    id: 3,
-    userName: 'Terry Franci',
-    userImage: '/images/user/user-04.jpg',
-    action: 'requests permission to change',
-    project: 'Project - Nganter App',
-    type: 'Project',
-    time: '5 min ago',
-    status: 'online',
-  },
-  {
-    id: 4,
-    userName: 'Terry Franci',
-    userImage: '/images/user/user-05.jpg',
-    action: 'requests permission to change',
-    project: 'Project - Nganter App',
-    type: 'Project',
-    time: '5 min ago',
-    status: 'online',
-  },
-  {
-    id: 5,
-    userName: 'Terry Franci',
-    userImage: '/images/user/user-06.jpg',
-    action: 'requests permission to change',
-    project: 'Project - Nganter App',
-    type: 'Project',
-    time: '5 min ago',
-    status: 'offline',
-  },
-  {
-    id: 6,
-    userName: 'Terry Franci',
-    userImage: '/images/user/user-07.jpg',
-    action: 'requests permission to change',
-    project: 'Project - Nganter App',
-    type: 'Project',
-    time: '5 min ago',
-    status: 'online',
-  },
-  {
-    id: 7,
-    userName: 'Terry Franci',
-    userImage: '/images/user/user-08.jpg',
-    action: 'requests permission to change',
-    project: 'Project - Nganter App',
-    type: 'Project',
-    time: '5 min ago',
-    status: 'online',
-  },
-  {
-    id: 7,
-    userName: 'Terry Franci',
-    userImage: '/images/user/user-09.jpg',
-    action: 'requests permission to change',
-    project: 'Project - Nganter App',
-    type: 'Project',
-    time: '5 min ago',
-    status: 'online',
-  },
-])
+// Empty by design. The notifications table is not built yet, and inventing
+// eight named people with fake project names is indistinguishable from real
+// data at a glance. The bell renders a zero state until it is wired.
+interface NotificationItem {
+  id: number
+  userName: string
+  userImage: string
+  action: string
+  project: string
+  type: string
+  time: string
+  status: string
+}
+
+const notifications = ref<NotificationItem[]>([])
 
 const toggleDropdown = () => {
   dropdownOpen.value = !dropdownOpen.value

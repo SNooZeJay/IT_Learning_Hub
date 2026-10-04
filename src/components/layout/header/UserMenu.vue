@@ -7,10 +7,15 @@
       type="button"
     >
       <span class="h-11 w-11 shrink-0 overflow-hidden rounded-full ltr:mr-3 rtl:ml-3">
-        <img src="/images/user/owner.png" alt="User" class="h-full w-full object-cover" />
+        <img
+          :src="avatarUrl"
+          alt=""
+          class="h-full w-full object-cover"
+          @error="onAvatarError"
+        />
       </span>
 
-      <span class="block font-medium text-theme-sm ltr:mr-1 rtl:ml-1">Musharof</span>
+      <span class="block font-medium text-theme-sm ltr:mr-1 rtl:ml-1">{{ firstName }}</span>
 
       <!-- Chevron Icon -->
       <ChevronDown
@@ -27,10 +32,10 @@
       <!-- User Info -->
       <div>
         <span class="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-          Musharof Chowdhury
+          {{ auth.profile?.fullName ?? 'Signed in' }}
         </span>
         <span class="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-          randomuser@pimjo.com
+          {{ auth.profile?.email ?? '' }}
         </span>
       </div>
 
@@ -183,6 +188,7 @@ import { CircleUser, ChevronDown, Settings, Info } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRTL } from '@/composables/useRTL'
+import { useAuthStore } from '@/stores/auth'
 
 interface Language {
   id: string
@@ -231,6 +237,17 @@ const currentLocale = ref<string>(isRtl.value ? 'ar' : 'en')
 const dropdownOpen = ref(false)
 const subDropdownOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
+/** The real signed-in identity, never the template's placeholder name. */
+const auth = useAuthStore()
+
+const firstName = computed(() => auth.profile?.fullName.split(' ')[0] ?? 'Account')
+
+/** Falls back to a neutral avatar when the profile has none, or the file 404s. */
+const avatarUrl = computed(() => auth.profile?.avatarUrl ?? '/images/user/owner.png')
+
+function onAvatarError(event: Event): void {
+  ;(event.target as HTMLImageElement).src = '/images/user/owner.png'
+}
 
 const currentLang = computed<Language>(() => {
   return languages.find((l) => l.id === currentLocale.value) || languages[0]

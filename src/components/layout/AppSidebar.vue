@@ -20,29 +20,23 @@
       ]"
     >
       <router-link to="/">
+        <!--
+          Icon plus the brand name rather than the upstream wordmark image.
+          The shipped logo.svg and logo-dark.svg are TailAdmin's trademark, and
+          this is no longer TailAdmin.
+        -->
         <img
-          v-if="isExpanded || isHovered || isMobileOpen"
-          class="dark:hidden"
-          src="/images/logo/logo.svg"
-          alt="IT Learning Hub"
-          width="150"
-          height="40"
-        />
-        <img
-          v-if="isExpanded || isHovered || isMobileOpen"
-          class="hidden dark:block"
-          src="/images/logo/logo-dark.svg"
-          alt="IT Learning Hub"
-          width="150"
-          height="40"
-        />
-        <img
-          v-else
           src="/images/logo/logo-icon.svg"
-          alt="IT Learning Hub"
+          alt=""
+          class="size-8 shrink-0"
           width="32"
           height="32"
         />
+        <span
+          v-if="isExpanded || isHovered || isMobileOpen"
+          class="ms-3 truncate text-theme-sm font-medium text-gray-900 dark:text-white/90"
+          >{{ BRAND.name }}</span
+        >
       </router-link>
     </div>
 
@@ -90,7 +84,6 @@
         </ul>
       </nav>
 
-      <SidebarWidget />
     </div>
   </aside>
 </template>
@@ -101,8 +94,7 @@ import { useRoute } from 'vue-router'
 import { MoreHorizontal } from 'lucide-vue-next'
 import { useSidebar } from '@/composables/useSidebar'
 import { useAuthStore } from '@/stores/auth'
-import { navigationFor } from '@/layouts/navigation'
-import SidebarWidget from './SidebarWidget.vue'
+import { BRAND, navigationFor } from '@/layouts/navigation'
 
 const route = useRoute()
 const auth = useAuthStore()
