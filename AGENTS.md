@@ -28,6 +28,11 @@ This is the project's **evidence** rule: *evidence, not assertion*. An unrun
 command is an open question, and an open question reported as a conclusion is the
 one failure this project cannot ship.
 
+Note the baseline is not lint-clean: the imported TailAdmin code carries 22
+pre-existing ESLint errors, mostly `vue/block-lang` and unused variables in the
+demo views. They are inherited, not newly introduced, and stage 1 of the
+foundation spec clears them. `type-check` and `build` are already clean.
+
 ## Repo Map
 
 Describes the TailAdmin baseline. The LMS target layout is section 7.2 of the
