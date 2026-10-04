@@ -23,7 +23,7 @@
       v-if="!isSupabaseConfigured"
       variant="warning"
       title="Supabase is not configured"
-      message="Copy .env.example to .env and fill in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, then restart the dev server. Nothing can load until those are set."
+      message="Copy .env.example to .env and fill in VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY, then restart the dev server. Nothing can load until those are set."
       class="mb-6"
     />
 

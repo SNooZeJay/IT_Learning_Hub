@@ -16,18 +16,18 @@ import type { Database } from './types'
  */
 
 const url = import.meta.env.VITE_SUPABASE_URL
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
 /**
  * Distinguishes "the developer has not configured the app yet" from "a Supabase
  * call failed". Without this, a missing env var surfaces as an opaque network
  * error at the first login attempt instead of an actionable message.
  */
-export const isSupabaseConfigured = Boolean(url && anonKey)
+export const isSupabaseConfigured = Boolean(url && publishableKey)
 
 if (!isSupabaseConfigured) {
   console.error(
-    '[supabase] VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are not set. ' +
+    '[supabase] VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY are not set. ' +
       'Copy .env.example to .env and fill in the values from your Supabase ' +
       'project settings. The app will not be able to authenticate until you do.',
   )
@@ -40,7 +40,7 @@ if (!isSupabaseConfigured) {
  */
 export const supabase: SupabaseClient<Database> = createClient<Database>(
   url ?? 'http://localhost:54321',
-  anonKey ?? 'public-anon-key-placeholder',
+  publishableKey ?? 'public-publishable-key-placeholder',
   {
     auth: {
       // Supabase persists the session in localStorage and refreshes it for us,
