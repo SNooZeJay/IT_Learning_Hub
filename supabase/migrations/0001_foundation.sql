@@ -371,6 +371,27 @@ as $$
     )
 $$;
 
+-- Extracts the course id from a Storage object key of the shape
+-- `{course_id}/{lesson_id}/{filename}`.
+--
+-- Returns NULL instead of raising when the key does not start with a UUID. A
+-- cast in a policy would abort the whole query for one malformed object, which
+-- would make the bucket unlistable rather than merely hiding that object. NULL
+-- flows into is_enrolled_in(NULL) / is_instructor_of(NULL), which match no rows
+-- and therefore fail closed.
+create or replace function public.course_id_from_object_name(object_name text)
+returns uuid
+language plpgsql
+immutable
+set search_path = public, storage, pg_temp
+as $$
+begin
+  return ((storage.foldername(object_name))[1])::uuid;
+exception
+  when others then return null;
+end;
+$$;
+
 -- Blocks privilege escalation.
 --
 -- RLS cannot restrict a single column, so "a student may update their profile
@@ -417,20 +438,39 @@ create trigger guard_profile_privileges
 --
 -- Enabled on every table before any policy is written, so there is no window in
 -- which a table is readable but has no policy yet.
+--
+-- Written out one statement per table rather than as a DO loop on purpose:
+-- Supabase's SQL linter cannot follow a loop, so it reports "creates tables
+-- without enabling Row Level Security" and asks you to confirm. Spelling the
+-- statements out means the check sees them, a typo'd table name fails loudly
+-- instead of silently skipping a table, and grep finds every one.
+--
+-- `force row level security` is deliberately NOT set. It would subject the table
+-- owner to RLS, and the owner is postgres, which every helper function below
+-- runs as. That turns this call chain into infinite recursion:
+--
+--   current_role()            reads profiles
+--     -> profiles SELECT policy
+--       -> can_view_profile() -> is_admin() -> current_role() -> ...
+--
+-- Postgres aborts that with "infinite recursion detected in policy", which
+-- breaks every authorisation check on the platform. It would also block
+-- handle_new_user(), whose INSERT depends on the same owner bypass.
+-- FORCE protects against a compromised table owner, which is not a threat here:
+-- the owner is already trusted, and anon/authenticated are always subject to
+-- RLS whether or not it is set.
 -- ---------------------------------------------------------------------------
 
-do $$
-declare t text;
-begin
-  foreach t in array array[
-    'profiles', 'course_categories', 'courses', 'course_instructors',
-    'modules', 'lessons', 'lesson_materials', 'enrollments',
-    'lesson_progress', 'payments'
-  ] loop
-    execute format('alter table public.%I enable row level security', t);
-    execute format('alter table public.%I force row level security', t);
-  end loop;
-end $$;
+alter table public.profiles enable row level security;
+alter table public.course_categories enable row level security;
+alter table public.courses enable row level security;
+alter table public.course_instructors enable row level security;
+alter table public.modules enable row level security;
+alter table public.lessons enable row level security;
+alter table public.lesson_materials enable row level security;
+alter table public.enrollments enable row level security;
+alter table public.lesson_progress enable row level security;
+alter table public.payments enable row level security;
 
 -- ---- profiles -------------------------------------------------------------
 -- Reading: your own row, everyone if admin, or a student sharing a course with
@@ -740,7 +780,7 @@ create policy "users upload own avatar" on storage.objects
   for insert to authenticated
   with check (
     bucket_id = 'avatars'
-    and (storage.foldername(name))[1] = auth.uid()::text
+    and public.course_id_from_object_name(name) = auth.uid()
   );
 
 drop policy if exists "users update own avatar" on storage.objects;
@@ -748,7 +788,7 @@ create policy "users update own avatar" on storage.objects
   for update to authenticated
   using (
     bucket_id = 'avatars'
-    and (storage.foldername(name))[1] = auth.uid()::text
+    and public.course_id_from_object_name(name) = auth.uid()
   );
 
 -- lesson-materials is private and served through signed URLs.
@@ -762,7 +802,7 @@ create policy "enrolled read lesson materials" on storage.objects
   for select to authenticated
   using (
     bucket_id = 'lesson-materials'
-    and public.is_enrolled_in(((storage.foldername(name))[1])::uuid)
+    and public.is_enrolled_in(public.course_id_from_object_name(name))
   );
 
 drop policy if exists "instructors upload lesson materials" on storage.objects;
@@ -770,7 +810,7 @@ create policy "instructors upload lesson materials" on storage.objects
   for insert to authenticated
   with check (
     bucket_id = 'lesson-materials'
-    and public.is_instructor_of(((storage.foldername(name))[1])::uuid)
+    and public.is_instructor_of(public.course_id_from_object_name(name))
   );
 
 drop policy if exists "admins manage submission bucket" on storage.objects;
