@@ -34,8 +34,8 @@
   </button>
 </template>
 
-<script setup>
-import { useTheme } from '../layout/ThemeProvider.vue'
+<script setup lang="ts">
+import { useTheme } from '@/composables/useTheme'
 
 const { toggleTheme } = useTheme()
 </script>

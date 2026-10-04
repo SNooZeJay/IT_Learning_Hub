@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap')
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&display=swap')
 layer(base);
 
 @import 'tailwindcss';
@@ -6,8 +6,29 @@ layer(base);
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+  /* IBM Plex Sans. Carbon sets display type at weight 300, so headings use
+     font-light and body copy 400. --font-outfit is kept as an alias so the
+     build never breaks while components migrate across; it is not a second
+     typeface. See AGENTS.md. */
   --font-*: initial;
-  --font-outfit: Outfit, sans-serif;
+  --font-plex: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-outfit: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Carbon geometry: flat-square. Everything caps at 4px. --radius-full stays
+     for avatars and status dots, which are circles by intent rather than
+     decoration. */
+  --radius-*: initial;
+  --radius-none: 0px;
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-2xl: 4px;
+  --radius-3xl: 4px;
+  --radius-full: 9999px;
 
   --breakpoint-*: initial;
   --breakpoint-2xsm: 375px;
@@ -41,58 +62,36 @@ layer(base);
   --color-white: #ffffff;
   --color-black: #101828;
 
-  --color-brand-25: #f2f7ff;
-  --color-brand-50: #ecf3ff;
-  --color-brand-100: #dde9ff;
-  --color-brand-200: #c2d6ff;
-  --color-brand-300: #9cb9ff;
-  --color-brand-400: #7592ff;
-  --color-brand-500: #465fff;
-  --color-brand-600: #3641f5;
-  --color-brand-700: #2a31d8;
-  --color-brand-800: #252dae;
-  --color-brand-900: #262e89;
-  --color-brand-950: #161950;
+  --color-brand-25: #f5faff;
+  --color-brand-50: #edf5ff;
+  --color-brand-100: #e0efff;
+  --color-brand-200: #c6e0ff;
+  --color-brand-300: #a6c8ff;
+  --color-brand-400: #4589ff;
+  --color-brand-500: #0f62fe;
+  --color-brand-600: #0353e9;
+  --color-brand-700: #0043ce;
+  --color-brand-800: #002d9c;
+  --color-brand-900: #001d6c;
+  --color-brand-950: #000d2d;
 
-  --color-blue-light-25: #f5fbff;
-  --color-blue-light-50: #f0f9ff;
-  --color-blue-light-100: #e0f2fe;
-  --color-blue-light-200: #b9e6fe;
-  --color-blue-light-300: #7cd4fd;
-  --color-blue-light-400: #36bffa;
-  --color-blue-light-500: #0ba5ec;
-  --color-blue-light-600: #0086c9;
-  --color-blue-light-700: #026aa2;
-  --color-blue-light-800: #065986;
-  --color-blue-light-900: #0b4a6f;
-  --color-blue-light-950: #062c41;
 
-  --color-gray-25: #fcfcfd;
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f2f4f7;
-  --color-gray-200: #e4e7ec;
-  --color-gray-300: #d0d5dd;
-  --color-gray-400: #98a2b3;
-  --color-gray-500: #667085;
-  --color-gray-600: #475467;
-  --color-gray-700: #344054;
-  --color-gray-800: #1d2939;
-  --color-gray-900: #101828;
-  --color-gray-950: #0c111d;
-  --color-gray-dark: #1a2231;
 
-  --color-orange-25: #fffaf5;
-  --color-orange-50: #fff6ed;
-  --color-orange-100: #ffead5;
-  --color-orange-200: #fddcab;
-  --color-orange-300: #feb273;
-  --color-orange-400: #fd853a;
-  --color-orange-500: #fb6514;
-  --color-orange-600: #ec4a0a;
-  --color-orange-700: #c4320a;
-  --color-orange-800: #9c2a10;
-  --color-orange-900: #7e2410;
-  --color-orange-950: #511c10;
+  --color-gray-25: #fafafa;
+  --color-gray-50: #f4f4f4;
+  --color-gray-100: #e0e0e0;
+  --color-gray-200: #c6c6c6;
+  --color-gray-300: #a8a8a8;
+  --color-gray-400: #8d8d8d;
+  --color-gray-500: #6f6f6f;
+  --color-gray-600: #525252;
+  --color-gray-700: #393939;
+  --color-gray-800: #262626;
+  --color-gray-900: #161616;
+  --color-gray-950: #000000;
+  --color-gray-dark: #262626;
+
+
 
   --color-success-25: #f6fef9;
   --color-success-50: #ecfdf3;
@@ -100,9 +99,9 @@ layer(base);
   --color-success-200: #a6f4c5;
   --color-success-300: #6ce9a6;
   --color-success-400: #32d583;
-  --color-success-500: #12b76a;
-  --color-success-600: #039855;
-  --color-success-700: #027a48;
+  --color-success-500: #24a148;
+  --color-success-600: #198038;
+  --color-success-700: #0e6027;
   --color-success-800: #05603a;
   --color-success-900: #054f31;
   --color-success-950: #053321;
@@ -113,9 +112,9 @@ layer(base);
   --color-error-200: #fecdca;
   --color-error-300: #fda29b;
   --color-error-400: #f97066;
-  --color-error-500: #f04438;
-  --color-error-600: #d92d20;
-  --color-error-700: #b42318;
+  --color-error-500: #da1e28;
+  --color-error-600: #ba1b23;
+  --color-error-700: #a2191f;
   --color-error-800: #912018;
   --color-error-900: #7a271a;
   --color-error-950: #55160c;
@@ -126,9 +125,9 @@ layer(base);
   --color-warning-200: #fedf89;
   --color-warning-300: #fec84b;
   --color-warning-400: #fdb022;
-  --color-warning-500: #f79009;
+  --color-warning-500: #f1c21b;
   --color-warning-600: #dc6803;
-  --color-warning-700: #b54708;
+  --color-warning-700: #8e6a00;
   --color-warning-800: #93370d;
   --color-warning-900: #7a2e0e;
   --color-warning-950: #4e1d09;
@@ -145,8 +144,8 @@ layer(base);
   --shadow-theme-xs: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
   --shadow-theme-xl:
     0px 20px 24px -4px rgba(16, 24, 40, 0.08), 0px 8px 8px -4px rgba(16, 24, 40, 0.03);
-  --shadow-datepicker: -5px 0 0 #262d3c, 5px 0 0 #262d3c;
-  --shadow-focus-ring: 0px 0px 0px 4px rgba(70, 95, 255, 0.12);
+  --shadow-datepicker: -5px 0 0 #393939, 5px 0 0 #393939;
+  --shadow-focus-ring: 0px 0px 0px 2px rgba(15, 98, 254, 0.35);
   --shadow-slider-navigation:
     0px 1px 2px 0px rgba(16, 24, 40, 0.1), 0px 1px 3px 0px rgba(16, 24, 40, 0.1);
   --shadow-tooltip:
@@ -789,7 +788,7 @@ html.dark full-calendar,
   @apply border-brand-50 bg-brand-50;
 }
 .event-fc-color.fc-bg-warning {
-  @apply border-orange-50 bg-orange-50;
+  @apply border-warning-50 bg-warning-50;
 }
 .event-fc-color.fc-bg-success .fc-daygrid-event-dot {
   @apply bg-success-500;
@@ -801,7 +800,7 @@ html.dark full-calendar,
   @apply bg-brand-500;
 }
 .event-fc-color.fc-bg-warning .fc-daygrid-event-dot {
-  @apply bg-orange-500;
+  @apply bg-warning-500;
 }
 .fc-direction-ltr .fc-timegrid-slot-label-frame {
   @apply px-3 py-1.5 text-left text-sm font-medium text-gray-500 dark:text-gray-400;
@@ -883,7 +882,7 @@ html.dark full-calendar,
 }
 
 .form-check-warning .form-check-input:checked ~ span {
-  @apply border-orange-500 dark:border-orange-500;
+  @apply border-warning-500 dark:border-warning-500;
 }
 
 .taskCheckbox:checked ~ .box span {

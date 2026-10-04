@@ -6,9 +6,10 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
+<script setup lang="ts">
+import { ref } from 'vue'
 import VueApexCharts from 'vue3-apexcharts'
+import type { ApexOptions } from 'apexcharts'
 
 const series = ref([
   {
@@ -17,10 +18,10 @@ const series = ref([
   },
 ])
 
-const chartOptions = ref({
-  colors: ['#465fff'],
+const chartOptions = ref<ApexOptions>({
+  colors: ['#0f62fe'],
   chart: {
-    fontFamily: 'Outfit, sans-serif',
+    fontFamily: "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif",
     type: 'bar',
     toolbar: {
       show: false,
@@ -30,7 +31,8 @@ const chartOptions = ref({
     bar: {
       horizontal: false,
       columnWidth: '39%',
-      borderRadius: 5,
+      // Carbon is flat-square: 0 rather than a rounded bar cap.
+      borderRadius: 0,
       borderRadiusApplication: 'end',
     },
   },
@@ -68,13 +70,18 @@ const chartOptions = ref({
     show: true,
     position: 'top',
     horizontalAlign: 'left',
-    fontFamily: 'Outfit',
+    fontFamily: "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif",
     markers: {
-      radius: 99,
+      // Apex v7 renamed marker.radius to marker.size.
+      size: 6,
     },
   },
   yaxis: {
-    title: false,
+    // A boolean is not a valid ApexYAxis. Omitting the axis entirely is how you
+    // hide a title in v7.
+    labels: {
+      show: true,
+    },
   },
   grid: {
     yaxis: {
@@ -91,7 +98,7 @@ const chartOptions = ref({
       show: false,
     },
     y: {
-      formatter: function (val) {
+      formatter: function (val: number) {
         return val.toString()
       },
     },

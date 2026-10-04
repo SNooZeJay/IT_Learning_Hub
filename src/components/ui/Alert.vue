@@ -25,8 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { SuccessIcon, ErrorIcon, WarningIcon, InfoCircleIcon } from '@/icons'
-import { computed } from 'vue'
+import { CircleCheck, CircleX, TriangleAlert, Info } from 'lucide-vue-next'
 
 interface AlertProps {
   variant: 'success' | 'error' | 'warning' | 'info'
@@ -37,7 +36,7 @@ interface AlertProps {
   linkText?: string
 }
 
-const props = withDefaults(defineProps<AlertProps>(), {
+withDefaults(defineProps<AlertProps>(), {
   showLink: false,
   linkHref: '#',
   linkText: 'Learn more',
@@ -58,15 +57,15 @@ const variantClasses = {
   },
   info: {
     container:
-      'border-blue-light-500 bg-blue-light-50 dark:border-blue-light-500/30 dark:bg-blue-light-500/15',
-    icon: 'text-blue-light-500',
+      'border-brand-500 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/15',
+    icon: 'text-brand-500',
   },
 }
 
 const icons = {
-  success: SuccessIcon,
-  error: ErrorIcon,
-  warning: WarningIcon,
-  info: InfoCircleIcon,
+  success: CircleCheck,
+  error: CircleX,
+  warning: TriangleAlert,
+  info: Info,
 }
 </script>

@@ -29,3 +29,8 @@ coverage
 
 *.tsbuildinfo
 .vercel
+
+# Environment files. .env.example is committed as documentation;
+# every real .env stays local so credentials are never pushed.
+.env*
+!.env.example

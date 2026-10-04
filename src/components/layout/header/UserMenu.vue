@@ -13,7 +13,7 @@
       <span class="block font-medium text-theme-sm ltr:mr-1 rtl:ml-1">Musharof</span>
 
       <!-- Chevron Icon -->
-      <ChevronDownIcon
+      <ChevronDown
         class="size-5 transition-transform duration-200 text-gray-500 dark:text-gray-400"
         :class="{ 'rotate-180': dropdownOpen }"
       />
@@ -42,7 +42,7 @@
             @click="closeDropdown"
             class="group flex items-center gap-3 rounded-lg px-3 py-2 text-theme-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
           >
-            <UserCircleIcon
+            <CircleUser
               class="fill-gray-500 group-hover:fill-gray-700 dark:fill-gray-400 dark:group-hover:fill-gray-300"
             />
             Edit profile
@@ -54,7 +54,7 @@
             @click="closeDropdown"
             class="group flex items-center gap-3 rounded-lg px-3 py-2 text-theme-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
           >
-            <SettingsIcon
+            <Settings
               class="fill-gray-500 group-hover:fill-gray-700 dark:fill-gray-400 dark:group-hover:fill-gray-300"
             />
             Account settings
@@ -66,7 +66,7 @@
             @click="closeDropdown"
             class="group flex items-center gap-3 rounded-lg px-3 py-2 text-theme-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
           >
-            <InfoCircleIcon
+            <Info
               class="fill-gray-500 group-hover:fill-gray-700 dark:fill-gray-400 dark:group-hover:fill-gray-300"
             />
             Support
@@ -179,7 +179,7 @@
 </template>
 
 <script setup lang="ts">
-import { UserCircleIcon, ChevronDownIcon, SettingsIcon, InfoCircleIcon } from '@/icons'
+import { CircleUser, ChevronDown, Settings, Info } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRTL } from '@/composables/useRTL'
