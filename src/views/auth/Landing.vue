@@ -19,13 +19,13 @@
           <ThemeToggleButton class="me-1" />
           <router-link
             to="/auth/login"
-            class="rounded px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.06]"
+            class="rounded-md px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.06]"
           >
             Sign in
           </router-link>
           <router-link
             to="/auth/register"
-            class="rounded bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600"
+            class="rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600"
           >
             Get started
           </router-link>
@@ -33,53 +33,64 @@
       </div>
     </header>
 
-    <!-- Hero -->
-    <section class="mx-auto max-w-(--breakpoint-2xl) px-4 py-14 md:px-6 md:py-20">
-      <div class="grid items-center gap-10 lg:grid-cols-2">
-        <div>
-          <p
-            class="mb-3 inline-flex rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400"
-          >
-            {{ BRAND.tagline }}
-          </p>
-          <h1
-            class="text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl lg:text-4xl dark:text-white/90"
-          >
-            Practical IT training, taught by working instructors.
-          </h1>
-          <p class="mt-4 max-w-lg text-gray-600 dark:text-gray-400">
-            Build real skills across programming, networking and support. Enrol in a course, work
-            through the lessons at your own pace, and track how far you have come.
-          </p>
-          <div class="mt-7 flex flex-col gap-3 sm:flex-row">
-            <router-link
-              to="/auth/register"
-              class="inline-flex items-center justify-center gap-2 rounded bg-brand-500 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-brand-600"
-            >
-              Create a free account
-              <ArrowRight class="size-4" />
-            </router-link>
-            <router-link
-              to="/auth/login"
-              class="inline-flex items-center justify-center gap-2 rounded border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.06]"
-            >
-              Sign in
-            </router-link>
-          </div>
-        </div>
+    <!--
+      Hero, on Notion's deep navy band.
 
-        <div class="hidden lg:block">
-          <CommonGridShape />
+      This is the signature surface of the Notion system: navy background, white
+      display type at weight 600, and the purple reserved for the single dominant
+      CTA. The secondary action is an outlined button rather than a second filled
+      one, so purple keeps its meaning as "the thing to click".
+
+      Text colours are written as white with explicit opacity rather than as gray
+      tokens, because the gray ramp is tuned for light surfaces and picks up a
+      warm cast that would look muddy on navy.
+    -->
+    <section class="bg-navy">
+      <div class="mx-auto max-w-(--breakpoint-2xl) px-4 py-16 md:px-6 md:py-24">
+        <div class="grid items-center gap-10 lg:grid-cols-2">
+          <div>
+            <p
+              class="mb-4 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90"
+            >
+              {{ BRAND.tagline }}
+            </p>
+            <h1 class="text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
+              Practical IT training, taught by working instructors.
+            </h1>
+            <p class="mt-4 max-w-lg text-base text-white/70">
+              Build real skills across programming, networking and support. Enrol in a course, work
+              through the lessons at your own pace, and track how far you have come.
+            </p>
+            <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+              <router-link
+                to="/auth/register"
+                class="inline-flex items-center justify-center gap-2 rounded-md bg-brand-500 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-brand-400"
+              >
+                Create a free account
+                <ArrowRight class="size-4" />
+              </router-link>
+              <router-link
+                to="/auth/login"
+                class="inline-flex items-center justify-center gap-2 rounded-md border border-white/30 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-white/10"
+              >
+                Sign in
+              </router-link>
+            </div>
+          </div>
+
+          <div class="hidden lg:block">
+            <CommonGridShape />
+          </div>
         </div>
       </div>
     </section>
 
     <!-- Course catalogue -->
     <section
-      class="border-t border-gray-200 bg-gray-50 py-14 dark:border-gray-800 dark:bg-gray-900/40"
+      class="border-t border-hairline bg-surface py-14 dark:border-gray-800 dark:bg-gray-900/40"
     >
       <div class="mx-auto max-w-(--breakpoint-2xl) px-4 md:px-6">
-        <h2 class="text-title-md text-gray-900 dark:text-white/90">Course catalogue</h2>
+        <h2 class="text-title-md text-ink dark:text-white/90">Course catalogue</h2>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Every published course is listed here. Sign in to enrol.
         </p>

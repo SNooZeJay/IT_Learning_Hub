@@ -1,7 +1,11 @@
 <template>
   <button
     :class="[
-      'inline-flex items-center justify-center font-medium gap-2 rounded-lg transition',
+      // rounded-md, not rounded-lg. Notion gives buttons 8px and cards 12px.
+      // The previous scale could not express that, because every radius resolved
+      // to 4px, so buttons and cards looked identical. Now that both values
+      // exist, this component is the one place the distinction is enforced.
+      'inline-flex items-center justify-center font-medium gap-2 rounded-md transition',
       sizeClasses[size],
       variantClasses[variant],
       className,
@@ -21,7 +25,6 @@
 </template>
 
 <script setup lang="ts">
-
 interface ButtonProps {
   size?: 'sm' | 'md'
   variant?: 'primary' | 'outline'

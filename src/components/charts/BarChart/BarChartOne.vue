@@ -19,9 +19,10 @@ const series = ref([
 ])
 
 const chartOptions = ref<ApexOptions>({
-  colors: ['#0f62fe'],
+  colors: ['#5645d4'],
   chart: {
-    fontFamily: "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif",
+    fontFamily:
+      "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
     type: 'bar',
     toolbar: {
       show: false,
@@ -70,7 +71,8 @@ const chartOptions = ref<ApexOptions>({
     show: true,
     position: 'top',
     horizontalAlign: 'left',
-    fontFamily: "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif",
+    fontFamily:
+      "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
     markers: {
       // Apex v7 renamed marker.radius to marker.size.
       size: 6,

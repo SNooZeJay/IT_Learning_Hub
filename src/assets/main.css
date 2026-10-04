@@ -24,18 +24,27 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
-  /* Carbon geometry: flat-square. Everything caps at 4px. --radius-full stays
-     for avatars and status dots, which are circles by intent rather than
-     decoration. */
+  /* Notion's radius scale. This is the single most visible change from Carbon,
+     which capped every corner at 4px.
+
+     Note that buttons and cards do NOT share a radius in Notion: buttons are 8px
+     (rounded.md) and cards are 12px (rounded.lg). The previous scale could not
+     express that, because every radius resolved to the same 4px. Both values
+     exist now, and `Button.vue` uses `rounded-md` while cards keep `rounded-lg`,
+     so the distinction holds without editing the ~90 call sites that use
+     rounded-lg.
+
+     --radius-full is retained for avatars, toggle switches, radio dots and
+     status badges. Notion uses pills for those too — just not for buttons. */
   --radius-*: initial;
   --radius-none: 0px;
-  --radius-xs: 1px;
-  --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 4px;
-  --radius-xl: 4px;
-  --radius-2xl: 4px;
-  --radius-3xl: 4px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
   --radius-full: 9999px;
 
   --breakpoint-*: initial;
@@ -91,34 +100,101 @@
   --color-current: currentColor;
   --color-transparent: transparent;
   --color-white: #ffffff;
-  --color-black: #101828;
+  --color-black: #000000;
 
-  --color-brand-25: #f5faff;
-  --color-brand-50: #edf5ff;
-  --color-brand-100: #e0efff;
-  --color-brand-200: #c6e0ff;
-  --color-brand-300: #a6c8ff;
-  --color-brand-400: #4589ff;
-  --color-brand-500: #0f62fe;
-  --color-brand-600: #0353e9;
-  --color-brand-700: #0043ce;
-  --color-brand-800: #002d9c;
-  --color-brand-900: #001d6c;
-  --color-brand-950: #000d2d;
+  /* Notion purple, as a full ramp so `brand-500/600/700` keep working.
 
-  --color-gray-25: #fafafa;
-  --color-gray-50: #f4f4f4;
-  --color-gray-100: #e0e0e0;
-  --color-gray-200: #c6c6c6;
-  --color-gray-300: #a8a8a8;
-  --color-gray-400: #8d8d8d;
-  --color-gray-500: #6f6f6f;
-  --color-gray-600: #525252;
-  --color-gray-700: #393939;
-  --color-gray-800: #262626;
-  --color-gray-900: #161616;
-  --color-gray-950: #000000;
-  --color-gray-dark: #262626;
+     #5645d4 is the token values are chosen from: Notion's signature primary.
+     Notion's own DESIGN.md calls this the colour reserved for "the dominant CTA
+     only", and warns against using it for body text or large background
+     surfaces. The shades below are interpolated from that one anchor so that
+     every existing `brand-*` class in several hundred inherited TailAdmin
+     components lands on a coherent purple rather than a blue.
+
+     brand-600 is Notion's primary-pressed, brand-700 is primary-deep, both taken
+     verbatim from the spec rather than eyeballed.
+
+     One deliberate deviation: Notion keeps inline links on link-blue #0075de
+     because purple is reserved for the CTA. Here `brand-600` is what the
+     inherited components use for links, so forcing blue would mean editing every
+     link in the codebase. The purple is used more widely than Notion intends;
+     worth revisiting if link contrast against brand CTAs ever becomes an issue. */
+  --color-brand-25: #f7f6fd;
+  --color-brand-50: #efedfa;
+  --color-brand-100: #ddd9f4;
+  --color-brand-200: #c4bdea;
+  --color-brand-300: #a294e0;
+  --color-brand-400: #7c69d8;
+  --color-brand-500: #5645d4;
+  --color-brand-600: #4534b3;
+  --color-brand-700: #3a2a99;
+  --color-brand-800: #2c216b;
+  --color-brand-900: #1f1849;
+  --color-brand-950: #120d26;
+
+  /* Notion's warm-charcoal neutrals.
+
+     These are visibly warm against the old Carbon greys, which were neutral to
+     the point of blue. Warmth is most of what makes Notion read as Notion: the
+     canvas sits at #f6f5f4 rather than pure white on section bands, borders are
+     warm hairlines rather than grey rules, and body text is #1a1a1a against
+     #37352f for emphasis.
+
+     Dark mode reuses the same ramp. --color-gray-900 is Notion's ink (#1a1a1a)
+     and gray-800 its charcoal (#37352f), so the dark surfaces are warm too
+     rather than the neutral #161616/#262626 the old build shipped. */
+  --color-gray-25: #fafaf9;
+  --color-gray-50: #f6f5f4;
+  --color-gray-100: #f0efed;
+  --color-gray-200: #e5e3df;
+  --color-gray-300: #d4d1cb;
+  --color-gray-400: #a4a097;
+  --color-gray-500: #787671;
+  --color-gray-600: #5d5b54;
+  --color-gray-700: #45443e;
+  --color-gray-800: #37352f;
+  --color-gray-900: #1a1a1a;
+  --color-gray-950: #0d0d0c;
+  --color-gray-dark: #37352f;
+
+  /* Named aliases for the Notion palette.
+
+     The gray ramp above is the numeric scale that the inherited TailAdmin
+     components already reference, so it cannot be renamed. These give the
+     documented Notion token names real Tailwind utilities, which means a token
+     named in DESIGN.md can actually be written as a class.
+
+     Named, numeric, same colour. Duplication is deliberate: it keeps the
+     inherited `gray-800` and the documented `charcoal` in agreement without a
+     rename that would touch several hundred call sites. */
+  --color-ink: #1a1a1a;
+  --color-ink-deep: #000000;
+  --color-charcoal: #37352f;
+  --color-slate: #5d5b54;
+  --color-steel: #787671;
+  --color-stone: #a4a097;
+  --color-muted: #bbb8b1;
+  --color-surface: #f6f5f4;
+  --color-surface-soft: #fafaf9;
+  --color-hairline: #e5e3df;
+  --color-hairline-soft: #ede9e4;
+  --color-hairline-strong: #c8c4be;
+  --color-link-blue: #0075de;
+
+  /* Deep navy. The one dark surface on marketing pages, used for hero bands. */
+  --color-navy: #0a1530;
+  --color-navy-deep: #070f24;
+  --color-navy-mid: #1a2a52;
+
+  /* Pastel feature tints. Accent panels only — never text or body surfaces. */
+  --color-tint-peach: #ffe8d4;
+  --color-tint-rose: #fde0ec;
+  --color-tint-mint: #d9f3e1;
+  --color-tint-lavender: #e6e0f5;
+  --color-tint-sky: #dcecfa;
+  --color-tint-yellow: #fef7d6;
+  --color-tint-yellow-bold: #f9e79f;
+  --color-tint-cream: #f8f5e8;
 
   --color-success-25: #f6fef9;
   --color-success-50: #ecfdf3;
@@ -126,8 +202,8 @@
   --color-success-200: #a6f4c5;
   --color-success-300: #6ce9a6;
   --color-success-400: #32d583;
-  --color-success-500: #24a148;
-  --color-success-600: #198038;
+  --color-success-500: #1aae39;
+  --color-success-600: #158c2c;
   --color-success-700: #0e6027;
   --color-success-800: #05603a;
   --color-success-900: #054f31;
@@ -139,8 +215,8 @@
   --color-error-200: #fecdca;
   --color-error-300: #fda29b;
   --color-error-400: #f97066;
-  --color-error-500: #da1e28;
-  --color-error-600: #ba1b23;
+  --color-error-500: #e03131;
+  --color-error-600: #c62a2a;
   --color-error-700: #a2191f;
   --color-error-800: #912018;
   --color-error-900: #7a271a;
@@ -152,8 +228,8 @@
   --color-warning-200: #fedf89;
   --color-warning-300: #fec84b;
   --color-warning-400: #fdb022;
-  --color-warning-500: #f1c21b;
-  --color-warning-600: #dc6803;
+  --color-warning-500: #dd5b00;
+  --color-warning-600: #b84800;
   --color-warning-700: #8e6a00;
   --color-warning-800: #93370d;
   --color-warning-900: #7a2e0e;
@@ -172,7 +248,7 @@
   --shadow-theme-xl:
     0px 20px 24px -4px rgba(16, 24, 40, 0.08), 0px 8px 8px -4px rgba(16, 24, 40, 0.03);
   --shadow-datepicker: -5px 0 0 #393939, 5px 0 0 #393939;
-  --shadow-focus-ring: 0px 0px 0px 2px rgba(15, 98, 254, 0.35);
+  --shadow-focus-ring: 0px 0px 0px 2px rgba(86, 69, 212, 0.35);
   --shadow-slider-navigation:
     0px 1px 2px 0px rgba(16, 24, 40, 0.1), 0px 1px 3px 0px rgba(16, 24, 40, 0.1);
   --shadow-tooltip:
@@ -647,7 +723,8 @@ span.flatpickr-weekday,
   @apply hidden;
 }
 .fc-addEventButton-button {
-  @apply !rounded-lg !border-0 !bg-brand-500 !px-4 !py-2.5 !text-sm !font-medium hover:!bg-brand-600 focus:!shadow-none;
+  /* rounded-md to match Button.vue: 8px for buttons, 12px for cards. */
+  @apply !rounded-md !border-0 !bg-brand-500 !px-4 !py-2.5 !text-sm !font-medium hover:!bg-brand-600 focus:!shadow-none;
 }
 .fc-toolbar-title {
   @apply !text-lg !font-medium text-gray-800 dark:text-white/90;
@@ -1100,7 +1177,10 @@ html.dark full-calendar,
 }
 
 .edit-button {
-  @apply flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto;
+  /* Was rounded-full. Notion's geometry is rectangular-sober for buttons: pills
+     are reserved for status badges and pill tabs, which is what the remaining
+     rounded-full utilities in this file are for. */
+  @apply flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto;
 }
 
 /* Code Editor */

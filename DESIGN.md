@@ -1,30 +1,51 @@
 ---
 version: alpha
-name: Notion-typography-over-Carbon-chrome
-description: "Carbon's colour, surface and geometry, with Notion's typography. White surfaces, charcoal type, IBM Blue (#0f62fe) as the single confident accent, and a deliberately flat-square aesthetic where corners stay at 0–4px. Type runs Inter — the face Notion itself uses — at weight 600 for every display size with negative tracking that grows as the type grows, 500 for UI labels, 400 for body. Cards live as thin-bordered tiles with no shadow; sections separate via subtle gray rows. The colour system is unchanged Carbon; only the typeface and its weights are Notion's. Typography superseded IBM Plex Sans on 2026-10-05."
+name: Notion-design-analysis
+description: 'A warm-minimal workspace canvas: white and warm-grey surfaces, near-black ink, signature purple (#5645d4) reserved for the dominant CTA, and sober-editorial geometry — 8px buttons, 12px cards, pills only for badges and tabs. Type runs Inter, the face Notion itself uses, at weight 600 for every display size with negative tracking that grows as the type grows, 500 for UI labels, 400 for body. Pastel feature tints (peach, rose, mint, lavender, sky, yellow) carry accent panels; deep navy hero bands carry the landing page. Typeface superseded IBM Plex Sans, then colour, neutrals and radius superseded IBM Carbon on 2026-10-05.'
 
 colors:
-  primary: '#0f62fe'
+  primary: '#5645d4'
   on-primary: '#ffffff'
-  ink: '#161616'
-  ink-muted: '#525252'
-  ink-subtle: '#8c8c8c'
+  primary-pressed: '#4534b3'
+  primary-deep: '#3a2a99'
+  brand-navy: '#0a1530'
+  brand-navy-deep: '#070f24'
+  brand-navy-mid: '#1a2a52'
+  link-blue: '#0075de'
+  brand-orange: '#dd5b00'
+  brand-pink: '#ff64c8'
+  brand-purple: '#7b3ff2'
+  brand-teal: '#2a9d99'
+  brand-green: '#1aae39'
+  brand-yellow: '#f5d75e'
+  ink: '#1a1a1a'
+  ink-deep: '#000000'
+  charcoal: '#37352f'
+  slate: '#5d5b54'
+  steel: '#787671'
+  stone: '#a4a097'
+  muted: '#bbb8b1'
   canvas: '#ffffff'
-  surface-1: '#f4f4f4'
-  surface-2: '#e0e0e0'
-  inverse-canvas: '#161616'
-  inverse-surface-1: '#262626'
+  surface: '#f6f5f4'
+  surface-soft: '#fafaf9'
+  hairline: '#e5e3df'
+  hairline-soft: '#ede9e4'
+  hairline-strong: '#c8c4be'
+  card-tint-peach: '#ffe8d4'
+  card-tint-rose: '#fde0ec'
+  card-tint-mint: '#d9f3e1'
+  card-tint-lavender: '#e6e0f5'
+  card-tint-sky: '#dcecfa'
+  card-tint-yellow: '#fef7d6'
+  card-tint-yellow-bold: '#f9e79f'
+  card-tint-cream: '#f8f5e8'
+  inverse-canvas: '#1a1a1a'
+  inverse-surface-1: '#37352f'
   inverse-ink: '#ffffff'
-  inverse-ink-muted: '#c6c6c6'
-  hairline: '#e0e0e0'
-  hairline-strong: '#161616'
-  blue-60: '#0043ce'
-  blue-80: '#002d9c'
-  blue-hover: '#0050e6'
-  semantic-success: '#24a148'
-  semantic-warning: '#f1c21b'
-  semantic-error: '#da1e28'
-  semantic-info: '#0f62fe'
+  inverse-ink-muted: '#a4a097'
+  semantic-success: '#1aae39'
+  semantic-warning: '#dd5b00'
+  semantic-error: '#e03131'
 
 typography:
   display-xl:
@@ -108,10 +129,13 @@ typography:
 
 rounded:
   none: 0px
-  xs: 2px
-  sm: 4px
-  md: 6px
-  lg: 8px
+  xs: 4px
+  sm: 6px
+  md: 8px
+  lg: 12px
+  xl: 16px
+  xxl: 20px
+  xxxl: 24px
   pill: 9999px
   full: 9999px
 
@@ -130,174 +154,177 @@ components:
     backgroundColor: '{colors.primary}'
     textColor: '{colors.on-primary}'
     typography: '{typography.button}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 12px 16px
   button-primary-pressed:
-    backgroundColor: '{colors.blue-80}'
+    backgroundColor: '{colors.primary-pressed}'
     textColor: '{colors.on-primary}'
     typography: '{typography.button}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
   button-secondary:
     backgroundColor: '{colors.ink}'
     textColor: '{colors.inverse-ink}'
     typography: '{typography.button}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 12px 16px
   button-tertiary:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.primary}'
     typography: '{typography.button}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 12px 16px
   button-ghost:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.primary}'
     typography: '{typography.button}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 12px 16px
   button-danger:
     backgroundColor: '{colors.semantic-error}'
     textColor: '{colors.on-primary}'
     typography: '{typography.button}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 12px 16px
   feature-card:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
     typography: '{typography.body}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 24px
   feature-card-elevated:
-    backgroundColor: '{colors.surface-1}'
+    backgroundColor: '{colors.surface}'
     textColor: '{colors.ink}'
     typography: '{typography.body}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 24px
   product-card:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
     typography: '{typography.body}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 32px
   hero-card:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
     typography: '{typography.display-md}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 48px
   cta-banner:
     backgroundColor: '{colors.primary}'
     textColor: '{colors.on-primary}'
     typography: '{typography.headline}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 48px
   text-input:
-    backgroundColor: '{colors.surface-1}'
+    backgroundColor: '{colors.surface}'
     textColor: '{colors.ink}'
     typography: '{typography.body}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 11px 16px
   text-input-focused:
-    backgroundColor: '{colors.surface-1}'
+    backgroundColor: '{colors.surface}'
     textColor: '{colors.ink}'
     typography: '{typography.body}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 11px 16px
   text-input-error:
-    backgroundColor: '{colors.surface-1}'
+    backgroundColor: '{colors.surface}'
     textColor: '{colors.ink}'
     typography: '{typography.body}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 11px 16px
   newsletter-input:
-    backgroundColor: '{colors.surface-1}'
+    backgroundColor: '{colors.surface}'
     textColor: '{colors.ink}'
     typography: '{typography.body}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 11px 16px
   product-tab:
     backgroundColor: '{colors.canvas}'
-    textColor: '{colors.ink-muted}'
+    textColor: '{colors.slate}'
     typography: '{typography.body-sm}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 16px 20px
   product-tab-selected:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
     typography: '{typography.body-emphasis}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 16px 20px
   resource-tile:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
     typography: '{typography.body-sm}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 16px
   customer-logo-tile:
     backgroundColor: '{colors.canvas}'
-    textColor: '{colors.ink-muted}'
+    textColor: '{colors.slate}'
     typography: '{typography.caption}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 24px
   top-nav:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
     typography: '{typography.body-sm}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     height: 48px
   utility-bar:
-    backgroundColor: '{colors.surface-1}'
-    textColor: '{colors.ink-muted}'
+    backgroundColor: '{colors.surface}'
+    textColor: '{colors.slate}'
     typography: '{typography.caption}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     height: 32px
   footer:
     backgroundColor: '{colors.inverse-canvas}'
     textColor: '{colors.inverse-ink-muted}'
     typography: '{typography.body-sm}'
-    rounded: '{rounded.none}'
+    rounded: '{rounded.md}'
     padding: 64px 32px
 ---
 
 ## Overview
 
-IBM's marketing system is a faithful application of **Carbon Design System** — IBM's open-source enterprise design system. The dominant surface is `{colors.canvas}` pure white with `{colors.surface-1}` light gray for elevation, charcoal `{colors.ink}` (#161616) for text, and IBM Blue `{colors.primary}` (#0f62fe) as the single brand accent.
+Notion presents itself as a confident, illustration-rich workspace brand. The dominant surface is `{colors.canvas}` white with `{colors.surface}` (#f6f5f4) carrying alternate bands, `{colors.ink}` (#1a1a1a) for text, and signature purple `{colors.primary}` (#5645d4) reserved for the dominant CTA.
 
-The defining choice is **flat geometry**: every CTA, every card, every input, every container uses square corners (`{rounded.none}` 0px) with thin 1px borders. There are no rounded pills, no soft shadows, no atmospheric gradients. The system is engineered, not stylized.
+The defining choice is **warm minimalism**: the neutrals are warm rather than neutral-grey, so the canvas, the hairlines and the dark surfaces all carry a slight cast. That warmth, more than any single colour value, is what makes the system read as Notion rather than as a generic dashboard.
+
+Geometry is **sober-editorial, not pill-heavy**. Buttons are 8px rectangles (`{rounded.md}`), cards and inputs are 12px and 8px (`{rounded.lg}` / `{rounded.md}`), and pills appear only on status badges, pill tabs and avatars. Getting this wrong in either direction is immediately visible: pill buttons read as a different brand, and 0px corners read as 2015 enterprise software.
 
 **Inter** carries the entire type hierarchy. Display sizes (72 / 60 / 48px) run at weight **600**, with negative tracking that tightens as the type grows — -0.025em at 72px down to -0.01em at 36px. Body type sits at weight 400 with line-height 1.55, and UI labels at 500. Inter is the face Notion itself renders; Notion's own "Notion Sans" is a proprietary Inter fork, so Inter is the same typeface rather than an imitation of one.
 
-**Typography is the only part of this system that is Notion's.** Colour, surface, geometry and depth are all still Carbon, unchanged. The weight change is what matters most: Carbon set display type at 300, and that thin, grey rendering was the single biggest reason the interface read as unfinished. Notion holds 600 all the way to the top, which is where the weight belongs for a product a learner stares at for hours.
+Weight is what mattered most on the type. Carbon set display type at 300, and that thin, grey rendering was the single biggest reason the interface read as unfinished. Notion holds 600 all the way to the top, which is where the weight belongs for a product a learner stares at for hours. The positive `letter-spacing: 0.16px` that Carbon put on body copy has also been dropped: it is a precision detail of Plex's metrics and actively fights Inter, which is tuned to sit correctly at zero.
 
-The positive `letter-spacing: 0.16px` that Carbon put on body copy has been dropped. It is a precision detail of Plex's metrics and actively fights Inter's own spacing, which is tuned to sit correctly at zero.
-
-The system reaches for color rarely — IBM Blue marks links, primary CTAs, and the rare full-bleed CTA banner. Charcoal carries every other surface that isn't white. The result is enterprise gravitas without the enterprise stiffness: rigorous, restrained, and now set in a solid typeface.
+Colour is used deliberately but sparingly. Purple marks the dominant action. Pastel tints (peach, rose, mint, lavender, sky, yellow) carry accent panels, and the bold yellow `{colors.card-tint-yellow-bold}` is reserved for high-emphasis banners. Deep navy `{colors.brand-navy}` is the one dark surface, used for hero bands.
 
 **Key Characteristics:**
 
-- **Carbon Design System** — IBM's marketing chrome IS Carbon. Buttons are square, inputs are square-with-bottom-rule, corners stay at 0px. Unchanged.
-- **Solid display type**: Inter at weight 600 for every display size, with negative tracking above 30px. This supersedes Carbon's weight-300 signature.
-- **One accent color**: `{colors.primary}` IBM Blue carries every link, primary CTA, and CTA banner. There is no second brand color. Unchanged.
-- White canvas + light gray (`{colors.surface-1}`) + charcoal (`{colors.ink}`) cover 95% of surfaces.
-- Footer inverts to charcoal (`{colors.inverse-canvas}` #161616) — the only dark surface above the page break.
-- Card hierarchy is carried by 1px hairlines and surface change, never by drop shadow.
-- Page rhythm: utility bar → top nav → hero with a weight-600 headline → feature card grid → customer logo marquee → enterprise feature row → training section → newsletter / sign-in CTA → dark footer.
+- **Warm minimalism** — neutrals are warm-cast (`{colors.surface}` #f6f5f4, `{colors.hairline}` #e5e3df, `{colors.charcoal}` #37352f), never neutral grey. This is the single most identifying trait.
+- **Sober-editorial geometry** — buttons 8px (`{rounded.md}`), cards 12px (`{rounded.lg}`), pills only for badges, pill tabs and avatars. Both 0px and pill buttons read as a different brand.
+- **Solid display type**: Inter at weight 600 for every display size, with negative tracking above 30px. Supersedes Carbon's weight-300 signature.
+- **Purple is a signal, not a palette**: `{colors.primary}` marks the dominant CTA. Not for body text, not for large background surfaces, and never mixed with `{colors.link-blue}` for inline links, because the two have distinct roles.
+- White canvas + `{colors.surface}` + `{colors.ink}` cover 95% of surfaces; pastel tints and navy hero bands are the deliberate exceptions.
+- Card hierarchy is carried by 1px hairlines and surface change. Shadow, when used at all, is soft and low-opacity — never heavy on flat documentation cards.
+- Page rhythm: top nav → hero band (navy, centred, weight-600 headline) → feature card grid → pastel accent panels → stats strip → newsletter / sign-in CTA → light footer.
 
 ## Colors
 
-> Source pages: ibm.com (home), /software/ai-productivity, /consulting, /products/cloud-pak-for-aiops, /products/bare-metal-servers, community.ibm.com.
+> Source: notion.com marketing surfaces, per the Notion DESIGN.md in awesome-design-md. Token values are Notion's, not approximations.
 
 ### Brand & Accent
 
-- **IBM Blue** ({colors.primary}): The single brand accent. Links, primary CTAs, CTA banner backgrounds, focus rings.
-- **Blue 60** ({colors.blue-60}): Hovered link state.
-- **Blue 80** ({colors.blue-80}): Pressed primary button.
-- **Blue Hover** ({colors.blue-hover}): Hover state for primary buttons.
+- **Notion Purple** ({colors.primary}): The signature accent, reserved for the dominant CTA. Never for body text or large background surfaces.
+- **Primary Pressed** ({colors.primary-pressed}): Pressed state on the primary button.
+- **Primary Deep** ({colors.primary-deep}): Deeper emphasis.
+- **Link Blue** ({colors.link-blue}): Inline text links. Distinct from primary purple on purpose — the two have different roles and must not be interchanged.
+- **Brand Navy** ({colors.brand-navy}): Hero band background, the one dark surface on marketing pages.
+- **Pastel card tints** ({colors.card-tint-peach} through {colors.card-tint-cream}): Accent feature panels. Bold yellow {colors.card-tint-yellow-bold} for high-emphasis banners only.
+- **Warm neutrals**: charcoal {colors.charcoal} for body emphasis, slate {colors.slate} / steel {colors.steel} / stone {colors.stone} descending through the text hierarchy. The warmth is load-bearing, not incidental.
 
 ### Surface
 
 - **Canvas** ({colors.canvas}): Default page background.
-- **Surface 1** ({colors.surface-1}): Light gray (#f4f4f4) — input fields, alternate-row stripes, subtle section bands.
+- **Surface 1** ({colors.surface}): Light gray (#f4f4f4) — input fields, alternate-row stripes, subtle section bands.
 - **Surface 2** ({colors.surface-2}): Slightly darker gray (#e0e0e0) — disabled fields, hairline-as-fill for separators.
 - **Hairline** ({colors.hairline}): 1px borders on cards, inputs, dividers.
 - **Hairline Strong** ({colors.hairline-strong}): 1px charcoal underline on focused inputs (Carbon's signature focus treatment).
@@ -307,8 +334,8 @@ The system reaches for color rarely — IBM Blue marks links, primary CTAs, and 
 ### Text
 
 - **Ink** ({colors.ink}): All headlines and emphasized body type — charcoal #161616.
-- **Ink Muted** ({colors.ink-muted}): Secondary type at #525252 — meta, sub-headlines, footer body.
-- **Ink Subtle** ({colors.ink-subtle}): Tertiary type at #8c8c8c — disabled, helper text, captions.
+- **Ink Muted** ({colors.slate}): Secondary type at #525252 — meta, sub-headlines, footer body.
+- **Ink Subtle** ({colors.stone}): Tertiary type at #8c8c8c — disabled, helper text, captions.
 - **Inverse Ink** ({colors.inverse-ink}): White on charcoal — footer headings.
 - **Inverse Ink Muted** ({colors.inverse-ink-muted}): Light gray on charcoal — footer body.
 
@@ -379,7 +406,7 @@ Inter is **free and open-source** (SIL OFL license) and available on Google Font
 
 ### Whitespace Philosophy
 
-Carbon uses precise alignment to a 4-pixel grid as its whitespace system. Sections separate via thin gray rows (`{colors.surface-1}`) rather than via large vertical gaps. Content is dense by design — IBM's customers expect to see a lot on a page, not a lot of air.
+Precise alignment to a 4-pixel grid is the whitespace system, and it is unchanged. What has changed is what separates sections: `{colors.surface}` (#f6f5f4) rows rather than neutral grey, so the banding carries the same warmth as everything else.
 
 ## Elevation & Depth
 
@@ -387,7 +414,7 @@ Carbon uses precise alignment to a 4-pixel grid as its whitespace system. Sectio
 | ---------------- | ------------------------------------------------------------------------- | --------------------------------------------- |
 | 0 (flat)         | No shadow, no border                                                      | Default for body type, hero text, footer body |
 | 1 (hairline)     | 1px `{colors.hairline}` border on canvas                                  | Feature cards, inputs, list items             |
-| 2 (surface lift) | `{colors.surface-1}` background on canvas                                 | Alternate-row banners, hovered cards          |
+| 2 (surface lift) | `{colors.surface}` background on canvas                                   | Alternate-row banners, hovered cards          |
 | 3 (focus ring)   | 2px `{colors.primary}` outline + 1px `{colors.hairline-strong}` underline | Focused input, focused button                 |
 
 Carbon resists drop shadows on marketing — depth is carried by surface change and 1px hairlines. The exception is product / app surfaces (Carbon documents shadow tokens for elevated panels), but the marketing site barely uses them.
@@ -401,22 +428,26 @@ Carbon resists drop shadows on marketing — depth is carried by surface change 
 
 ### Border Radius Scale
 
-| Token            | Value  | Use                                                    |
-| ---------------- | ------ | ------------------------------------------------------ |
-| `{rounded.none}` | 0px    | Default — every button, card, input, container         |
-| `{rounded.xs}`   | 2px    | Small badges (rare exception)                          |
-| `{rounded.sm}`   | 4px    | Avatar circles squared, dropdown menus                 |
-| `{rounded.md}`   | 6px    | (Used rarely; documented for completeness)             |
-| `{rounded.lg}`   | 8px    | (Used rarely; documented for completeness)             |
-| `{rounded.pill}` | 9999px | Status pills, badges in product UI (rare on marketing) |
+| Token            | Value  | Use                                                        |
+| ---------------- | ------ | ---------------------------------------------------------- |
+| `{rounded.xs}`   | 4px    | Tag chips                                                  |
+| `{rounded.sm}`   | 6px    | Type badges, quiet ghost buttons                           |
+| `{rounded.md}`   | 8px    | **Buttons and inputs.** The most common radius on the site |
+| `{rounded.lg}`   | 12px   | **Cards**, feature tiles, panels, pricing tiers            |
+| `{rounded.xl}`   | 16px   | Larger feature panels                                      |
+| `{rounded.2xl}`  | 20px   | Featured product showcases                                 |
+| `{rounded.3xl}`  | 24px   | Larger feature cards                                       |
+| `{rounded.pill}` | 9999px | Status badges and pill tabs **only** — never a button      |
 
-The brand commits to flat 0px corners. The other tokens exist for product / mobile surfaces but rarely surface on marketing.
+The button/card distinction is the point: 8px on buttons, 12px on cards. Notion's geometry is sober-editorial, and getting it wrong is immediately legible. Pill buttons read as a different brand; 0px corners read as enterprise software from a decade ago.
+
+`{rounded.pill}` is restricted to status badges, pill tabs, avatars and toggle switches. If a pill is about to be applied to a button, it should be `{rounded.md}` instead.
 
 ### Photography & Illustration Geometry
 
 - IBM uses photography (people, hardware, sports cars) and abstract illustration (geometric mesh, dotted patterns) interchangeably.
 - Image frames are flat — no rounded corners.
-- Customer logo tiles sit on `{rounded.none}` 0px tiles with thin 1px borders.
+- Customer logo tiles sit on `{rounded.lg}` 12px tiles with thin 1px borders.
 
 ## Components
 
@@ -424,72 +455,72 @@ The brand commits to flat 0px corners. The other tokens exist for product / mobi
 
 **`button-primary`** — Blue solid CTA. The default primary across all pages.
 
-- Background `{colors.primary}`, text `{colors.on-primary}`, type `{typography.button}`, padding 12px 16px, rounded `{rounded.none}`.
-- Pressed state lives in `button-primary-pressed` (background shifts to `{colors.blue-80}`).
+- Background `{colors.primary}`, text `{colors.on-primary}`, type `{typography.button}`, padding 12px 16px, rounded `{rounded.md}`.
+- Pressed state lives in `button-primary-pressed` (background shifts to `{colors.primary-pressed}`).
 
 **`button-secondary`** — Charcoal solid button — Carbon's "secondary" treatment.
 
-- Background `{colors.ink}`, text `{colors.inverse-ink}`, type `{typography.button}`, padding 12px 16px, rounded `{rounded.none}`.
+- Background `{colors.ink}`, text `{colors.inverse-ink}`, type `{typography.button}`, padding 12px 16px, rounded `{rounded.md}`.
 
 **`button-tertiary`** — White button with blue 1px border + blue text. Used for tertiary CTAs.
 
-- Background `{colors.canvas}`, text `{colors.primary}`, type `{typography.button}`, rounded `{rounded.none}`, padding 12px 16px. (Border in implementation: 1px `{colors.primary}`.)
+- Background `{colors.canvas}`, text `{colors.primary}`, type `{typography.button}`, rounded `{rounded.md}`, padding 12px 16px. (Border in implementation: 1px `{colors.primary}`.)
 
 **`button-ghost`** — Plain text + chevron, no background until hover.
 
-- Background `{colors.canvas}`, text `{colors.primary}`, type `{typography.button}`, rounded `{rounded.none}`, padding 12px 16px.
+- Background `{colors.canvas}`, text `{colors.primary}`, type `{typography.button}`, rounded `{rounded.md}`, padding 12px 16px.
 
 **`button-danger`** — Carbon's destructive variant.
 
-- Background `{colors.semantic-error}`, text `{colors.on-primary}`, type `{typography.button}`, rounded `{rounded.none}`, padding 12px 16px.
+- Background `{colors.semantic-error}`, text `{colors.on-primary}`, type `{typography.button}`, rounded `{rounded.md}`, padding 12px 16px.
 
 ### Cards & Containers
 
 **`feature-card`** — Default feature highlight tile on the home and product pages.
 
-- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.none}`, padding 24px. Stroked with 1px `{colors.hairline}`.
+- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.md}`, padding 24px. Stroked with 1px `{colors.hairline}`.
 
-**`feature-card-elevated`** — Same shape on `{colors.surface-1}` ground — used for "Recommended" cards in the latest-content carousel.
+**`feature-card-elevated`** — Same shape on `{colors.surface}` ground — used for "Recommended" cards in the latest-content carousel.
 
-- Background `{colors.surface-1}`, otherwise identical structure.
+- Background `{colors.surface}`, otherwise identical structure.
 
 **`product-card`** — Larger product showcase tile.
 
-- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.none}`, padding 32px.
+- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.md}`, padding 32px.
 
 **`hero-card`** — Hero composition card with a weight-600 title, body, and CTA.
 
-- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.display-md}`, rounded `{rounded.none}`, padding 48px.
+- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.display-md}`, rounded `{rounded.md}`, padding 48px.
 
 **`cta-banner`** — Full-width blue CTA panel near the bottom of the page.
 
-- Background `{colors.primary}`, text `{colors.on-primary}`, type `{typography.headline}`, rounded `{rounded.none}`, padding 48px.
+- Background `{colors.primary}`, text `{colors.on-primary}`, type `{typography.headline}`, rounded `{rounded.md}`, padding 48px.
 
 **`resource-tile`** — Smaller article / case-study tile.
 
-- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body-sm}`, rounded `{rounded.none}`, padding 16px.
+- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body-sm}`, rounded `{rounded.md}`, padding 16px.
 
 **`customer-logo-tile`** — Single tile in the customer marquee on the home page (Ferrari, Pfizer, etc.).
 
-- Background `{colors.canvas}`, text `{colors.ink-muted}`, type `{typography.caption}`, rounded `{rounded.none}`, padding 24px. 1px hairline border.
+- Background `{colors.canvas}`, text `{colors.slate}`, type `{typography.caption}`, rounded `{rounded.md}`, padding 24px. 1px hairline border.
 
 ### Inputs & Forms
 
 **`text-input`** + **`text-input-focused`** + **`text-input-error`** — Carbon's input chrome.
 
-- Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.none}`, padding 11px 16px.
+- Background `{colors.surface}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.md}`, padding 11px 16px.
 - Focus state replaces the bottom 1px hairline with a 2px `{colors.primary}` underline (Carbon's signature focus treatment).
 - Error state adds 2px `{colors.semantic-error}` bottom underline.
 
 **`newsletter-input`** — The "Stay connected" newsletter capture on the home page.
 
-- Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.none}`, padding 11px 16px. Adjacent submit is `button-primary`.
+- Background `{colors.surface}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.md}`, padding 11px 16px. Adjacent submit is `button-primary`.
 
 ### Tabs
 
 **`product-tab`** + **`product-tab-selected`** — The horizontal tab strip on product pages and the home "Recommended" carousel.
 
-- Default: `{colors.canvas}` background, `{colors.ink-muted}` text, rounded `{rounded.none}`, padding 16px 20px. Bottom 1px hairline.
+- Default: `{colors.canvas}` background, `{colors.slate}` text, rounded `{rounded.md}`, padding 16px 20px. Bottom 1px hairline.
 - Selected: `{colors.canvas}` background, `{colors.ink}` text, `{typography.body-emphasis}` weight, bottom 2px `{colors.primary}` underline. Same padding / rounding.
 
 ### Navigation
@@ -500,7 +531,7 @@ The brand commits to flat 0px corners. The other tokens exist for product / mobi
 
 **`utility-bar`** — Slim gray ribbon above the top nav with location switch, contact, search shortcuts.
 
-- Background `{colors.surface-1}`, text `{colors.ink-muted}`, type `{typography.caption}`, height 32px.
+- Background `{colors.surface}`, text `{colors.slate}`, type `{typography.caption}`, height 32px.
 
 ### Footer
 
@@ -512,22 +543,22 @@ The brand commits to flat 0px corners. The other tokens exist for product / mobi
 
 ### Do
 
-- Use `{rounded.none}` 0px on every CTA, card, input, and container. The flat-square aesthetic is the brand. Unchanged.
+- Use `{rounded.md}` 8px on buttons and inputs, `{rounded.lg}` 12px on cards. The distinction is the geometry.
 - Set display type at **600** with negative tracking that grows with size. Do not go below 600, and do not push to 700.
-- Reserve `{colors.primary}` IBM Blue for primary CTAs, links, focused-input underlines, and CTA banner. Do not use it as a card background or eyebrow color. Unchanged.
+- Reserve `{colors.primary}` purple for the dominant CTA. Do not use it for body text, large background surfaces, or inline links — links are `{colors.link-blue}`.
 - Use 1.55 line-height on body. Inter is drawn for slightly looser leading than Carbon assumed.
-- Use surface change (`canvas` → `surface-1`) and 1px hairlines for card hierarchy. Skip drop shadows.
-- Stick to sentence case for eyebrows and section labels — Carbon resists all-caps tracking.
-- Invert to `{colors.inverse-canvas}` only at the footer; the rest of the page stays light.
+- Use surface change (`canvas` → `surface`) and 1px warm hairlines for card hierarchy. Shadow stays soft and low-opacity, and never lands on a flat card.
+- Use the pastel tints for accent panels, and bold yellow only for high-emphasis banners.
+- Stick to sentence case for eyebrows and section labels.
 
 ### Don't
 
-- Don't round corners on buttons, cards, or inputs. Even 4px rounded corners break the Carbon look.
-- Don't set display headlines below weight 600. This is the rule that changed most recently and is the easiest to regress: `font-light` on a large number is the single thing that made the old build look unfinished.
-- Don't add atmospheric depth (gradient backdrops, drop shadows, atmospheric overlays) outside the documented soft-blue hero gradient.
-- Don't introduce a second brand color. IBM Blue is the only chromatic accent; status semantics use the documented green / yellow / red.
-- Don't reintroduce IBM Plex Sans, and don't add positive tracking to body copy — the old Carbon `0.16px` fights Inter's metrics.
-- Don't use pill-shaped buttons. Carbon uses square corners; pills read as a different brand.
+- Don't use pill-shaped buttons. Pills belong to status badges, pill tabs and avatars. Notion's geometry is rectangular-sober.
+- Don't collapse corners to 0px. That was the old Carbon look and it reads as enterprise software from a decade ago.
+- Don't set display headlines below weight 600. This is the rule most easily regressed: `font-light` on a large number is the single thing that made the old build look unfinished.
+- Don't add atmospheric depth — gradient backdrops, heavy drop shadows, atmospheric overlays.
+- Don't reintroduce IBM Blue or IBM Plex Sans, and don't add positive tracking to body copy — the old Carbon `0.16px` fights Inter's metrics.
+- Don't use purple as a large background surface or for body text.
 - Don't write all-caps tracked eyebrows. Carbon's eyebrows are sentence case at 14px.
 
 ## Responsive Behavior
@@ -565,15 +596,16 @@ The brand commits to flat 0px corners. The other tokens exist for product / mobi
 
 1. Focus on ONE component at a time and reference it by its `components:` token name.
 2. Default body to `{typography.body}` at weight 400, line-height 1.55, no letter-spacing. Display type defaults to weight 600 — never below it.
-3. When introducing a new section, decide whether it sits on `{colors.canvas}` (default) or on `{colors.surface-1}` (alternate band). The two-surface rhythm is the rhythm.
+3. When introducing a new section, decide whether it sits on `{colors.canvas}` (default) or on `{colors.surface}` (alternate band). The two-surface rhythm is the rhythm.
 4. Run `npx @google/design.md lint DESIGN.md` after edits.
 5. Add new variants as separate component entries (`button-primary-pressed`, `text-input-error`, `text-input-focused`).
-6. Treat IBM Blue as scarce: links, primary CTA, CTA banner, focus underline. Anything beyond that is drift.
-7. Resist rounded corners. If a designer pushes for 4px rounding, the brand is shifting away from Carbon.
+6. Treat purple as scarce: the dominant CTA, and nothing else. Inline links are `{colors.link-blue}`, which is a different colour on purpose. Purple body text or a large purple surface is drift.
+7. Keep the button/card radius distinction: 8px on buttons and inputs, 12px on cards. Reaching for a pill on a button, or collapsing either to 0px, breaks the geometry.
 
 ## Known Gaps
 
-- IBM's product surfaces (cloud-pak, watson, datacap) have richer Carbon component usage (data tables, graph cells, breadcrumbs, contextual menus) that aren't present on the marketing pages inspected — those components live in Carbon's documentation rather than in the marketing extraction.
-- Form-field error and validation styling is documented in Carbon docs; the inspected pages didn't render error states.
-- Dark mode is documented in Carbon as Gray-100 theme but isn't exposed on these marketing pages — only the footer inverts. The full dark theme is a separate Carbon palette not extracted here.
-- The community.ibm.com sub-domain uses a different chrome (community-platform white-label) that approximates Carbon but isn't strict — the documented system applies to ibm.com proper.
+- Dark-mode token values are not fully surfaced in the source spec — only the hero bands invert. This project reuses the same warm ramp for dark surfaces (gray-900 `#1a1a1a`, gray-800 `#37352f`), which is consistent but is an interpretation, not an extracted value.
+- Animation and transition timings were not extracted. 150–200ms ease is a safe default.
+- Form validation success state is not explicitly captured in the spec.
+- The pastel-tint mapping (which feature panel gets peach versus rose versus mint) is observation-based; the real brand library may have further entries.
+- This project applies the tokens to an LMS, not to a marketing site. The navy hero band and pastel feature tints are defined here but are not yet used on any page.
