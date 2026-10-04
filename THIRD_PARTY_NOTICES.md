@@ -59,7 +59,38 @@ include, and are not limited to:
 
 ---
 
+## Awesome DESIGN.md
+
+* **Upstream:** https://github.com/VoltAgent/awesome-design-md
+* **File adopted:** [`DESIGN.md`](./DESIGN.md) — `design-md/ibm/DESIGN.md`
+* **License:** MIT (Copyright (c) VoltAgent)
+* **Verified:** blob `dbef1c5b20357a8953e6832e5d383a866a66f11a`, byte-for-byte identical
+  to upstream.
+* **Used for:** visual direction only. `DESIGN.md` describes the IBM Carbon design
+  language — IBM Blue `#0f62fe` as the single accent, neutral gray ink and
+  surfaces, flat-square corners (0–4px), thin-bordered shadowless cards, and IBM
+  Plex Sans at light weights.
+
+The design language described therein is the IBM Carbon Design System. The
+`DESIGN.md` analysis file itself is MIT licensed by VoltAgent as reproduced in the
+upstream repository.
+
+### How it is applied
+
+`DESIGN.md` is the **visual intent** layer. It does not replace the TailAdmin
+`@theme` tokens in `src/assets/main.css`, which remain the single implementation
+of the design tokens. Carbon colours are mapped onto the existing `@theme` token
+names rather than hardcoded in components, per the "don't hardcode hex colours"
+rule in [`AGENTS.md`](./AGENTS.md).
+
+---
+
 ## Runtime dependencies
 
 All other dependencies listed in [`package.json`](./package.json) are used under
 their own respective open-source licenses.
+
+## Fonts
+
+The project loads **IBM Plex Sans** (SIL Open Font License 1.1) as its typeface,
+per [`DESIGN.md`](./DESIGN.md). IBM Plex is free to use, self-host, and redistribute.
