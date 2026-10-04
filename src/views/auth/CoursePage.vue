@@ -235,6 +235,7 @@
  * it is a hole in the paywall. Only the structure is public: module and lesson
  * titles, badges and durations.
  */
+import { describeSupabaseError } from '@/services/supabase/client'
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { BookOpen, Check, LoaderCircle } from 'lucide-vue-next'
@@ -278,7 +279,7 @@ onMounted(async () => {
       modules.value = await getPublicCourseOutline(course.value.id)
     }
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'This course could not be loaded.'
+    errorMessage.value = describeSupabaseError(error)
   } finally {
     loading.value = false
   }

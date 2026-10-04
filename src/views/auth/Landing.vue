@@ -402,6 +402,7 @@ git --version</code></pre>
  * screenshots. They are marked as examples wherever they could be mistaken for
  * live data, and nothing on this page records anything.
  */
+import { describeSupabaseError } from '@/services/supabase/client'
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ArrowRight, BookOpen, Clock3, LoaderCircle } from 'lucide-vue-next'
@@ -501,8 +502,7 @@ onMounted(async () => {
     featured.value = catalogue.value.slice(0, 3)
     totalPublished.value = catalogue.value.length
   } catch (error) {
-    catalogueError.value =
-      error instanceof Error ? error.message : 'The catalogue could not be loaded.'
+    catalogueError.value = describeSupabaseError(error)
   } finally {
     catalogueLoading.value = false
   }

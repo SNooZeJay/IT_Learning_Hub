@@ -181,6 +181,7 @@
  * Instructor names are deliberately absent from these cards, and no email address
  * appears anywhere on this page.
  */
+import { describeSupabaseError } from '@/services/supabase/client'
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { BookOpen, LoaderCircle } from 'lucide-vue-next'
@@ -252,8 +253,7 @@ async function load(): Promise<void> {
   try {
     courses.value = await listPublishedCourses()
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'The catalogue could not be loaded.'
+    errorMessage.value = describeSupabaseError(error)
   } finally {
     loading.value = false
   }

@@ -110,6 +110,7 @@
 </template>
 
 <script setup lang="ts">
+import { describeSupabaseError } from '@/services/supabase/client'
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Eye, EyeOff, LoaderCircle } from 'lucide-vue-next'
@@ -164,8 +165,7 @@ async function handleSubmit(): Promise<void> {
       await router.replace(auth.homePath)
     }
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+    errorMessage.value = describeSupabaseError(error)
   } finally {
     isSubmitting.value = false
   }

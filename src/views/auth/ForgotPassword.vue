@@ -56,6 +56,7 @@
 </template>
 
 <script setup lang="ts">
+import { describeSupabaseError } from '@/services/supabase/client'
 import { ref } from 'vue'
 import { LoaderCircle } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
@@ -82,8 +83,7 @@ async function handleSubmit(): Promise<void> {
     await auth.sendPasswordReset(email.value)
     sent.value = true
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+    errorMessage.value = describeSupabaseError(error)
   } finally {
     isSubmitting.value = false
   }
