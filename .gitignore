@@ -34,3 +34,7 @@ coverage
 # every real .env stays local so credentials are never pushed.
 .env*
 !.env.example
+
+# Seed credentials. The committed example has placeholder values; the real
+# one holds the service-role key and passwords and must never be pushed.
+scripts/*.local.json

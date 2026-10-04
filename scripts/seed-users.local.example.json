@@ -1,0 +1,30 @@
+{
+  "_comment": "Copy this file to seed-users.local.json, fill it in, and never commit it. That file is gitignored.",
+
+  "supabaseUrl": "https://YOUR-PROJECT-REF.supabase.co",
+
+  "_serviceRoleKey": "Supabase Dashboard -> Project Settings -> API Keys -> Secret keys. Starts with sb_secret_ on the new key format. NEVER the publishable key, and never in any VITE_ variable.",
+  "serviceRoleKey": "",
+
+  "_roles": "admin | instructor | student",
+  "accounts": [
+    {
+      "email": "admin@example.com",
+      "password": "change-me-at-least-8-chars",
+      "fullName": "Admin User",
+      "role": "admin"
+    },
+    {
+      "email": "instructor@example.com",
+      "password": "change-me-at-least-8-chars",
+      "fullName": "Instructor User",
+      "role": "instructor"
+    },
+    {
+      "email": "student@example.com",
+      "password": "change-me-at-least-8-chars",
+      "fullName": "Student User",
+      "role": "student"
+    }
+  ]
+}
