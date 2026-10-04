@@ -28,11 +28,34 @@
             </div>
 
             <div v-if="moduleCount === 0" class="p-6">
+              <!--
+                Two different causes produce an empty curriculum, and telling a
+                student the wrong one is worse than showing nothing. Row Level
+                Security hides modules from anyone not enrolled, so for a
+                prospective student an empty curriculum means "enrol to see it",
+                not "the instructor has not written it yet".
+              -->
               <EmptyState
+                v-if="isEnrolledHere"
                 title="No lessons yet"
-                description="The instructor has not published the lessons for this course yet."
+                description="The instructor has not published the lessons for this course yet. Check back soon."
                 :icon="BookOpen"
               />
+              <EmptyState
+                v-else
+                :title="isPaidCourse ? 'Enrol to unlock the curriculum' : 'Enrol to see the lessons'"
+                :description="
+                  isPaidCourse
+                    ? `The module list for this course is only visible once you have a place. Enrol for ${formatPeso(course.priceCentavos)} to unlock every lesson.`
+                    : 'The module list for this course is only visible once you have a place. Enrol free to unlock every lesson.'
+                "
+                :icon="Lock"
+              >
+                <Button variant="primary" :disabled="isActing" @click="handleEnrol">
+                  <LoaderCircle v-if="isActing" class="size-4 animate-spin" />
+                  {{ isPaidCourse ? `Enrol for ${formatPeso(course.priceCentavos)}` : 'Enrol for free' }}
+                </Button>
+              </EmptyState>
             </div>
 
             <div v-else class="divide-y divide-gray-200 dark:divide-gray-800">
@@ -237,6 +260,12 @@ async function load(): Promise<void> {
   isLoading.value = true
   errorMessage.value = ''
   try {
+    // The profile is needed to resolve this student's own enrolment, but on a
+    // cold load the store may still be fetching it. Without this await the
+    // check below silently skips, and an enrolled student is told to enrol in a
+    // course they are already taking.
+    await auth.ensureReady()
+
     const result = await getCourseWithCurriculum(slug.value)
     if (!result) {
       errorMessage.value = 'That course does not exist, or it has not been published yet.'

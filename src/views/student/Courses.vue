@@ -98,6 +98,11 @@ async function load(): Promise<void> {
   isLoading.value = true
   errorMessage.value = ''
   try {
+    // The enrolment lookup needs the profile. On a cold load the store may still
+    // be fetching it, and without this the catalogue would show every course as
+    // unenrolled until the next visit.
+    await auth.ensureReady()
+
     const [all, mine] = await Promise.all([
       listCourses(),
       auth.profile ? listMyEnrollments(auth.profile.id) : Promise.resolve([]),
