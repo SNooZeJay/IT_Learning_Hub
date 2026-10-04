@@ -43,12 +43,20 @@ export interface PayMongoEnvelope {
   failureMessage: string | null
 }
 
+/**
+ * Where the event type lives.
+ *
+ * `data.attributes.type` is the documented shape for payment, checkout, refund and
+ * dispute events, which is every event this project subscribes to. `data.type`
+ * covers products that put the type on the envelope instead.
+ *
+ * QR events (`qr.paid`, `qr.expired`) are deliberately NOT handled. This project
+ * offers GCash and PayMaya only, and adding tolerance for a payload shape that
+ * cannot arrive here would be untested code on the path that settles money.
+ */
 const TYPE_PATHS = ['data.attributes.type', 'data.type'] as const
 
-const RESOURCE_ID_PATHS = [
-  'data.attributes.data.id',
-  'data.data.id',
-] as const
+const RESOURCE_ID_PATHS = ['data.attributes.data.id', 'data.data.id'] as const
 
 /**
  * Our correlation key, in the order the provider documents it.
@@ -56,12 +64,21 @@ const RESOURCE_ID_PATHS = [
  * `reference_number` is what we sent when creating the session.
  * `external_reference_number` is what the same value is called on a payment level
  * event. Without the second position, every declined payment looks unmatched.
+ *
+ * `metadata.pm_reference_number` is the third position, added after reading
+ * PayMongo's own published payloads rather than from memory. Their documented
+ * card example carries `"external_reference_number": null` while the real value
+ * sits in `metadata.pm_reference_number`. A parser that stops at the two obvious
+ * fields therefore returns null for card payments, the webhook finds no matching
+ * payment, and a successful purchase silently never activates the enrolment.
  */
 const REFERENCE_PATHS = [
   'data.attributes.data.attributes.reference_number',
   'data.data.attributes.reference_number',
   'data.attributes.data.attributes.external_reference_number',
   'data.data.attributes.external_reference_number',
+  'data.attributes.data.attributes.metadata.pm_reference_number',
+  'data.data.attributes.metadata.pm_reference_number',
 ] as const
 
 /**
@@ -107,8 +124,12 @@ const EVENT_ID_CANDIDATES = ['data.id', 'id'] as const
  * This distinction is load bearing. Storing `cs_...` or `pay_...` as the event id
  * would make a redelivered event collide with a completely different event, and
  * the second one would be discarded as a duplicate.
+ *
+ * `ref_` covers `refund.succeeded`, which arrives repeatedly against one payment
+ * and would otherwise suppress itself. `qr_` is listed for the same reason even
+ * though QR Ph is not offered: the list is a cheap guard, and a test pins it.
  */
-const RESOURCE_PREFIXES = ['cs_', 'pay_', 'pi_', 'pm_'] as const
+const RESOURCE_PREFIXES = ['cs_', 'pay_', 'pi_', 'pm_', 'ref_', 'qr_'] as const
 
 type Json = unknown
 

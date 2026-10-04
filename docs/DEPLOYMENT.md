@@ -84,17 +84,48 @@ https://<project-ref>.supabase.co/functions/v1/paymongo-webhook
 
 ## 4. Register the webhook in PayMongo
 
-Dashboard → Developers → Webhooks → add:
+Dashboard -> Settings -> Webhooks -> Edit.
 
-| Field  | Value                                                                                             |
-| ------ | ------------------------------------------------------------------------------------------------- |
-| URL    | the `paymongo-webhook` URL from step 3                                                            |
-| Events | `checkout_session.payment.paid`, `payment.failed`, `payment.refunded`, `checkout_session.expired` |
-| Secret | the same `whsk_` value set in step 2                                                              |
+| Field        | Value                                                                    |
+| ------------ | ------------------------------------------------------------------------ |
+| Endpoint URL | `https://rfqhekvtmegjjsofqlse.supabase.co/functions/v1/paymongo-webhook` |
+| Secret key   | the same `whsk_` value set in step 2                                     |
 
-PayMongo will not retry forever, so this step is what makes payments settle. A
-payment whose webhook never arrived stays pending until you re-send it from the
-dashboard.
+**Events - these three, and only these three exist for this flow:**
+
+| Event                           | What it means                                    |
+| ------------------------------- | ------------------------------------------------ |
+| `checkout_session.payment.paid` | learner paid via GCash or PayMaya - the main one |
+| `payment.paid`                  | a payment succeeded directly, outside a checkout |
+| `payment.failed`                | declined, or the learner abandoned the payment   |
+
+### Events that do NOT exist
+
+Checked against PayMongo's published event reference rather than guessed:
+
+- `checkout_session.payment.failed` - **not a PayMongo event.** The only Checkout
+  Session event is `checkout_session.payment.paid`.
+- `checkout_session.expired` - **does not exist.**
+- `payment.refunded` - **not an event.** The refund event is `refund.succeeded`,
+  and this project ignores it rather than acting on it.
+
+`qr.expired` does exist but is irrelevant here: this project offers **GCash and
+PayMaya only**, both of which resolve inside the checkout session. QR Ph was
+considered and dropped because it is asynchronous - the learner scans a code and
+pays later in their banking app - which would need a "waiting for payment" state
+that a synchronous flow does not.
+
+### Also set the payment methods
+
+The methods a learner sees at checkout are controlled by which channels are enabled
+on the merchant account, not by the webhook. In the PayMongo dashboard, open
+**Settings -> Payment Channels** and enable GCash and PayMaya, disabling card and
+QR Ph if they appear.
+
+PayMongo retries a failed delivery up to 12 times, then marks the event failed and
+stops. A webhook that is not deployed before your demo means a paid order that
+silently never activates. Deploy first, then point the URL here, then use the
+**Test Events** tab on the webhook page to confirm a real delivery lands.
 
 ---
 

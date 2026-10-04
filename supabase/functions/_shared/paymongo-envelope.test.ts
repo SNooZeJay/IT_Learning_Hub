@@ -25,9 +25,7 @@ function eventsApiPayload(overrides: Record<string, unknown> = {}) {
           id: 'cs_TEST123',
           attributes: {
             reference_number: 'ITH-2026-0001',
-            payments: [
-              { id: 'pay_TEST123', attributes: { amount: 150000, currency: 'PHP' } },
-            ],
+            payments: [{ id: 'pay_TEST123', attributes: { amount: 150000, currency: 'PHP' } }],
           },
         },
       },
@@ -144,6 +142,193 @@ describe('correlation key', () => {
     const raw = JSON.stringify(payload)
     const parsed = await parsePayMongoEvent(JSON.parse(raw), raw)
     expect(parsed?.referenceNumber).toBe('FIRST')
+  })
+})
+
+describe('payloads taken from PayMongo published docs', () => {
+  /**
+   * Fixtures lifted from PayMongo's own event reference rather than invented here.
+   *
+   * This project offers GCash and PayMaya, and both appear in those docs with the
+   * correlation key in `external_reference_number` AND mirrored in
+   * `metadata.pm_reference_number`. The mirrored copy is why the metadata path
+   * exists: PayMongo's documented card payload shows `external_reference_number`
+   * as null with the value only in metadata, so a parser reading just the obvious
+   * field returns null, the webhook matches no payment, and a successful purchase
+   * silently never activates the enrolment.
+   */
+
+  const documented = {
+    gcash: {
+      data: {
+        id: 'evt_XNQTT6J64gkTwBhrJiZmf9BZ',
+        type: 'event',
+        attributes: {
+          type: 'payment.paid',
+          livemode: true,
+          data: {
+            id: 'pay_vNQdh3edhpd8MJdPmHjYqPMB',
+            type: 'payment',
+            attributes: {
+              amount: 150000,
+              currency: 'PHP',
+              status: 'paid',
+              external_reference_number: 'ITH-gcash-0001',
+              metadata: { pm_reference_number: 'ITH-gcash-0001' },
+            },
+          },
+        },
+      },
+    },
+    maya: {
+      data: {
+        id: 'evt_bUkG123qE',
+        type: 'event',
+        attributes: {
+          type: 'payment.paid',
+          livemode: true,
+          data: {
+            id: 'pay_Z5e5iabccB3KbmC9wTbUaSBo',
+            type: 'payment',
+            attributes: {
+              amount: 250000,
+              currency: 'PHP',
+              status: 'paid',
+              external_reference_number: 'ITH-maya-0002',
+              metadata: { pm_reference_number: 'ITH-maya-0002' },
+            },
+          },
+        },
+      },
+    },
+    checkout: {
+      data: {
+        id: 'evt_CHECKOUT01',
+        type: 'event',
+        attributes: {
+          type: 'checkout_session.payment.paid',
+          livemode: true,
+          data: {
+            id: 'cs_TEST01',
+            type: 'checkout_session',
+            attributes: {
+              reference_number: 'ITH-checkout-0003',
+              payments: [{ id: 'pay_TEST01', attributes: { amount: 150000, currency: 'PHP' } }],
+            },
+          },
+        },
+      },
+    },
+  }
+
+  it.each([
+    ['GCash', documented.gcash, 'ITH-gcash-0001', 150000],
+    ['PayMaya', documented.maya, 'ITH-maya-0002', 250000],
+    ['checkout session', documented.checkout, 'ITH-checkout-0003', 150000],
+  ])(
+    'reads the reference and amount from a %s payment',
+    async (_name, payload, reference, amount) => {
+      const raw = JSON.stringify(payload)
+      const parsed = await parsePayMongoEvent(JSON.parse(raw), raw)
+      expect(parsed?.referenceNumber).toBe(reference)
+      expect(parsed?.amountMinor).toBe(amount)
+      expect(parsed?.currency).toBe('PHP')
+    },
+  )
+
+  it('falls back to metadata when external_reference_number is null', async () => {
+    // PayMongo's documented card payload. Not a method this project offers, but
+    // the shape is real and the parser must not silently return null for it.
+    const payload = {
+      data: {
+        id: 'evt_9w6KTxQY3hmuDQaALHoAZnRp',
+        type: 'event',
+        attributes: {
+          type: 'payment.paid',
+          livemode: false,
+          data: {
+            id: 'pay_JMg1rgaUtg5U79rRSjiDUvLr',
+            type: 'payment',
+            attributes: {
+              amount: 150000,
+              currency: 'PHP',
+              status: 'paid',
+              external_reference_number: null,
+              metadata: { pm_reference_number: 'ITH-card-0004' },
+            },
+          },
+        },
+      },
+    }
+    const raw = JSON.stringify(payload)
+    expect((await parsePayMongoEvent(JSON.parse(raw), raw))?.referenceNumber).toBe('ITH-card-0004')
+  })
+
+  it('finds the reference in metadata when external_reference_number is null', async () => {
+    // Shape of PayMongo's documented payment.paid for a card.
+    const payload = {
+      data: {
+        id: 'evt_9w6KTxQY3hmuDQaALHoAZnRp',
+        type: 'event',
+        attributes: {
+          type: 'payment.paid',
+          livemode: false,
+          data: {
+            id: 'pay_JMg1rgaUtg5U79rRSjiDUvLr',
+            type: 'payment',
+            attributes: {
+              amount: 150000,
+              currency: 'PHP',
+              status: 'paid',
+              external_reference_number: null,
+              metadata: { pm_reference_number: 'ITH-abc-1234' },
+            },
+          },
+        },
+      },
+    }
+    const raw = JSON.stringify(payload)
+    const parsed = await parsePayMongoEvent(JSON.parse(raw), raw)
+
+    expect(parsed?.referenceNumber).toBe('ITH-abc-1234')
+    expect(parsed?.providerPaymentId).toBe('pay_JMg1rgaUtg5U79rRSjiDUvLr')
+    expect(parsed?.amountMinor).toBe(150000)
+  })
+
+  it('never mistakes a refund id for an event id', async () => {
+    // Refunds arrive repeatedly against one payment. Storing ref_ as the event id
+    // would make the second refund suppress itself as a duplicate.
+    const payload = {
+      data: {
+        id: 'ref_ABC123',
+        type: 'event',
+        attributes: {
+          type: 'refund.succeeded',
+          livemode: true,
+          data: {
+            id: 'ref_ABC123',
+            type: 'refund',
+            attributes: { amount: 150000, currency: 'PHP', status: 'succeeded' },
+          },
+        },
+      },
+    }
+    const raw = JSON.stringify(payload)
+    await expect(resolveEventId(JSON.parse(raw), raw)).resolves.toMatch(/^sha256:/)
+  })
+
+  it('never mistakes a QR resource id for an event id', async () => {
+    // QR Ph is not offered by this project, but the guard is free and this pins
+    // it: if QR support is ever added, a qr_ id must not become an event id.
+    const payload = {
+      data: {
+        id: 'qr_ABC123',
+        type: 'event',
+        attributes: { type: 'qr.paid', livemode: true, data: { id: 'qr_ABC123' } },
+      },
+    }
+    const raw = JSON.stringify(payload)
+    await expect(resolveEventId(JSON.parse(raw), raw)).resolves.toMatch(/^sha256:/)
   })
 })
 
