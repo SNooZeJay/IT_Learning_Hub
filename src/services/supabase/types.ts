@@ -1,5 +1,6 @@
 import type {
   AccountStatus,
+  AssignmentStatus,
   AttemptStatus,
   ContentStatus,
   CourseLevel,
@@ -7,21 +8,37 @@ import type {
   EnrollmentStatus,
   LessonType,
   MaterialType,
+  NotificationType,
+  PaymentEventStatus,
   PaymentStatus,
   ProgressStatus,
   QuestionType,
   QuizStatus,
+  RequirementType,
   Role,
+  SubmissionStatus,
 } from '@/types/enums'
 
 /**
- * Hand-written Supabase `Database` type.
+ * Hand-written Supabase `Database` type, merged from the live schema.
  *
- * This is the contract between TypeScript and Postgres. Keeping it hand-written
- * rather than generated means the types are reviewable in a pull request: a
- * schema change shows up as a deliberate diff here instead of a regenerated
- * blob. Regenerate it with `npx supabase gen types typescript` if the schema
- * grows enough to make hand-maintenance a burden.
+ * The intent is that the types are reviewable in a pull request - a schema change
+ * shows up as a deliberate diff rather than a regenerated blob - but that intent
+ * had drifted. Twelve tables (`certificates`, `notifications`, `assignments`, the
+ * conversation tables, `activity_logs` and others) and five enums were missing
+ * entirely while five services already queried them, so every row those services
+ * read was untyped and narrowed with `as unknown as`. That is the worst of both:
+ * the compile-time safety is gone and the reviewable diff is a fiction.
+ *
+ * So the missing blocks were merged in from `npx supabase gen types typescript
+ * --linked`, with `scripts/merge-generated-types.mjs`, rather than regenerating the
+ * whole file. A wholesale regeneration would have deleted the commentary that
+ * explains *why* a column has no grant, which is the part worth reviewing.
+ *
+ * Re-run it after a schema change:
+ *
+ *     npx supabase gen types typescript --linked --schema public --file types.gen.ts
+ *     node scripts/merge-generated-types.mjs types.gen.ts src/services/supabase/types.ts
  *
  * Row level security is on for every table. That is enforced in Postgres, not
  * here: these types describe shape, not permission.
@@ -793,6 +810,578 @@ export type Database = {
           },
         ]
       }
+      activity_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: number
+          metadata: Json
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: never
+          metadata?: Json
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: never
+          metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'activity_logs_actor_id_fkey'
+            columns: ['actor_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      analytics_events: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          event_name: string
+          id: number
+          properties: Json
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          event_name: string
+          id?: never
+          properties?: Json
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          event_name?: string
+          id?: never
+          properties?: Json
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'analytics_events_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      announcements: {
+        Row: {
+          author_id: string
+          body: string
+          course_id: string | null
+          created_at: string
+          id: string
+          published_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          published_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          published_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'announcements_author_id_fkey'
+            columns: ['author_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'announcements_course_id_fkey'
+            columns: ['course_id']
+            isOneToOne: false
+            referencedRelation: 'courses'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      assignment_submissions: {
+        Row: {
+          assignment_id: string
+          course_id: string
+          feedback: string | null
+          file_path: string | null
+          grade: number | null
+          graded_at: string | null
+          graded_by: string | null
+          id: string
+          status: Database['public']['Enums']['submission_status']
+          student_id: string
+          submission_text: string | null
+          submitted_at: string
+        }
+        Insert: {
+          assignment_id: string
+          course_id: string
+          feedback?: string | null
+          file_path?: string | null
+          grade?: number | null
+          graded_at?: string | null
+          graded_by?: string | null
+          id?: string
+          status?: Database['public']['Enums']['submission_status']
+          student_id: string
+          submission_text?: string | null
+          submitted_at?: string
+        }
+        Update: {
+          assignment_id?: string
+          course_id?: string
+          feedback?: string | null
+          file_path?: string | null
+          grade?: number | null
+          graded_at?: string | null
+          graded_by?: string | null
+          id?: string
+          status?: Database['public']['Enums']['submission_status']
+          student_id?: string
+          submission_text?: string | null
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'assignment_submissions_assignment_id_fkey'
+            columns: ['assignment_id']
+            isOneToOne: false
+            referencedRelation: 'assignments'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'assignment_submissions_course_id_fkey'
+            columns: ['course_id']
+            isOneToOne: false
+            referencedRelation: 'courses'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'assignment_submissions_graded_by_fkey'
+            columns: ['graded_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'assignment_submissions_student_id_fkey'
+            columns: ['student_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      assignments: {
+        Row: {
+          course_id: string
+          created_at: string
+          created_by: string
+          due_at: string | null
+          id: string
+          instructions: string | null
+          max_points: number
+          module_id: string | null
+          status: Database['public']['Enums']['assignment_status']
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          created_by: string
+          due_at?: string | null
+          id?: string
+          instructions?: string | null
+          max_points?: number
+          module_id?: string | null
+          status?: Database['public']['Enums']['assignment_status']
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          created_by?: string
+          due_at?: string | null
+          id?: string
+          instructions?: string | null
+          max_points?: number
+          module_id?: string | null
+          status?: Database['public']['Enums']['assignment_status']
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'assignments_course_id_fkey'
+            columns: ['course_id']
+            isOneToOne: false
+            referencedRelation: 'courses'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'assignments_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'assignments_module_id_fkey'
+            columns: ['module_id']
+            isOneToOne: false
+            referencedRelation: 'modules'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      certificates: {
+        Row: {
+          certificate_number: string
+          course_id: string
+          enrollment_id: string | null
+          final_percentage: number
+          id: string
+          issued_at: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          user_id: string
+        }
+        Insert: {
+          certificate_number: string
+          course_id: string
+          enrollment_id?: string | null
+          final_percentage: number
+          id?: string
+          issued_at?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          user_id: string
+        }
+        Update: {
+          certificate_number?: string
+          course_id?: string
+          enrollment_id?: string | null
+          final_percentage?: number
+          id?: string
+          issued_at?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'certificates_course_id_fkey'
+            columns: ['course_id']
+            isOneToOne: false
+            referencedRelation: 'courses'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'certificates_enrollment_id_fkey'
+            columns: ['enrollment_id']
+            isOneToOne: false
+            referencedRelation: 'enrollments'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'certificates_revoked_by_fkey'
+            columns: ['revoked_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'certificates_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      conversation_messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'conversation_messages_conversation_id_fkey'
+            columns: ['conversation_id']
+            isOneToOne: false
+            referencedRelation: 'conversations'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'conversation_messages_sender_id_fkey'
+            columns: ['sender_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      conversation_participants: {
+        Row: {
+          conversation_id: string
+          joined_at: string
+          last_read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          joined_at?: string
+          last_read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'conversation_participants_conversation_id_fkey'
+            columns: ['conversation_id']
+            isOneToOne: false
+            referencedRelation: 'conversations'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'conversation_participants_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          last_message_at: string | null
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          last_message_at?: string | null
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          last_message_at?: string | null
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'conversations_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      course_requirements: {
+        Row: {
+          course_id: string
+          created_at: string
+          requirement_type: Database['public']['Enums']['requirement_type']
+          threshold: number | null
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          requirement_type: Database['public']['Enums']['requirement_type']
+          threshold?: number | null
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          requirement_type?: Database['public']['Enums']['requirement_type']
+          threshold?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'course_requirements_course_id_fkey'
+            columns: ['course_id']
+            isOneToOne: false
+            referencedRelation: 'courses'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          link: string | null
+          read_at: string | null
+          title: string
+          type: Database['public']['Enums']['notification_type']
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          type: Database['public']['Enums']['notification_type']
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          type?: Database['public']['Enums']['notification_type']
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'notifications_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      payment_events: {
+        Row: {
+          event_id: string
+          event_type: string | null
+          failure_code: string | null
+          failure_message: string | null
+          id: string
+          livemode: boolean | null
+          payload: Json
+          payment_id: string | null
+          processed_at: string | null
+          processing_status: Database['public']['Enums']['payment_event_status']
+          provider: string
+          received_at: string
+          reported_amount_centavos: number | null
+          reported_currency: string | null
+          resource_id: string | null
+          signature_verified: boolean
+        }
+        Insert: {
+          event_id: string
+          event_type?: string | null
+          failure_code?: string | null
+          failure_message?: string | null
+          id?: string
+          livemode?: boolean | null
+          payload: Json
+          payment_id?: string | null
+          processed_at?: string | null
+          processing_status?: Database['public']['Enums']['payment_event_status']
+          provider?: string
+          received_at?: string
+          reported_amount_centavos?: number | null
+          reported_currency?: string | null
+          resource_id?: string | null
+          signature_verified?: boolean
+        }
+        Update: {
+          event_id?: string
+          event_type?: string | null
+          failure_code?: string | null
+          failure_message?: string | null
+          id?: string
+          livemode?: boolean | null
+          payload?: Json
+          payment_id?: string | null
+          processed_at?: string | null
+          processing_status?: Database['public']['Enums']['payment_event_status']
+          provider?: string
+          received_at?: string
+          reported_amount_centavos?: number | null
+          reported_currency?: string | null
+          resource_id?: string | null
+          signature_verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'payment_events_payment_id_fkey'
+            columns: ['payment_id']
+            isOneToOne: false
+            referencedRelation: 'payments'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
 
     Views: Record<never, never>
@@ -870,6 +1459,103 @@ export type Database = {
       }
       /** Everything the pre-quiz screen needs, and nothing more. */
       quiz_briefing: { Args: { p_quiz_id: string }; Returns: unknown }
+      can_view_profile: { Args: { target_profile: string }; Returns: boolean }
+      course_completion_gaps: {
+        Args: { p_enrollment_id: string }
+        Returns: {
+          detail: string
+          requirement: Database['public']['Enums']['requirement_type']
+        }[]
+      }
+      course_id_from_object_name: {
+        Args: { object_name: string }
+        Returns: string
+      }
+      fail_payment: {
+        Args: {
+          in_cancelled?: boolean
+          in_event_id: string
+          in_failure_code: string
+          in_failure_message: string
+          in_payment_id: string
+          in_provider_payment_id: string
+        }
+        Returns: string
+      }
+      issue_certificate: { Args: { p_course_id: string }; Returns: string }
+      notify: {
+        Args: {
+          p_body?: string
+          p_link?: string
+          p_title: string
+          p_type: Database['public']['Enums']['notification_type']
+          p_user_id: string
+        }
+        Returns: string
+      }
+      notify_course: {
+        Args: {
+          p_body?: string
+          p_course_id: string
+          p_link?: string
+          p_title: string
+          p_type: Database['public']['Enums']['notification_type']
+        }
+        Returns: number
+      }
+      record_activity: {
+        Args: {
+          p_action: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_metadata?: Json
+        }
+        Returns: number
+      }
+      record_event: {
+        Args: {
+          p_entity_id?: string
+          p_entity_type?: string
+          p_event_name: string
+          p_properties?: Json
+        }
+        Returns: number
+      }
+      record_payment_event: {
+        Args: {
+          in_event_id: string
+          in_event_type: string
+          in_payload: Json
+          in_resource_id: string
+          in_signature_verified: boolean
+        }
+        Returns: {
+          id: string
+          is_new: boolean
+          payment_id: string
+        }[]
+      }
+      refresh_enrollment_completion: {
+        Args: { p_enrollment_id: string }
+        Returns: boolean
+      }
+      set_user_role: {
+        Args: {
+          new_role: Database['public']['Enums']['user_role']
+          target_id: string
+        }
+        Returns: undefined
+      }
+      settle_payment: {
+        Args: {
+          in_amount_centavos: number
+          in_currency: string
+          in_event_id: string
+          in_payment_id: string
+          in_provider_payment_id: string
+        }
+        Returns: string
+      }
     }
 
     Enums: {
@@ -886,6 +1572,11 @@ export type Database = {
       quiz_status: QuizStatus
       question_type: QuestionType
       attempt_status: AttemptStatus
+      assignment_status: AssignmentStatus
+      submission_status: SubmissionStatus
+      requirement_type: RequirementType
+      notification_type: NotificationType
+      payment_event_status: PaymentEventStatus
     }
 
     CompositeTypes: Record<never, never>

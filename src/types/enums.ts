@@ -86,3 +86,49 @@ export type QuizStatus = 'draft' | 'published'
 export type QuestionType = 'multiple_choice' | 'true_false' | 'short_text'
 
 export type AttemptStatus = 'in_progress' | 'submitted'
+
+/**
+ * These five were missing from this file and from `supabase/types.ts` while the
+ * database already had them and five services already queried the tables they
+ * belong to. The cost of the gap was not a compile error - it was that every row
+ * read through those services was untyped and narrowed with `as unknown as`, so a
+ * renamed column would have been a runtime failure rather than a build failure.
+ */
+export type AssignmentStatus = 'draft' | 'published'
+
+/** A submission moves from `submitted` to `graded` once an instructor marks it. */
+export type SubmissionStatus = 'submitted' | 'graded'
+
+/**
+ * What has to be true before a course counts as complete.
+ *
+ * A course can require any combination of these, which is why it is a
+ * many-to-many table rather than a column on `courses`.
+ */
+export type RequirementType = 'complete_all_lessons' | 'min_quiz_average' | 'submit_all_assignments'
+
+/**
+ * What a notification is about.
+ *
+ * `quiz_graded` and `assignment_graded` are the two a student waits for; the rest
+ * are driven by payments, enrolment, certificates and announcements.
+ */
+export type NotificationType =
+  | 'enrolment_confirmed'
+  | 'payment_received'
+  | 'quiz_graded'
+  | 'assignment_graded'
+  | 'course_completed'
+  | 'certificate_issued'
+  | 'certificate_revoked'
+  | 'announcement'
+  | 'new_message'
+
+/**
+ * What the webhook made of a payment event.
+ *
+ * `ignored` and `failed` are kept rather than deleted, because a PayMongo
+ * webhook that arrives twice - which it does, because it retries - has to be
+ * recorded as seen and skipped rather than processed twice.
+ */
+export type PaymentEventStatus = 'received' | 'processed' | 'ignored' | 'failed'
