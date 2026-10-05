@@ -369,7 +369,12 @@ async function handleEnrol(): Promise<void> {
       }
 
       if (!result.checkoutUrl) {
-        actionError.value = 'The payment provider did not return a checkout link.'
+        // A reused pending payment with no open session behind it. The learner
+        // already tried to pay and did not finish, so the way forward is to let
+        // them start again rather than to show a button that does nothing.
+        actionError.value = result.reused
+          ? 'You have an unfinished payment for this course. Please try again to open a new checkout - you have not been charged.'
+          : 'The payment provider did not return a checkout link. Please try again.'
         return
       }
 

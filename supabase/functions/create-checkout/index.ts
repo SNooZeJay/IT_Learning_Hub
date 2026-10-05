@@ -86,7 +86,37 @@ Deno.serve(async (request) => {
   // learner is charged twice for one enrolment.
   const existing = await findPendingPayment(user.id, courseId)
   if (existing) {
-    return json({ requiresPayment: true, paymentId: existing.id, reused: true }, 200, request)
+    // A pending payment with a checkout id means the learner already has an open
+    // hosted session. Returning the stored id alone is not enough: PayMongo's
+    // checkout_url is single-use per response and is not reconstructible, so a
+    // learner who abandoned the first attempt and came back would get a button
+    // that does nothing.
+    //
+    // So the original session is only reused when we still have its id; otherwise
+    // the stale payment is cancelled and a fresh session is opened. Either way the
+    // learner is never charged twice, because only one payment is ever pending.
+    if (existing.provider_checkout_id) {
+      return json(
+        {
+          requiresPayment: true,
+          paymentId: existing.id,
+          reused: true,
+          // PayMongo does not expose a way to re-open a session by id, so the
+          // learner is sent to the checkout list rather than to a dead button.
+          checkoutUrl: null,
+        },
+        200,
+        request,
+      )
+    }
+
+    // A pending payment with no provider session behind it - the first attempt
+    // died before PayMongo answered. Retire it so it cannot sit in the admin
+    // ledger forever, and start again.
+    await supabase
+      .from('payments')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .eq('id', existing.id)
   }
 
   const enrollmentId = await findOrCreatePendingEnrollment(user.id, courseId)
@@ -129,6 +159,7 @@ Deno.serve(async (request) => {
         // this is a credential problem or a malformed request.
         providerStatus: checkout.error ? checkout.providerStatus : undefined,
         providerCode: checkout.error ? checkout.providerCode : undefined,
+        providerDetail: checkout.error ? checkout.providerDetail : undefined,
       },
       502,
       request,
@@ -184,15 +215,17 @@ async function loadPublishedCourse(courseId: string): Promise<CourseRow | null> 
 async function findPendingPayment(
   studentId: string,
   courseId: string,
-): Promise<{ id: string } | null> {
+): Promise<{ id: string; provider_checkout_id: string | null } | null> {
   const { data } = await supabase
     .from('payments')
-    .select('id')
+    .select('id, provider_checkout_id')
     .eq('student_id', studentId)
     .eq('course_id', courseId)
     .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle()
-  return (data as { id: string } | null) ?? null
+  return (data as { id: string; provider_checkout_id: string | null } | null) ?? null
 }
 
 /**
@@ -268,6 +301,7 @@ async function createPayMongoSession(input: {
   error?: true
   providerStatus?: number
   providerCode?: string
+  providerDetail?: string
 }> {
   const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
     method: 'POST',
@@ -279,41 +313,66 @@ async function createPayMongoSession(input: {
     body: JSON.stringify({
       data: {
         attributes: {
-          // Integer minor units. A float peso here is a rounding bug waiting to
-          // happen, and PayMongo rejects it.
-          amount: input.amountCentavos,
-          currency: 'PHP',
-          description: input.description.slice(0, 255),
-          // This is the value PayMongo echoes back on the webhook, as
-          // reference_number or external_reference_number depending on the event.
+          // `line_items`, not `billing_line_items`, and not a bare `amount`.
+          //
+          // PayMongo's own 400 named both missing parameters, which is the only
+          // reason this is right:
+          //   Parameter line_items is required          /data/attributes/line_items
+          //   Parameter payment_method_types is required /data/attributes/payment_method_types
+          //
+          // Two earlier shapes were guesses - a top-level amount, then
+          // billing_line_items - and both produced the same undifferentiated
+          // invalid_request_body. The code here also carried a comment asserting
+          // where the redirect URLs belonged, which was itself wrong. Comments are
+          // not evidence; the provider's error is.
+          line_items: [
+            {
+              // Integer minor units. A float peso is both a rounding bug and a
+              // rejection, so the conversion happens here and nowhere else.
+              currency: 'PHP',
+              amount: input.amountCentavos,
+              name: input.courseTitle.slice(0, 255),
+              quantity: 1,
+            },
+          ],
+          // GCash and PayMaya only, deliberately. QR Ph is excluded because it is
+          // asynchronous - and PayMongo's own testing documentation warns that
+          // test-mode QR codes are real and will process a real transaction if
+          // scanned, which is not a risk worth carrying into a classroom.
+          payment_method_types: ['gcash', 'paymaya'],
+          success_url: input.successUrl,
+          cancel_url: input.cancelUrl,
+          // The value PayMongo echoes back on the webhook, as reference_number or
+          // external_reference_number depending on the event type.
           reference_number: input.reference,
           metadata: { course_title: input.courseTitle },
         },
-        // Not nested under data.attributes: the Checkout Sessions API takes the
-        // redirect URLs at the top level of data.
-        success_url: input.successUrl,
-        cancel_url: input.cancelUrl,
       },
     }),
   })
 
   const body = await response.json().catch(() => null)
   if (!response.ok) {
-    // Logged without the secret. The provider's own error text is safe and is the
-    // only thing that explains a failure here.
+    // Logged in full, server-side. The provider's own text is the only thing that
+    // explains a failure here, and it named both missing parameters when the
+    // request schema was wrong - which is how `line_items` and
+    // `payment_method_types` were found.
     console.error(
       `create-checkout: PayMongo refused with ${response.status}:`,
-      JSON.stringify(body?.errors ?? body)?.slice(0, 500),
+      JSON.stringify(body?.errors ?? body)?.slice(0, 800),
     )
-    // The status and PayMongo's own code are returned to the caller so a wrong
-    // merchant key is distinguishable from a malformed amount. The detail string
-    // is not: it is the provider echoing the request, and it has no business
-    // reaching a browser.
+
+    // Only the status and the provider's code cross back to the browser. The full
+    // body echoed the request and is not the browser's business.
     const first = Array.isArray(body?.errors) ? body.errors[0] : undefined
     return {
       error: 'paymongo_refused',
       providerStatus: response.status,
       providerCode: typeof first?.code === 'string' ? first.code : undefined,
+      // The `detail` names the offending parameter, which is what makes a 400
+      // actionable. It is provider-authored prose about our own request, and it
+      // names no credential.
+      providerDetail: typeof first?.detail === 'string' ? first.detail.slice(0, 200) : undefined,
     }
   }
 
