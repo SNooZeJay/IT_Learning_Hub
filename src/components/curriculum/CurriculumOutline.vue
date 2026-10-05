@@ -81,6 +81,21 @@ function isCollapsed(moduleId: string): boolean {
   return collapsed.value.has(moduleId)
 }
 
+/**
+ * Whether this viewer has progress to show at all.
+ *
+ * True only for an enrolled student. An instructor sees the same outline but has
+ * no enrolment, so every marker would read "0 of 1 complete" - a confident
+ * statement about somebody's progress, made to somebody who has none. That is
+ * what the instructor's own course page was showing.
+ *
+ * A prospective student is in the same position: `completionPercent` stays null
+ * until they enrol, so the markers stay hidden there too.
+ */
+const showProgress = computed(
+  () => props.summary !== null && props.summary.completionPercent !== null,
+)
+
 /** A lesson's marker. Progress is only meaningful to someone enrolled. */
 function lessonState(
   lesson: CurriculumModule['lessons'][number],
@@ -88,11 +103,11 @@ function lessonState(
   if (props.editable) return 'open'
   if (lesson.progress?.status === 'completed') return 'done'
   if (props.activeLessonId === lesson.id) return 'active'
-  if (lesson.isPreview) return 'open'
   return 'open'
 }
 
 function moduleProgress(module: CurriculumModule): { done: number; total: number } | null {
+  if (!showProgress.value) return null
   const required = module.lessons.filter((l) => l.isRequired)
   if (required.length === 0) return null
   return {
