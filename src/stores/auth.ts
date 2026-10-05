@@ -21,11 +21,10 @@ export const useAuthStore = defineStore('auth', () => {
   const profile = ref<Profile | null>(null)
 
   /**
-   * Guards the very first navigation. `ensureReady()` awaits this so a route
-   * never resolves before the session is known.
+   * Guards the very first navigation. `ensureReady()` awaits the shared
+   * initialisation promise so a route never resolves before the session is known.
    */
   const initialized = ref(false)
-  const initializing = ref(false)
 
   /** Message from the most recent auth action, surfaced by the auth views. */
   const lastError = ref<string | null>(null)
@@ -62,39 +61,67 @@ export const useAuthStore = defineStore('auth', () => {
    * Returns a promise so the router can await it, but the subscription is not
    * torn down because the store outlives every view.
    */
+  /**
+   * The in-flight initialisation, so a second caller can wait for it.
+   *
+   * This is the whole fix for a bug that logged every signed-in user out on
+   * refresh. `initialize()` used to bail out with `if (initializing.value) return`
+   * - an early return, not a wait. On a page load, `app.use(router)` starts the
+   * first navigation before `bootstrap()` calls `initialize()`, so whichever ran
+   * second found `initializing` already true, returned immediately, and read a
+   * `session.value` that was still null because the first call had not finished
+   * its `getSession()`. The guard then redirected a signed-in user to sign-in.
+   *
+   * SPA navigation after sign-in worked, because the session was already in
+   * memory. Only a hard reload or a deep link hit it, which is why it read as
+   * intermittent and cost a long time to find.
+   *
+   * Returning the shared promise makes a second caller wait for the first
+   * instead of racing past it.
+   */
+  let readyPromise: Promise<void> | null = null
+
   async function initialize(): Promise<void> {
-    if (initialized.value || initializing.value) return
-    initializing.value = true
+    if (initialized.value) return
+    // Not `return`: wait for whoever is already doing it.
+    if (readyPromise) return readyPromise
 
-    if (!isSupabaseConfigured) {
-      // Fail closed. Without configuration there is no session, so guarded
-      // routes redirect to sign-in rather than rendering an empty shell.
-      initialized.value = true
-      initializing.value = false
-      return
-    }
-
-    const {
-      data: { session: currentSession },
-    } = await supabase.auth.getSession()
-    session.value = currentSession
-    if (currentSession) await loadProfile(currentSession.user.id)
-
-    supabase.auth.onAuthStateChange((_event, nextSession) => {
-      session.value = nextSession
-      if (nextSession) {
-        void loadProfile(nextSession.user.id)
-      } else {
-        profile.value = null
+    readyPromise = (async () => {
+      if (!isSupabaseConfigured) {
+        // Fail closed. Without configuration there is no session, so guarded
+        // routes redirect to sign-in rather than rendering an empty shell.
+        initialized.value = true
+        return
       }
-    })
 
-    initialized.value = true
-    initializing.value = false
+      const {
+        data: { session: currentSession },
+      } = await supabase.auth.getSession()
+      session.value = currentSession
+      if (currentSession) await loadProfile(currentSession.user.id)
+
+      supabase.auth.onAuthStateChange((_event, nextSession) => {
+        session.value = nextSession
+        if (nextSession) {
+          void loadProfile(nextSession.user.id)
+        } else {
+          profile.value = null
+        }
+      })
+
+      initialized.value = true
+    })()
+
+    try {
+      await readyPromise
+    } finally {
+      // Cleared so a later failure can be retried. `initialized` stays true on
+      // success, so this only matters when the first attempt threw.
+      readyPromise = null
+    }
   }
 
   async function ensureReady(): Promise<void> {
-    if (initialized.value) return
     await initialize()
   }
 
