@@ -1,0 +1,266 @@
+-- 20261005100011_grading_must_overwrite_the_draft_rows.sql
+--
+-- Every grade was being thrown away, and the review said so.
+--
+-- What happened
+-- -------------
+-- Migration 20261005100002 added `save_attempt_answer`, so a student does not lose
+-- their work on a refresh. It writes to `quiz_answers` as they answer - the same
+-- table grading uses, which is why no new table was needed.
+--
+-- Those draft rows arrive with `is_correct` and `points_awarded` unset, because
+-- writing them from a client is exactly what must never be possible.
+--
+-- `submit_quiz_attempt` then graded the attempt with
+--
+--     on conflict (attempt_id, question_id) do nothing
+--
+-- which was correct at the time it was written: nothing else inserted into that
+-- table, so there was never a conflict and the clause was inert.
+--
+-- Once drafts existed, every single grading insert hit a conflict and did nothing.
+-- The score was still right, because it is accumulated in `v_score` inside the
+-- loop rather than read back from the table. The *record* was not: `is_correct`
+-- and `points_awarded` stayed NULL on every row, permanently.
+--
+-- Proven against the live database, answering every question correctly:
+--
+--     is_correct: null, points_awarded: null   (all four rows)
+--     attempt score: 6.00 of 8.00
+--
+-- and the review screen rendered "0 of 2 points" against a headline score of
+-- 75%. The interface was not lying; it was faithfully reporting rows that grading
+-- had never written.
+--
+-- The fix
+-- -------
+-- `do update set` instead of `do nothing`. The submitted selection is re-stored
+-- (it should match, but the submitted answer is the authoritative one) and the
+-- verdict and points are written from the key that was just read server-side.
+--
+-- Still no client path to those two columns. `is_correct` is not an input to this
+-- function - it is computed here from `quiz_options.is_correct` and the accepted
+-- answers - and a function that is the owner of the row is the only writer. The
+-- column grants on `quiz_answers` are unchanged and still withhold `is_correct`
+-- from `authenticated`.
+--
+-- Worth naming: this was introduced by a change that fixed a different bug, and
+-- only surfaced because a test answered correctly and the result disagreed with
+-- the score. Answering incorrectly, as the earlier run did, hid it completely.
+
+create or replace function public.submit_quiz_attempt(p_attempt_id uuid, p_answers jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_attempt   public.quiz_attempts%rowtype;
+  v_quiz      public.quizzes%rowtype;
+  v_score     numeric(8,2) := 0;
+  v_max       numeric(8,2);
+  v_pct       numeric(5,2);
+  v_passed    boolean;
+  v_remaining integer;
+  v_rows      integer;
+  v_expired   boolean := false;
+  v_question  record;
+begin
+  select * into v_attempt from public.quiz_attempts where id = p_attempt_id for update;
+  if not found then
+    raise exception 'attempt not found' using errcode = 'no_data_found';
+  end if;
+
+  if v_attempt.student_id <> auth.uid() then
+    raise exception 'not your attempt' using errcode = 'insufficient_privilege';
+  end if;
+
+  -- A marked attempt is a record. A second submit is refused, not merged, so a
+  -- bad result cannot be quietly replaced by a good one. This is what makes a
+  -- double-clicked submit button safe, and it holds whatever the reason below.
+  if v_attempt.status <> 'in_progress' then
+    raise exception 'attempt already submitted at %', v_attempt.submitted_at
+      using errcode = 'check_violation';
+  end if;
+
+  select * into v_quiz from public.quizzes where id = v_attempt.quiz_id;
+
+  if v_attempt.expires_at is not null and now() > v_attempt.expires_at then
+    v_expired := true;
+  end if;
+
+  -- Grade every question in the quiz, not only the ones answered. Skipping the
+  -- rest would silently inflate the percentage, because the denominator would be
+  -- the questions the student chose to answer.
+  for v_question in
+    select q.id as question_id, q.question_type, q.points, q.case_sensitive
+    from public.quiz_questions q
+    where q.quiz_id = v_attempt.quiz_id
+    order by q.position
+  loop
+    declare
+      v_submitted jsonb;
+      v_option    uuid;
+      v_text      text;
+      v_correct   boolean := false;
+      v_awarded   numeric(6,2) := 0;
+    begin
+      select a.value into v_submitted
+      from jsonb_array_elements(coalesce(p_answers, '[]'::jsonb)) as a(value)
+      where (a.value->>'question_id')::uuid = v_question.question_id
+      limit 1;
+
+      if v_question.question_type = 'short_text' then
+        v_text := nullif(btrim(v_submitted->>'text'), '');
+        if v_text is not null then
+          if v_question.case_sensitive then
+            select true into v_correct
+            from public.quiz_text_answers t
+            where t.question_id = v_question.question_id and t.accepted_answer = v_text;
+          else
+            select true into v_correct
+            from public.quiz_text_answers t
+            where t.question_id = v_question.question_id
+              and lower(btrim(t.accepted_answer)) = lower(v_text);
+          end if;
+        end if;
+      else
+        v_option := nullif(v_submitted->>'option_id', '')::uuid;
+        if v_option is not null then
+          -- The option must belong to the question being answered, otherwise one
+          -- correct option id submitted for every question would score full marks.
+          select true into v_correct
+          from public.quiz_options o
+          where o.id = v_option
+            and o.question_id = v_question.question_id
+            and o.is_correct;
+        end if;
+      end if;
+
+      if coalesce(v_correct, false) then
+        v_awarded := v_question.points;
+        v_score := v_score + v_question.points;
+      end if;
+
+      -- `do update set`, not `do nothing`.
+      --
+      -- A row for this question already exists whenever the student answered
+      -- while the attempt was open, because `save_attempt_answer` wrote it as a
+      -- draft. Skipping the conflict left is_correct and points_awarded NULL on
+      -- every graded question, so the review screen reported a bare verdict and no
+      -- points even when the score said otherwise.
+      --
+      -- The submitted selection wins over the draft: they should agree, and where
+      -- they do not, what was submitted is what was sat.
+      insert into public.quiz_answers
+        (attempt_id, question_id, selected_option_id, text_answer, is_correct, points_awarded)
+      values
+        (p_attempt_id, v_question.question_id, v_option, v_text,
+         coalesce(v_correct, false), v_awarded)
+      on conflict (attempt_id, question_id) do update
+        set selected_option_id = excluded.selected_option_id,
+            text_answer         = excluded.text_answer,
+            is_correct          = excluded.is_correct,
+            points_awarded      = excluded.points_awarded;
+    end;
+  end loop;
+
+  select coalesce(sum(points), 0) into v_max
+    from public.quiz_questions where quiz_id = v_attempt.quiz_id;
+
+  -- A quiz with no questions cannot produce a percentage. Refuse rather than
+  -- divide by zero.
+  if v_max = 0 then
+    raise exception 'quiz has no questions' using errcode = 'check_violation';
+  end if;
+
+  v_pct := round((v_score / v_max) * 100, 2);
+  v_passed := v_pct >= v_quiz.passing_score;
+
+  update public.quiz_attempts
+     set status = 'submitted', score = v_score, max_score = v_max,
+         percentage = v_pct, passed = v_passed, submitted_at = now(),
+         ended_via = case
+           when v_expired then 'time_expired'
+           when v_attempt.warning_count >= v_quiz.max_warnings then 'warnings_exhausted'
+           else 'student_submit'
+         end
+   where id = p_attempt_id;
+
+  get diagnostics v_rows = row_count;
+  if v_rows <> 1 then
+    raise exception 'attempt % vanished during grading', p_attempt_id
+      using errcode = 'check_violation';
+  end if;
+
+  -- Grading can complete a course. The requirement function's own comment names
+  -- this call site: "Called after anything that could move it: a lesson
+  -- completed, a quiz graded, an assignment marked."
+  if v_attempt.enrollment_id is not null then
+    perform public.refresh_enrollment_completion(v_attempt.enrollment_id);
+  end if;
+
+  -- The student's own result, not the key.
+  v_remaining := greatest(least(v_quiz.attempts_allowed, 3) - v_attempt.attempt_number, 0);
+
+  return jsonb_build_object(
+    'attempt_id',         p_attempt_id,
+    'score',              v_score,
+    'max_score',          v_max,
+    'percentage',         v_pct,
+    'passed',             v_passed,
+    'passing_score',      v_quiz.passing_score,
+    'attempts_remaining', v_remaining,
+    'reveal_answers',     v_quiz.reveal_answers,
+    'ended_via',          case
+                            when v_expired then 'time_expired'
+                            when v_attempt.warning_count >= v_quiz.max_warnings then 'warnings_exhausted'
+                            else 'student_submit'
+                          end,
+    -- One entry per question, in the author's order so the review reads the same
+    -- way twice. Note this is the *author's* order, not the shuffled order the
+    -- student answered in: a review is for learning what was missed, and the
+    -- author's sequence is the one that teaches.
+    'answers', (
+      select coalesce(jsonb_agg(
+        case when v_quiz.reveal_answers
+          then jsonb_build_object(
+            'question_id',    a.question_id,
+            'is_correct',     a.is_correct,
+            'points',         q.points,
+            'points_awarded', a.points_awarded,
+            'question_type',  q.question_type,
+            'prompt',         q.prompt,
+            'explanation',    q.explanation,
+            -- What the student actually chose, so the review can distinguish it
+            -- from the correct answer. Same information they submitted.
+            'your_text',      a.text_answer,
+            'your_option_id', a.selected_option_id,
+            'options', (
+              select coalesce(jsonb_agg(jsonb_build_object(
+                         'id', o.id,
+                         'option_text', o.option_text,
+                         'is_correct', o.is_correct
+                       ) order by o.position), '[]'::jsonb)
+              from public.quiz_options o
+              where o.question_id = a.question_id
+            )
+          )
+          -- No correctness, no text, no options. The count is still there, so the
+          -- interface can say how many were answered without saying which were
+          -- right.
+          else jsonb_strip_nulls(jsonb_build_object(
+            'question_id', a.question_id
+          ))
+        end
+        order by q.position), '[]'::jsonb)
+      from public.quiz_answers a
+      join public.quiz_questions q on q.id = a.question_id
+      where a.attempt_id = p_attempt_id
+    )
+  );
+end;
+$$;
+
+comment on function public.submit_quiz_attempt(uuid, jsonb) is
+  'Grades a submitted attempt and returns the result. Overwrites the draft rows written by save_attempt_answer - the verdict is computed here from the stored key and is never taken from a client.';
