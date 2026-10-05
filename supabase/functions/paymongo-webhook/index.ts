@@ -196,6 +196,13 @@ async function recordEvent(
     in_resource_id: envelope.resourceId,
     in_payload: JSON.parse(rawBody),
     in_signature_verified: true,
+    // What the provider claimed, stored beside our own record rather than merged
+    // into it, so an amount mismatch stays detectable instead of being silently
+    // overwritten. The admin ledger reads these: without them it renders
+    // 'Test mode' about every payment, including real live-mode ones.
+    in_reported_amount_centavos: envelope.amountMinor,
+    in_reported_currency: envelope.currency,
+    in_livemode: envelope.livemode,
   })
 
   if (error) {
@@ -296,6 +303,12 @@ async function recordAsUnusable(
     in_resource_id: envelope?.resourceId ?? null,
     in_payload: JSON.parse(rawBody),
     in_signature_verified: verified,
+    // Recorded even when unverified. An event this code could not trust is still
+    // evidence of what the provider sent, and the admin ledger asserting 'Test mode'
+    // about a live payment is exactly the confusion these columns prevent.
+    in_reported_amount_centavos: envelope?.amountMinor ?? null,
+    in_reported_currency: envelope?.currency ?? null,
+    in_livemode: envelope?.livemode ?? null,
   })
   await setStatus(eventId, 'failed', failureCode)
 }
