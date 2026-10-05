@@ -15,12 +15,14 @@
  */
 import { computed } from 'vue'
 import {
+  Check,
   CheckCircle2,
   CircleSlash,
   Clock,
   RefreshCw,
   ShieldAlert,
   TriangleAlert,
+  X,
   XCircle,
 } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
@@ -40,9 +42,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ retake: [] }>()
 
-const correctCount = computed(
-  () => props.result.answers.filter((a) => 'is_correct' in a && a.is_correct === true).length,
-)
+const correctCount = computed(() => props.result.answers.filter((a) => a.isCorrect === true).length)
 
 const answeredCount = computed(() => props.result.answers.length)
 
@@ -187,49 +187,146 @@ const percent = computed(() => Number(props.result.percentage ?? 0))
         Review
       </h2>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        Which questions you got right. Answers you missed score zero.
+        Each question with the right answer marked, and yours beside it.
       </p>
 
-      <ol role="list" class="mt-4 flex flex-col gap-3">
+      <ol role="list" class="mt-4 flex flex-col gap-4">
         <li
           v-for="(answer, index) in result.answers"
           :key="answer.questionId"
-          class="flex items-start gap-3 rounded-lg border border-gray-200 px-4 py-3 dark:border-gray-800"
+          class="rounded-lg border px-4 py-4"
+          :class="
+            answer.isCorrect === true
+              ? 'border-success-200 bg-success-50/40 dark:border-success-500/25 dark:bg-success-500/[0.05]'
+              : answer.isCorrect === false
+                ? 'border-error-200 bg-error-50/40 dark:border-error-500/25 dark:bg-error-500/[0.05]'
+                : 'border-gray-200 dark:border-gray-800'
+          "
         >
-          <span class="mt-0.5 shrink-0">
-            <CheckCircle2
-              v-if="'is_correct' in answer && answer.is_correct"
-              class="size-5 text-success-600 dark:text-success-400"
-              aria-hidden="true"
-            />
-            <XCircle
-              v-else-if="'is_correct' in answer"
-              class="size-5 text-error-600 dark:text-error-400"
-              aria-hidden="true"
-            />
-            <CircleSlash v-else class="size-5 text-gray-400" aria-hidden="true" />
-          </span>
-          <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium text-gray-900 dark:text-white/90">
-              Question {{ index + 1 }}
-              <span
-                v-if="'is_correct' in answer"
-                class="ms-1.5 font-normal"
-                :class="
-                  answer.is_correct
-                    ? 'text-success-700 dark:text-success-400'
-                    : 'text-error-700 dark:text-error-400'
-                "
+          <div class="flex items-start gap-3">
+            <span class="mt-0.5 shrink-0">
+              <CheckCircle2
+                v-if="answer.isCorrect === true"
+                class="size-5 text-success-600 dark:text-success-400"
+                aria-hidden="true"
+              />
+              <XCircle
+                v-else-if="answer.isCorrect === false"
+                class="size-5 text-error-600 dark:text-error-400"
+                aria-hidden="true"
+              />
+              <CircleSlash v-else class="size-5 text-gray-400" aria-hidden="true" />
+            </span>
+
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium text-gray-900 dark:text-white/90">
+                Question {{ index + 1 }}
+                <span
+                  v-if="answer.isCorrect !== undefined"
+                  class="ms-1.5 font-normal"
+                  :class="
+                    answer.isCorrect
+                      ? 'text-success-700 dark:text-success-400'
+                      : 'text-error-700 dark:text-error-400'
+                  "
+                >
+                  {{ answer.isCorrect ? 'correct' : 'incorrect' }}
+                </span>
+                <span
+                  v-if="answer.pointsAwarded !== undefined"
+                  class="ms-1.5 font-normal text-gray-500 tabular-nums dark:text-gray-400"
+                >
+                  {{ answer.pointsAwarded }} of {{ answer.points }} points
+                </span>
+              </p>
+
+              <!-- The question itself. A review that does not repeat what was
+                   asked leaves the student to match it against memory. -->
+              <p
+                v-if="answer.prompt"
+                class="mt-1.5 text-sm leading-6 text-gray-700 dark:text-gray-200"
               >
-                {{ answer.is_correct ? 'correct' : 'incorrect' }}
-              </span>
-            </p>
-            <p
-              v-if="'points_awarded' in answer"
-              class="mt-0.5 text-xs text-gray-500 tabular-nums dark:text-gray-400"
-            >
-              {{ answer.points_awarded }} of {{ answer.points }} points
-            </p>
+                {{ answer.prompt }}
+              </p>
+
+              <!-- Options. Three states, which is what makes the difference
+                   legible: the correct one, your wrong one, and the case where
+                   your choice was also the right one. -->
+              <ul
+                v-if="answer.options && answer.options.length > 0"
+                class="mt-3 flex flex-col gap-1.5"
+              >
+                <li
+                  v-for="option in answer.options"
+                  :key="option.id"
+                  class="flex items-start gap-2.5 rounded-md border px-3 py-2 text-sm"
+                  :class="[
+                    option.isCorrect
+                      ? 'border-success-300 bg-success-50 text-success-900 dark:border-success-500/40 dark:bg-success-500/10 dark:text-success-100'
+                      : 'border-gray-200 bg-white text-gray-600 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300',
+                    option.id === answer.yourOptionId && !option.isCorrect
+                      ? 'border-error-300 dark:border-error-500/40'
+                      : '',
+                    option.id === answer.yourOptionId && option.isCorrect
+                      ? 'ring-1 ring-success-500'
+                      : '',
+                  ]"
+                >
+                  <Check
+                    v-if="option.isCorrect"
+                    class="mt-0.5 size-4 shrink-0 text-success-600 dark:text-success-400"
+                    aria-hidden="true"
+                  />
+                  <X
+                    v-else-if="option.id === answer.yourOptionId"
+                    class="mt-0.5 size-4 shrink-0 text-error-500 dark:text-error-400"
+                    aria-hidden="true"
+                  />
+                  <span v-else class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+
+                  <span class="min-w-0 flex-1 leading-6">{{ option.optionText }}</span>
+
+                  <span class="mt-0.5 shrink-0 text-xs font-medium whitespace-nowrap">
+                    <template v-if="option.id === answer.yourOptionId && option.isCorrect">
+                      Your answer
+                    </template>
+                    <template v-else-if="option.isCorrect">Correct answer</template>
+                    <template v-else-if="option.id === answer.yourOptionId"> Your answer </template>
+                  </span>
+                </li>
+              </ul>
+
+              <!-- A written answer has no options, so the two are shown as text. -->
+              <div
+                v-else-if="answer.yourText !== undefined || answer.questionType === 'short_text'"
+                class="mt-3 flex flex-col gap-2 text-sm"
+              >
+                <div
+                  class="rounded-md border border-gray-200 bg-white px-3 py-2 dark:border-gray-700 dark:bg-white/[0.03]"
+                >
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Your answer</p>
+                  <p class="mt-0.5 text-gray-800 dark:text-gray-200">
+                    {{ answer.yourText || 'You left this blank' }}
+                  </p>
+                </div>
+              </div>
+
+              <p
+                v-else-if="answer.yourOptionId === null"
+                class="mt-3 text-sm text-gray-500 dark:text-gray-400"
+              >
+                You did not answer this question.
+              </p>
+
+              <!-- The explanation is the answer in words, so it sits behind the
+                   same flag as the boolean rather than being assumed safe. -->
+              <p
+                v-if="answer.explanation"
+                class="mt-3 border-s-2 border-gray-200 ps-3 text-sm leading-6 text-gray-600 italic dark:border-gray-700 dark:text-gray-400"
+              >
+                {{ answer.explanation }}
+              </p>
+            </div>
           </div>
         </li>
       </ol>

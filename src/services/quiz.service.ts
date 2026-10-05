@@ -301,11 +301,40 @@ function toResult(data: unknown): QuizResult {
     revealAnswers: raw.reveal_answers !== false,
     answers: answers.map((entry) => {
       const answer = (entry ?? {}) as Record<string, unknown>
+      const options = Array.isArray(answer.options)
+        ? (answer.options as Array<Record<string, unknown>>).map((o) => ({
+            id: String(o.id ?? ''),
+            optionText: String(o.option_text ?? ''),
+            isCorrect: o.is_correct === true,
+          }))
+        : undefined
+
+      // Every field past questionId is copied only when the server sent it.
+      // `submit_quiz_attempt` returns nothing but question ids for a quiz with
+      // `reveal_answers` off, and defaulting them here would fabricate a verdict
+      // the database never made - every question would read as incorrect on a quiz
+      // that withholds its answers.
       return {
         questionId: String(answer.question_id ?? ''),
-        isCorrect: answer.is_correct === true,
-        points: Number(answer.points ?? 0),
-        pointsAwarded: Number(answer.points_awarded ?? 0),
+        ...(answer.is_correct === undefined ? {} : { isCorrect: answer.is_correct === true }),
+        ...(answer.points === undefined ? {} : { points: Number(answer.points) }),
+        ...(answer.points_awarded === undefined
+          ? {}
+          : { pointsAwarded: Number(answer.points_awarded) }),
+        ...(answer.question_type === undefined
+          ? {}
+          : { questionType: answer.question_type as QuestionType }),
+        ...(answer.prompt === undefined ? {} : { prompt: String(answer.prompt) }),
+        ...(answer.explanation === undefined
+          ? {}
+          : { explanation: (answer.explanation as string | null) ?? null }),
+        ...(answer.your_option_id === undefined
+          ? {}
+          : { yourOptionId: (answer.your_option_id as string | null) ?? null }),
+        ...(answer.your_text === undefined
+          ? {}
+          : { yourText: (answer.your_text as string | null) ?? null }),
+        ...(options === undefined ? {} : { options }),
       }
     }),
   }

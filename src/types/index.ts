@@ -263,12 +263,43 @@ export interface QuizAttempt {
   submittedAt: string | null
 }
 
-/** What one graded question came back as. */
+/**
+ * What one graded question came back as.
+ *
+ * The three grading fields are optional, and that is not a shortcut.
+ *
+ * `submit_quiz_attempt` omits `is_correct`, `points` and `points_awarded` from its
+ * payload entirely when the quiz has `reveal_answers` off, so that a student
+ * cannot read the key out of the network response and use it on a later attempt.
+ * The shape a result carries therefore depends on the quiz, and typing these as
+ * required would be a lie the interface could act on - it would render a verdict
+ * that the server never sent.
+ *
+ * Gate on `QuizResult.revealAnswers` before reading them. `questionId` is always
+ * present, which is what lets the interface say how many questions were answered
+ * even when it may not say which were right.
+ */
 export interface GradedAnswer {
   questionId: string
+  /** Present only when the quiz reveals answers. */
+  isCorrect?: boolean
+  points?: number
+  pointsAwarded?: number
+  questionType?: QuestionType
+  prompt?: string
+  /** The answer in words. Behind the same flag as the boolean, because it gives the whole thing away. */
+  explanation?: string | null
+  /** What the student chose, so a review can tell their answer from the right one. */
+  yourOptionId?: string | null
+  yourText?: string | null
+  options?: GradedOption[]
+}
+
+/** One option as it appears in a review. */
+export interface GradedOption {
+  id: string
+  optionText: string
   isCorrect: boolean
-  points: number
-  pointsAwarded: number
 }
 
 /**
