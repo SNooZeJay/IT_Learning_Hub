@@ -10,12 +10,7 @@
 
     <form class="flex flex-col gap-5" novalidate @submit.prevent="handleSubmit">
       <div>
-        <label
-          for="email"
-          class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          Email address
-        </label>
+        <label :for="email" :class="fieldLabelClass">Email address</label>
         <input
           id="email"
           v-model.trim="email"
@@ -39,7 +34,7 @@
 
       <div>
         <div class="mb-1.5 flex items-center justify-between">
-          <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label :for="password" class="block text-sm font-medium text-charcoal dark:text-gray-300">
             Password
           </label>
           <router-link
@@ -57,18 +52,24 @@
             name="password"
             autocomplete="current-password"
             required
-            :class="[inputClass, 'pe-11']"
+            :class="[inputClass, 'pe-12']"
             :aria-invalid="Boolean(fieldErrors.password)"
             :aria-describedby="fieldErrors.password ? 'password-error' : undefined"
           />
+          <!--
+            44px wide and the full height of the field beside it, because this is a
+            tap target on a phone and `px-3` around a 20px glyph measured about 28px
+            with the hit area hugging the glyph rather than the field.
+          -->
           <button
             type="button"
-            class="absolute inset-y-0 end-0 flex items-center px-3 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
+            class="absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-md text-slate transition-colors hover:text-ink dark:text-gray-400 dark:hover:text-gray-200"
             :aria-label="showPassword ? 'Hide password' : 'Show password'"
+            :aria-pressed="showPassword"
             @click="showPassword = !showPassword"
           >
-            <EyeOff v-if="showPassword" class="size-5" />
-            <Eye v-else class="size-5" />
+            <EyeOff v-if="showPassword" class="size-5" aria-hidden="true" />
+            <Eye v-else class="size-5" aria-hidden="true" />
           </button>
         </div>
         <p
@@ -81,12 +82,12 @@
       </div>
 
       <label
-        class="flex cursor-pointer items-center gap-2.5 text-sm text-gray-600 dark:text-gray-400"
+        class="flex cursor-pointer items-center gap-2.5 text-sm text-charcoal dark:text-gray-300"
       >
         <input
           v-model="rememberMe"
           type="checkbox"
-          class="size-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
+          class="size-4 rounded-sm border-hairline-strong text-brand-600 focus:ring-brand-500 dark:border-gray-600"
         />
         Keep me signed in
       </label>
@@ -97,7 +98,7 @@
       </Button>
     </form>
 
-    <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+    <p class="mt-6 text-center text-sm text-slate">
       New to IT Learning Hub?
       <router-link
         to="/auth/register"
@@ -116,6 +117,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Eye, EyeOff, LoaderCircle } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
 import Button from '@/components/ui/Button.vue'
+import { fieldLabelClass, textInputClass } from '@/components/ui/controlClasses'
 import AuthShell from '@/components/auth/AuthShell.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -131,8 +133,7 @@ const isSubmitting = ref(false)
 const errorMessage = ref('')
 const fieldErrors = ref<{ email?: string; password?: string }>({})
 
-const inputClass =
-  'w-full rounded border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500'
+const inputClass = textInputClass
 
 /** Client-side checks for a fast response. Supabase remains the real authority. */
 function validate(): boolean {

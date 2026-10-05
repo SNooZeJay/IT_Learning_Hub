@@ -1323,6 +1323,231 @@ export async function markAllNotificationsRead(userId: string): Promise<number> 
 }
 
 // ---------------------------------------------------------------------------
+// Handing in an assignment.
+// ---------------------------------------------------------------------------
+
+/** What the student wrote, as the student reads it back. */
+export interface StudentSubmission {
+  id: string
+  assignmentId: string
+  courseId: string
+  submissionText: string | null
+  filePath: string | null
+  submittedAt: string
+  status: SubmissionStatus
+  grade: number | null
+  feedback: string | null
+  gradedAt: string | null
+}
+
+/** One published assignment on a course, with this student's row against it. */
+export interface StudentAssignment {
+  id: string
+  courseId: string
+  moduleId: string | null
+  title: string
+  instructions: string | null
+  dueAt: string | null
+  maxPoints: number
+  /** Null until the student hands something in. */
+  submission: StudentSubmission | null
+}
+
+function toStudentSubmission(row: SubmissionRow): StudentSubmission {
+  return {
+    id: row.id,
+    assignmentId: row.assignment_id,
+    courseId: row.course_id,
+    submissionText: row.submission_text,
+    filePath: row.file_path,
+    submittedAt: row.submitted_at,
+    status: row.status,
+    grade: row.grade === null || row.grade === undefined ? null : Number(row.grade),
+    feedback: row.feedback,
+    gradedAt: row.graded_at,
+  }
+}
+
+/**
+ * Why this app cannot offer a file upload, in the words a student reads.
+ *
+ * The `assignment-submissions` bucket has exactly one policy,
+ * `admins manage submission bucket`, and it is `bucket_id = 'assignment-submissions'
+ * and is_admin()` for ALL commands. A student's insert is refused by storage
+ * before it reaches the row, and there is no student read policy either. So the
+ * form says the hand-in is text and says why, rather than carrying a file input
+ * that would fail on every single use.
+ */
+export const FILE_UPLOAD_UNAVAILABLE =
+  'Hand-in is text only. This site keeps uploaded files in a bucket that only an ' +
+  'administrator can write to, so a student cannot attach one.'
+
+/**
+ * Check a hand-in before it is sent.
+ *
+ * The only rule is `submission_has_content`: `submission_text is not null or
+ * file_path is not null`. With no upload available the text is the only possible
+ * body, so blank text is a submission with no content - refused here with a
+ * sentence rather than by the constraint.
+ *
+ * No length rule, because the schema has none. Inventing a maximum would be a
+ * limit the database does not enforce, and the form would then be the only thing
+ * enforcing it.
+ */
+export function validateSubmissionText(text: string): { ok: true } | { ok: false; reason: string } {
+  if (typeof text !== 'string' || text.trim() === '') {
+    return { ok: false, reason: 'Write your answer before handing this in.' }
+  }
+  return { ok: true }
+}
+
+/**
+ * Published assignments on a course, each with this student's own submission.
+ *
+ * Drafts are excluded because the `assignments select` policy hides them from
+ * anyone who is not the instructor or an administrator, and filtering again here
+ * keeps the shape honest about what the student can be shown at all.
+ *
+ * The submissions query names `student_id` rather than relying on the row
+ * filter. `submissions select` already reduces the result to this student's own
+ * rows; the explicit predicate is what makes that guarantee visible at the call
+ * site instead of being a fact about a policy in a migration.
+ */
+export async function listStudentAssignments(courseId: string): Promise<StudentAssignment[]> {
+  const studentId = await currentUserId()
+
+  const { data: assignmentRows, error: assignmentError } = await later
+    .from('assignments')
+    .select(ASSIGNMENT_COLUMNS)
+    .eq('course_id', courseId)
+    .eq('status', 'published')
+    .order('due_at', { ascending: true, nullsFirst: false })
+
+  if (assignmentError) {
+    throw new LearningError(messageOf(assignmentError, 'Could not load the assignments.'))
+  }
+
+  const assignments = ((assignmentRows ?? []) as unknown as AssignmentRow[]).filter(
+    (row) => row.status === 'published',
+  )
+  if (assignments.length === 0) return []
+
+  const assignmentIds = assignments.map((row) => row.id)
+  let submissionQuery = later
+    .from('assignment_submissions')
+    .select(SUBMISSION_COLUMNS)
+    .in('assignment_id', assignmentIds)
+  if (studentId) submissionQuery = submissionQuery.eq('student_id', studentId)
+
+  const { data: submissionRows, error: submissionError } = await submissionQuery
+
+  if (submissionError) {
+    throw new LearningError(messageOf(submissionError, 'Could not load your submissions.'))
+  }
+
+  const submissionByAssignment = new Map<string, StudentSubmission>()
+  for (const row of (submissionRows ?? []) as unknown as SubmissionRow[]) {
+    if (studentId && row.student_id !== studentId) continue
+    if (!submissionByAssignment.has(row.assignment_id)) {
+      submissionByAssignment.set(row.assignment_id, toStudentSubmission(row))
+    }
+  }
+
+  return assignments.map((row) => ({
+    id: row.id,
+    courseId: row.course_id,
+    moduleId: row.module_id,
+    title: row.title,
+    instructions: row.instructions,
+    dueAt: row.due_at,
+    maxPoints: Number(row.max_points),
+    submission: submissionByAssignment.get(row.id) ?? null,
+  }))
+}
+
+/**
+ * Hand in an assignment, or replace what was handed in before it was marked.
+ *
+ * One row per assignment per student, enforced by
+ * `assignment_submissions_unique_student`. The existing row is read first and
+ * updated rather than a second insert being attempted: the unique index would
+ * refuse the duplicate, and the grading queue is built on there being one
+ * submission per assignment.
+ *
+ * Two refusals come from the database. The graded one is checked here so the
+ * student gets a sentence rather than a round trip ending in "this submission has
+ * already been graded and cannot be replaced"; the enrolment one is not, because
+ * the write policy is the only honest place for it
+ * (`student_id = auth.uid() and is_enrolled_in(course_id)`) and nothing here
+ * widens it.
+ *
+ * `course_id` is never sent. `sync_submission_course` derives it from the parent
+ * assignment before the row is written, which is why migration 20261006120000
+ * describes the column as a read optimisation and never a client-supplied fact.
+ */
+export async function submitAssignment(
+  assignmentId: string,
+  submissionText: string,
+): Promise<StudentSubmission> {
+  const check = validateSubmissionText(submissionText)
+  if (!check.ok) throw new LearningError(check.reason)
+
+  const studentId = await currentUserId()
+  if (!studentId) {
+    throw new LearningError('You need to be signed in to hand in an assignment.')
+  }
+
+  const { data: existingRows, error: existingError } = await later
+    .from('assignment_submissions')
+    .select(SUBMISSION_COLUMNS)
+    .eq('assignment_id', assignmentId)
+    .eq('student_id', studentId)
+    .limit(1)
+
+  if (existingError) {
+    throw new LearningError(
+      messageOf(existingError, 'Could not check what you have already handed in.'),
+    )
+  }
+
+  const existing = ((existingRows ?? []) as unknown as SubmissionRow[])[0]
+
+  if (existing && existing.status === 'graded') {
+    throw new LearningError(
+      'This has already been marked, so it can no longer be replaced. ' +
+        'Ask your instructor to reopen it if there is a reason to.',
+    )
+  }
+
+  const body = submissionText.trim()
+  const now = new Date().toISOString()
+
+  const written = existing
+    ? await later
+        .from('assignment_submissions')
+        .update({ submission_text: body, submitted_at: now })
+        .eq('id', existing.id)
+        .eq('student_id', studentId)
+        .select(SUBMISSION_COLUMNS)
+        .single()
+    : await later
+        .from('assignment_submissions')
+        .insert({
+          assignment_id: assignmentId,
+          student_id: studentId,
+          submission_text: body,
+          submitted_at: now,
+        })
+        .select(SUBMISSION_COLUMNS)
+        .single()
+
+  if (written.error) {
+    throw new LearningError(messageOf(written.error, 'Could not hand in your assignment.'))
+  }
+  return toStudentSubmission(written.data as unknown as SubmissionRow)
+}
+
+// ---------------------------------------------------------------------------
 // Deadlines.
 // ---------------------------------------------------------------------------
 

@@ -287,6 +287,125 @@
               </li>
             </ul>
           </div>
+
+          <!-- Assignments. Authoring lives here rather than in the sidebar this
+               list used to sit in: a form with six fields does not belong in a
+               third of the page, and it belongs beside the quizzes, which are
+               the other thing a student is assessed on. -->
+          <div
+            class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+          >
+            <div
+              class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 px-6 py-4 dark:border-gray-800"
+            >
+              <div class="min-w-0">
+                <h2 class="text-title-sm text-gray-900 dark:text-white/90">Assignments</h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Work a student hands in. A published assignment is shown to everyone enrolled, and
+                  a course that requires hand-ins does not complete until they are marked.
+                </p>
+              </div>
+
+              <Button
+                variant="primary"
+                class="shrink-0"
+                :disabled="assignmentForm.saving"
+                @click="openAssignmentForm()"
+              >
+                <Plus class="size-4" />
+                Add assignment
+              </Button>
+            </div>
+
+            <div class="p-6">
+              <LoadingState v-if="isLoadingAssignments" label="Loading assignments" />
+
+              <ErrorState
+                v-else-if="assignmentError"
+                title="Could not load the assignments"
+                :message="assignmentError"
+                @retry="loadAssignments"
+              />
+
+              <EmptyState
+                v-else-if="assignments.length === 0"
+                title="No assignments on this course"
+                description="Add one above. Once it has a deadline it shows on your calendar, and once it is published students can hand it in."
+                :icon="ClipboardCheck"
+              />
+
+              <ul v-else role="list" class="space-y-3">
+                <li
+                  v-for="assignment in assignments"
+                  :key="assignment.id"
+                  class="rounded-lg border border-gray-200 px-4 py-3.5 dark:border-gray-800"
+                >
+                  <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <p class="text-theme-sm font-medium text-gray-900 dark:text-white/90">
+                        {{ assignment.title }}
+                      </p>
+                      <p class="mt-0.5 text-xs text-gray-500 tabular-nums dark:text-gray-400">
+                        {{ assignment.maxPoints }} points ·
+                        {{
+                          assignment.dueAt
+                            ? `due ${formatDateTime(assignment.dueAt)}`
+                            : 'no deadline'
+                        }}
+                        <template v-if="moduleTitleOf(assignment.moduleId)">
+                          · {{ moduleTitleOf(assignment.moduleId) }}
+                        </template>
+                      </p>
+                      <p
+                        v-if="assignment.instructions"
+                        class="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-400"
+                      >
+                        {{ assignment.instructions }}
+                      </p>
+                    </div>
+
+                    <div class="flex shrink-0 flex-wrap items-center gap-1">
+                      <span
+                        class="rounded px-2 py-0.5 text-xs font-medium"
+                        :class="
+                          assignment.status === 'published'
+                            ? 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400'
+                            : 'bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400'
+                        "
+                      >
+                        {{ assignment.status }}
+                      </span>
+                      <button
+                        type="button"
+                        class="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.06]"
+                        @click="openAssignmentForm(assignment.id)"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-error-600 dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-error-400"
+                        @click="confirmRemoveAssignment(assignment.id)"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+
+              <AssignmentForm
+                v-if="assignmentForm.open"
+                class="mt-6"
+                :assignment="assignmentForm.assignment"
+                :modules="assignmentModules"
+                :saving="assignmentForm.saving"
+                :error="assignmentForm.error"
+                @cancel="closeAssignmentForm"
+                @submit="saveAssignment"
+              />
+            </div>
+          </div>
         </div>
 
         <!-- Sidebar -->
@@ -399,58 +518,6 @@
               /courses/{{ course.slug }}
             </p>
           </div>
-
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Assignments</h2>
-
-            <div v-if="isLoadingAssignments" class="mt-4">
-              <LoadingState label="Loading assignments" />
-            </div>
-
-            <ErrorState
-              v-else-if="assignmentError"
-              title="Could not load the assignments"
-              :message="assignmentError"
-              @retry="loadAssignments"
-            />
-
-            <EmptyState
-              v-else-if="assignments.length === 0"
-              title="No assignments yet"
-              description="Assignment deadlines appear here and on your calendar once one is created."
-              :icon="ClipboardCheck"
-            />
-
-            <ul v-else class="mt-4 space-y-3">
-              <li
-                v-for="assignment in assignments"
-                :key="assignment.id"
-                class="rounded border border-gray-200 px-4 py-3 dark:border-gray-800"
-              >
-                <div class="flex items-start justify-between gap-3">
-                  <p class="text-sm font-medium text-gray-900 dark:text-white/90">
-                    {{ assignment.title }}
-                  </p>
-                  <span
-                    class="shrink-0 rounded px-2 py-0.5 text-xs font-medium"
-                    :class="
-                      assignment.status === 'published'
-                        ? 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400'
-                        : 'bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400'
-                    "
-                  >
-                    {{ assignment.status }}
-                  </span>
-                </div>
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {{ assignment.maxPoints }} points ·
-                  {{ assignment.dueAt ? `due ${formatDateTime(assignment.dueAt)}` : 'no deadline' }}
-                </p>
-              </li>
-            </ul>
-          </div>
         </div>
       </div>
     </template>
@@ -467,24 +534,33 @@ import {
   ClipboardList,
   Library,
   Pencil,
+  Plus,
   X,
 } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
+import Alert from '@/components/ui/Alert.vue'
+import Button from '@/components/ui/Button.vue'
 import CurriculumOutline from '@/components/curriculum/CurriculumOutline.vue'
 import ModuleForm from '@/components/curriculum/ModuleForm.vue'
 import LessonForm from '@/components/curriculum/LessonForm.vue'
 import MaterialForm from '@/components/curriculum/MaterialForm.vue'
+import AssignmentForm from '@/components/curriculum/AssignmentForm.vue'
 import {
+  createAssignment,
+  deleteAssignment,
   getInstructorCourse,
   getQuizAnswerKey,
+  InstructorError,
   listAssignments,
   listCourseQuizzes,
+  updateAssignment,
 } from '@/services/instructor.service'
 import type {
   Assignment,
+  AssignmentStatus,
   InstructorCourse,
   QuizAnswerKey,
   QuizSummary,
@@ -505,6 +581,7 @@ import {
 } from '@/services/curriculum.service'
 import { supabase } from '@/services/supabase/client'
 import { materialTypeLabel } from '@/services/curriculum.service'
+import { useAuthStore } from '@/stores/auth'
 // The student dashboard caches module ids per course, so an instructor's
 // curriculum write has to drop it or a student sees the old module list.
 import { forgetModuleCache } from '@/services/dashboard.service'
@@ -520,6 +597,7 @@ import type {
 } from '@/types'
 
 const route = useRoute()
+const auth = useAuthStore()
 
 const course = ref<InstructorCourse | null>(null)
 const quizzes = ref<QuizSummary[]>([])
@@ -600,6 +678,122 @@ const materialForm = reactive({
   saving: false,
   error: null as string | null,
 })
+
+const assignmentForm = reactive({
+  open: false,
+  assignment: null as Assignment | null,
+  saving: false,
+  error: null as string | null,
+})
+
+/**
+ * The modules the assignment form offers, and the lookup that names one in the
+ * list. Taken from the curriculum already on the page rather than fetched again:
+ * the form needs exactly the modules of this course, and that is what the
+ * curriculum is.
+ */
+const assignmentModules = computed(() =>
+  curriculumModules.value.map((module) => ({ id: module.id, title: module.title })),
+)
+
+/**
+ * The module an assignment is filed under, as a name.
+ *
+ * Null for an assignment that belongs to the course as a whole, and null for one
+ * filed under a module that has since been deleted - `module_id` is `ON DELETE
+ * SET NULL` - so the caller renders nothing rather than an empty separator.
+ */
+function moduleTitleOf(moduleId: string | null): string | null {
+  if (!moduleId) return null
+  return moduleIndex.value.get(moduleId)?.title ?? null
+}
+
+/** New assignment, or edit the one with this id. `undefined` means create. */
+function openAssignmentForm(assignmentId?: string): void {
+  assignmentForm.assignment = assignmentId
+    ? (assignments.value.find((row) => row.id === assignmentId) ?? null)
+    : null
+  assignmentForm.error = null
+  assignmentForm.open = true
+}
+
+function closeAssignmentForm(): void {
+  assignmentForm.open = false
+  assignmentForm.assignment = null
+  assignmentForm.error = null
+}
+
+async function saveAssignment(draft: {
+  title: string
+  instructions: string | null
+  moduleId: string | null
+  dueAt: string | null
+  maxPoints: number
+  status: AssignmentStatus
+}): Promise<void> {
+  const courseId = course.value?.id
+  // `assignments.created_by` is not nullable, so a write needs somebody to
+  // attribute it to. Refusing with a sentence beats inserting a row that belongs
+  // to nobody.
+  const instructorId = auth.profile?.id
+  if (!courseId || !instructorId) {
+    assignmentForm.error =
+      'Your account is still loading, so the assignment was not saved. Try again in a moment.'
+    return
+  }
+
+  assignmentForm.saving = true
+  assignmentForm.error = null
+  try {
+    if (assignmentForm.assignment) {
+      await updateAssignment(assignmentForm.assignment.id, draft)
+      actionVariant.value = 'success'
+      actionMessage.value = `Saved "${draft.title}".`
+    } else {
+      await createAssignment(courseId, draft, instructorId)
+      actionVariant.value = 'success'
+      actionMessage.value = `Added assignment "${draft.title}".`
+    }
+    await loadAssignments()
+    closeAssignmentForm()
+  } catch (error) {
+    assignmentForm.error = describeInstructor(error, 'Could not save the assignment.')
+  } finally {
+    assignmentForm.saving = false
+  }
+}
+
+/**
+ * Confirm before removing an assignment, by name.
+ *
+ * Named because the rows are otherwise interchangeable on screen, and destructive
+ * for a reason that has to be stated: `assignments` cascades to
+ * `assignment_submissions`, so every hand-in against this assignment - graded work
+ * included - goes with it. There is no soft delete on either table.
+ */
+function confirmRemoveAssignment(assignmentId: string): void {
+  const assignment = assignments.value.find((row) => row.id === assignmentId)
+  if (!assignment) return
+
+  const message =
+    'Remove "' +
+    assignment.title +
+    '"? Every hand-in against it is deleted with it, including any that has already ' +
+    'been marked. This cannot be undone.'
+  if (!window.confirm(message)) return
+
+  actionVariant.value = 'success'
+  void (async () => {
+    try {
+      await deleteAssignment(assignmentId)
+      actionMessage.value = `Removed "${assignment.title}".`
+      await loadAssignments()
+    } catch (error) {
+      actionVariant.value = 'error'
+      actionMessage.value = describeInstructor(error, 'Could not remove that assignment.')
+    }
+  })()
+}
 
 function closeModuleForm(): void {
   moduleForm.open = false
@@ -689,6 +883,18 @@ function openEditMaterialForm(materialId: string): void {
 
 function describe(error: unknown, fallback: string): string {
   if (error instanceof CurriculumError) return error.message
+  if (error instanceof Error) return error.message
+  return fallback
+}
+
+/**
+ * The same, for the writes that go through `instructor.service` rather than
+ * `curriculum.service`. Both throw an `Error` subclass carrying the database's own
+ * refusal, so the message is what a person needs; the fallback is only reached
+ * when something that is not an Error was thrown.
+ */
+function describeInstructor(error: unknown, fallback: string): string {
+  if (error instanceof InstructorError) return error.message
   if (error instanceof Error) return error.message
   return fallback
 }
@@ -948,6 +1154,10 @@ async function load(): Promise<void> {
   try {
     course.value = await getInstructorCourse(courseId.value)
     if (!course.value) return
+    // `auth.profile` supplies `assignments.created_by`. Awaited rather than read
+    // directly, so the save button is never pressed against a half-loaded store
+    // and refused for a reason that is about the page not being ready yet.
+    await auth.ensureReady()
     // The curriculum has its own error surface. A failure to read it must not
     // blank the page - the quiz and assignment panels are still useful - and it
     // must be visible, because an instructor looking at an empty outline would

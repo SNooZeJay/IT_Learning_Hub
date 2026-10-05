@@ -1563,6 +1563,242 @@ export async function listAssignments(options: {
 }
 
 // ---------------------------------------------------------------------------
+// Writing assignments
+// ---------------------------------------------------------------------------
+
+export interface AssignmentDraft {
+  title: string
+  instructions?: string | null
+  /** Nullable in the schema. Null means the assignment belongs to the course, not to one module. */
+  moduleId?: string | null
+  /** ISO timestamp, or null for no deadline. */
+  dueAt?: string | null
+  /** Omit for the schema default of 100. Never null: the column is NOT NULL. */
+  maxPoints?: number
+  /** Omit to create as a draft, matching every other authoring path here. */
+  status?: AssignmentStatus
+}
+
+export interface AssignmentPatch {
+  title?: string
+  instructions?: string | null
+  moduleId?: string | null
+  dueAt?: string | null
+  maxPoints?: number
+  status?: AssignmentStatus
+}
+
+/** The `assignment_status` enum, as a list so it can be validated against. */
+const ASSIGNMENT_STATUSES: readonly AssignmentStatus[] = ['draft', 'published']
+
+/** The schema default for `max_points`. */
+export const DEFAULT_ASSIGNMENT_POINTS = 100
+
+/**
+ * The largest value `numeric(6,2)` can hold.
+ *
+ * Six digits of precision, two of them after the point, so 9999.99 is the
+ * ceiling. Worth checking here rather than letting the database answer: the
+ * refusal is "numeric field overflow", which names a data type rather than the
+ * field the instructor was editing.
+ */
+export const MAX_ASSIGNMENT_POINTS = 9999.99
+
+/** Either `ok`, or the sentence to put under the field that caused it. */
+export type AssignmentCheck = { ok: true } | { ok: false; reason: string }
+
+function blankTitleReason(title: string): string | null {
+  // `assignments_title_check` is `length(btrim(title)) > 0`, and `btrim` strips
+  // spaces only - a tab or a newline satisfies it. The check here is stricter by
+  // design: a title that renders as blank is not a title, and the database
+  // accepting one is an accident of `btrim` rather than an intention.
+  return title.trim() === '' ? 'Give the assignment a title.' : null
+}
+
+function maxPointsReason(value: number | undefined): string | null {
+  if (value === undefined) return null
+  if (!Number.isFinite(value)) return 'Points must be a number.'
+  // `assignments_max_points_check` is `max_points > 0`.
+  if (value <= 0) return 'Points must be more than zero.'
+  if (value > MAX_ASSIGNMENT_POINTS) {
+    return `Points cannot be more than ${MAX_ASSIGNMENT_POINTS}.`
+  }
+  return null
+}
+
+function dueAtReason(value: string | null | undefined): string | null {
+  if (value === undefined || value === null || value.trim() === '') return null
+  return Number.isNaN(Date.parse(value)) ? 'That deadline is not a date.' : null
+}
+
+function statusReason(value: AssignmentStatus | undefined): string | null {
+  if (value === undefined) return null
+  return ASSIGNMENT_STATUSES.includes(value) ? null : 'Visibility must be draft or published.'
+}
+
+/** Turn the first reason found into the result shape, or into a pass. */
+function firstReason(...reasons: Array<string | null>): AssignmentCheck {
+  for (const reason of reasons) {
+    if (reason !== null) return { ok: false, reason }
+  }
+  return { ok: true }
+}
+
+/**
+ * Check an assignment before it is created.
+ *
+ * Each rule mirrors one constraint the database enforces, so the instructor gets
+ * a sentence rather than a constraint name. The database still enforces all of
+ * them - a form is not a security control - but a form that knows the rules does
+ * not need the database to explain them.
+ *
+ * The order is the order a form reads: the title, then the number, then the date,
+ * then the enum. A student fixing a form is shown the topmost fault first rather
+ * than whichever one happens to fail last.
+ */
+export function validateAssignmentDraft(draft: AssignmentDraft): AssignmentCheck {
+  return firstReason(
+    blankTitleReason(draft.title),
+    maxPointsReason(draft.maxPoints),
+    dueAtReason(draft.dueAt),
+    statusReason(draft.status),
+  )
+}
+
+/**
+ * The same rules for an edit, over the fields actually present.
+ *
+ * Separate from the draft check because a patch is partial: `title` absent means
+ * "leave the title alone", not "the title is blank". Running the draft check over
+ * a patch would refuse every edit that leaves the title out of the payload.
+ */
+export function validateAssignmentPatch(patch: AssignmentPatch): AssignmentCheck {
+  return firstReason(
+    patch.title === undefined ? null : blankTitleReason(patch.title),
+    maxPointsReason(patch.maxPoints),
+    dueAtReason(patch.dueAt),
+    statusReason(patch.status),
+  )
+}
+
+/**
+ * Refuse a module that belongs to another course.
+ *
+ * `assignments.module_id` is a bare foreign key, so nothing in the database
+ * stops an instructor attaching an assignment to a module on a course they do
+ * not teach - the write policy checks `course_id`, which the client also
+ * supplies. Reading the module back and comparing its course is the cheapest
+ * check that makes the row mean what it says, and an instructor who reads
+ * nothing back gets a refused save rather than an assignment filed under the
+ * wrong module.
+ *
+ * A module the caller cannot see reads as no such module, which is the honest
+ * answer: the courses an instructor may read are the ones they may teach.
+ */
+async function assertModuleOnCourse(courseId: string, moduleId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from('modules')
+    .select('id, course_id')
+    .eq('id', moduleId)
+    .limit(1)
+
+  if (error) throw new InstructorError(messageOf(error, 'Could not check that module.'))
+
+  const module = ((data ?? []) as Array<{ id: string; course_id: string }>)[0]
+  if (!module) {
+    throw new InstructorError('That module does not exist, or it is not on this course.')
+  }
+  if (module.course_id !== courseId) {
+    throw new InstructorError('That module belongs to a different course.')
+  }
+}
+
+/**
+ * Create an assignment on a course.
+ *
+ * Always a draft unless the draft says otherwise, for the reason every other
+ * write in this file creates drafts: an instructor building a course should not
+ * be able to put work in front of a student by accident. Publishing is a second,
+ * deliberate save.
+ */
+export async function createAssignment(
+  courseId: string,
+  draft: AssignmentDraft,
+  createdBy: string,
+): Promise<Assignment> {
+  const check = validateAssignmentDraft(draft)
+  if (!check.ok) throw new InstructorError(check.reason)
+
+  if (draft.moduleId) await assertModuleOnCourse(courseId, draft.moduleId)
+
+  const { data, error } = await assessment
+    .from('assignments')
+    .insert({
+      course_id: courseId,
+      module_id: draft.moduleId ?? null,
+      title: draft.title.trim(),
+      instructions: draft.instructions?.trim() || null,
+      due_at: draft.dueAt ?? null,
+      max_points: draft.maxPoints ?? DEFAULT_ASSIGNMENT_POINTS,
+      status: draft.status ?? 'draft',
+      created_by: createdBy,
+    })
+    .select(ASSIGNMENT_COLUMNS)
+    .single()
+
+  if (error) throw new InstructorError(messageOf(error, 'Could not add the assignment.'))
+  return toAssignment(data as unknown as AssignmentRow)
+}
+
+/**
+ * Change an assignment's details or its visibility.
+ *
+ * Only the fields present in the patch are written. `course_id` is not among
+ * them: moving an assignment between courses cascades to every submission, and
+ * the database's own `assignments_propagate_course` trigger exists to make that
+ * deliberate rather than accidental.
+ */
+export async function updateAssignment(
+  assignmentId: string,
+  patch: AssignmentPatch,
+): Promise<Assignment> {
+  const check = validateAssignmentPatch(patch)
+  if (!check.ok) throw new InstructorError(check.reason)
+
+  const update: AssessmentTables['assignments']['Update'] = {}
+  if (patch.title !== undefined) update.title = patch.title.trim()
+  if (patch.instructions !== undefined) update.instructions = patch.instructions?.trim() || null
+  if (patch.moduleId !== undefined) update.module_id = patch.moduleId
+  if (patch.dueAt !== undefined) update.due_at = patch.dueAt
+  if (patch.maxPoints !== undefined) update.max_points = patch.maxPoints
+  if (patch.status !== undefined) update.status = patch.status
+
+  const { data, error } = await assessment
+    .from('assignments')
+    .update(update)
+    .eq('id', assignmentId)
+    .select(ASSIGNMENT_COLUMNS)
+    .single()
+
+  if (error) throw new InstructorError(messageOf(error, 'Could not save the assignment.'))
+  return toAssignment(data as unknown as AssignmentRow)
+}
+
+/**
+ * Delete an assignment.
+ *
+ * Irreversible, and the database cascades to every submission against it, so the
+ * view confirms by name before calling this. Graded work included: `assignments`
+ * -> `assignment_submissions` is `ON DELETE CASCADE` and there is no soft delete
+ * on either table, which is the one thing worth saying out loud in the
+ * confirmation.
+ */
+export async function deleteAssignment(assignmentId: string): Promise<void> {
+  const { error } = await assessment.from('assignments').delete().eq('id', assignmentId)
+  if (error) throw new InstructorError(messageOf(error, 'Could not delete the assignment.'))
+}
+
+// ---------------------------------------------------------------------------
 // Calendar
 // ---------------------------------------------------------------------------
 

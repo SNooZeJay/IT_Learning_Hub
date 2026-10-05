@@ -127,6 +127,52 @@
                   </li>
                 </ul>
               </section>
+
+              <!--
+                Assignments sit after the quizzes for the same reason: they are
+                the work, so they come after the reading.
+
+                Gated on enrolment, like everything above it. The write policy is
+                `student_id = auth.uid() and is_enrolled_in(course_id)`, so a
+                prospective student's hand-in would be refused by the database
+                anyway - but offering a box that cannot save is worse than not
+                offering one.
+              -->
+              <section
+                v-if="isEnrolledHere && assignments.length > 0"
+                class="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800"
+                aria-labelledby="course-assignments-heading"
+              >
+                <h2
+                  id="course-assignments-heading"
+                  class="text-theme-sm text-gray-900 dark:text-white/90"
+                >
+                  Assignments
+                </h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Read the brief, then write your answer below. A hand-in can be replaced until it
+                  has been marked.
+                </p>
+
+                <Alert
+                  v-if="assignmentError"
+                  variant="error"
+                  title="Could not load the assignments"
+                  :message="assignmentError"
+                  class="mt-4"
+                />
+
+                <ul role="list" class="mt-4 flex flex-col gap-3">
+                  <AssignmentSubmitCard
+                    v-for="assignment in assignments"
+                    :key="assignment.id"
+                    :assignment="assignment"
+                    :saving="isSubmitting === assignment.id"
+                    :error="submitErrors[assignment.id] ?? null"
+                    @submit="handleSubmit"
+                  />
+                </ul>
+              </section>
             </div>
           </div>
         </div>
@@ -237,11 +283,17 @@ import LoadingState from '@/components/common/LoadingState.vue'
 import Alert from '@/components/ui/Alert.vue'
 import Button from '@/components/ui/Button.vue'
 import CurriculumOutline from '@/components/curriculum/CurriculumOutline.vue'
+import AssignmentSubmitCard from '@/components/curriculum/AssignmentSubmitCard.vue'
 import { getCourseWithCurriculum, isPaid } from '@/services/course.service'
 import { findEnrollment, enrollInFreeCourse } from '@/services/enrollment.service'
 import { startCheckout } from '@/services/checkout.service'
 import { loadCurriculum, type Curriculum } from '@/services/curriculum.service'
 import { listQuizzesForCourse } from '@/services/quiz.service'
+import {
+  listStudentAssignments,
+  submitAssignment,
+  type StudentAssignment,
+} from '@/services/learning.service'
 import { useAuthStore } from '@/stores/auth'
 import { formatPeso } from '@/types'
 import type { Course, Quiz } from '@/types'
@@ -287,6 +339,23 @@ const enrollmentId = ref<string | null>(null)
  * sequence. It is shown after the content instead.
  */
 const quizzes = ref<Quiz[]>([])
+
+/**
+ * Published assignments on this course, each already carrying this student's own
+ * hand-in.
+ *
+ * Loaded after the enrolment is known and only then, because a hand-in box is
+ * only offered to somebody the database will accept a write from. The list is
+ * gated on `isEnrolledHere` in the template for the same reason.
+ */
+const assignments = ref<StudentAssignment[]>([])
+const assignmentError = ref('')
+
+/** The assignment currently being written, so only its button is disabled. */
+const isSubmitting = ref<string | null>(null)
+
+/** Per-assignment failure text, so one refusal does not blank the other boxes. */
+const submitErrors = ref<Record<string, string>>({})
 
 const curriculumModules = computed(() => curriculum.value?.modules ?? [])
 const curriculumSummary = computed(() => curriculum.value?.summary ?? null)
@@ -338,6 +407,11 @@ async function load(): Promise<void> {
       enrollmentId: enrollmentId.value,
     })
 
+    // Same ordering for the assignments: a failure here shows one sentence above
+    // the list rather than failing the page, because the curriculum and the
+    // quizzes are still worth reading.
+    await loadAssignments(result.course.id, isEnrolledHere.value)
+
     // The learner returning from the provider. The webhook settles asynchronously,
     // so the enrolment may not be active yet on the very first render - which is
     // why this says "confirming" rather than claiming success.
@@ -372,6 +446,61 @@ async function load(): Promise<void> {
     errorMessage.value = error instanceof Error ? error.message : 'Could not load this course.'
   } finally {
     isLoading.value = false
+  }
+}
+
+/**
+ * Load this course's published assignments, with this student's own hand-in on
+ * each.
+ *
+ * Skipped entirely when the visitor holds no place: `is_enrolled_in` is part of
+ * the write policy, so a prospective student can read nothing they could act on,
+ * and the section is hidden anyway. Asking anyway would be a query whose only
+ * possible outcome is a refusal.
+ */
+async function loadAssignments(courseId: string, enrolled: boolean): Promise<void> {
+  if (!enrolled) {
+    assignments.value = []
+    return
+  }
+
+  assignmentError.value = ''
+  try {
+    assignments.value = await listStudentAssignments(courseId)
+  } catch (error) {
+    assignments.value = []
+    assignmentError.value =
+      error instanceof Error ? error.message : 'Could not load the assignments.'
+  }
+}
+
+/**
+ * Hand in an assignment, then re-read the list.
+ *
+ * Re-read rather than patching the row in place: the write returns the row, but
+ * the list also carries the assignment's own metadata and the read is what proves
+ * the state the server now holds - which is the only state worth showing a
+ * student. A hand-in that reports success and renders as "not submitted" is
+ * worse than an error.
+ */
+async function handleSubmit(assignmentId: string, submissionText: string): Promise<void> {
+  if (!course.value) return
+
+  isSubmitting.value = assignmentId
+  const next = { ...submitErrors.value }
+  delete next[assignmentId]
+  submitErrors.value = next
+
+  try {
+    await submitAssignment(assignmentId, submissionText)
+    await loadAssignments(course.value.id, isEnrolledHere.value)
+  } catch (error) {
+    submitErrors.value = {
+      ...submitErrors.value,
+      [assignmentId]: error instanceof Error ? error.message : 'Could not hand that in.',
+    }
+  } finally {
+    isSubmitting.value = null
   }
 }
 

@@ -6,12 +6,7 @@
       :crumbs="[{ label: 'Admin', to: '/admin/dashboard' }, { label: 'Courses' }]"
     >
       <template #actions>
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-md border border-hairline-strong bg-canvas px-3 py-2 text-sm font-medium text-ink transition hover:bg-surface"
-          :disabled="isLoading"
-          @click="load"
-        >
+        <button type="button" :class="quietButtonClass" :disabled="isLoading" @click="load">
           <RotateCcw class="size-4" :class="{ 'animate-spin': isLoading }" aria-hidden="true" />
           Refresh
         </button>
@@ -69,17 +64,18 @@
             class="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-muted"
             aria-hidden="true"
           />
+          <label for="course-search" class="sr-only">Search course titles</label>
           <input
             v-model.trim="search"
             type="search"
             placeholder="Search course title"
-            :class="searchClass"
+            :class="searchInputClass"
           />
         </div>
 
         <div class="grid gap-3 sm:grid-cols-2">
           <label class="block">
-            <span class="mb-1 block text-xs font-medium text-slate">Status</span>
+            <span :class="filterLabelClass">Status</span>
             <select v-model="statusFilter" :class="selectClass">
               <option value="all">All statuses</option>
               <option v-for="status in COURSE_STATUSES" :key="status" :value="status">
@@ -89,7 +85,7 @@
           </label>
 
           <label class="block">
-            <span class="mb-1 block text-xs font-medium text-slate">Category</span>
+            <span :class="filterLabelClass">Category</span>
             <select v-model="categoryFilter" :class="selectClass">
               <option value="all">All categories</option>
               <option v-for="category in categories" :key="category.id" :value="category.id">
@@ -153,12 +149,7 @@
                   </td>
 
                   <td class="px-5 py-4">
-                    <span
-                      :class="[
-                        'rounded-full px-2.5 py-1 text-xs font-medium',
-                        courseToneClass[course.status],
-                      ]"
-                    >
+                    <span :class="[statusPillClass, COURSE_TONE[course.status]]">
                       {{ COURSE_STATUS_LABELS[course.status] }}
                     </span>
 
@@ -167,7 +158,7 @@
                         v-if="course.status === 'published'"
                         type="button"
                         :disabled="busyId !== null"
-                        :class="actionButtonClass"
+                        :class="rowActionClass"
                         @click="onStatusChange(course, 'draft')"
                       >
                         <LoaderCircle
@@ -184,7 +175,7 @@
                         type="button"
                         :disabled="busyId !== null"
                         :class="[
-                          actionButtonClass,
+                          rowActionClass,
                           'hover:border-brand-500 hover:text-brand-700 dark:hover:text-brand-400',
                         ]"
                         @click="onStatusChange(course, 'published')"
@@ -202,7 +193,7 @@
                         v-if="course.status !== 'archived'"
                         type="button"
                         :disabled="busyId !== null"
-                        :class="actionButtonClass"
+                        :class="rowActionClass"
                         @click="onStatusChange(course, 'archived')"
                       >
                         <LoaderCircle
@@ -218,7 +209,7 @@
                         v-else
                         type="button"
                         :disabled="busyId !== null"
-                        :class="actionButtonClass"
+                        :class="rowActionClass"
                         @click="onStatusChange(course, 'draft')"
                       >
                         <RotateCcw class="size-3.5" aria-hidden="true" />
@@ -354,6 +345,15 @@ import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import Alert from '@/components/ui/Alert.vue'
 import {
+  TONE,
+  filterLabelClass,
+  quietButtonClass,
+  rowActionClass,
+  searchInputClass,
+  selectClass,
+  statusPillClass,
+} from '@/components/ui/controlClasses'
+import {
   AdminError,
   COURSE_STATUSES,
   COURSE_STATUS_LABELS,
@@ -415,19 +415,17 @@ const rowNotices = ref<Record<string, string>>({})
 const rowNoticeTone = ref<Record<string, 'success' | 'error'>>({})
 const auditWarning = ref('')
 
-const searchClass =
-  'w-full rounded border border-hairline-strong bg-canvas py-2.5 ps-9 pe-3 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden'
-
-const selectClass =
-  'w-full rounded-md border border-hairline-strong bg-canvas px-3 py-2 text-sm text-ink focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50'
-
-const actionButtonClass =
-  'inline-flex items-center gap-1.5 rounded-md border border-hairline-strong bg-canvas px-2.5 py-1.5 text-xs font-medium text-ink transition hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50'
-
-const courseToneClass: Record<CourseStatus, string> = {
-  published: 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',
-  draft: 'bg-surface text-slate',
-  archived: 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400',
+/**
+ * Course status as a badge.
+ *
+ * The three tones are unchanged from the literals this replaced. Only the source
+ * moved, so a draft is still the neutral pill and an archived course is still the
+ * brand one — the same three colours on the same three words.
+ */
+const COURSE_TONE: Record<CourseStatus, string> = {
+  published: TONE.good,
+  draft: TONE.quiet,
+  archived: TONE.info,
 }
 
 const filtered = computed(() => {

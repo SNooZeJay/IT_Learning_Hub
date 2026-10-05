@@ -24,10 +24,10 @@
       <span
         class="mx-auto mb-4 inline-flex size-12 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
       >
-        <MailCheck class="size-6" />
+        <MailCheck class="size-6" aria-hidden="true" />
       </span>
       <h2 class="text-base font-medium text-gray-900 dark:text-white/90">Check your email</h2>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      <p class="mt-1 text-sm text-slate">
         We sent a confirmation link to <span class="font-medium">{{ email }}</span
         >. Open it to activate your account, then sign in.
       </p>
@@ -41,12 +41,7 @@
 
     <form v-else class="flex flex-col gap-5" novalidate @submit.prevent="handleSubmit">
       <div>
-        <label
-          for="fullName"
-          class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          Full name
-        </label>
+        <label :for="fullName" :class="fieldLabelClass">Full name</label>
         <input
           id="fullName"
           v-model.trim="fullName"
@@ -69,12 +64,7 @@
       </div>
 
       <div>
-        <label
-          for="email"
-          class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          Email address
-        </label>
+        <label :for="email" :class="fieldLabelClass">Email address</label>
         <input
           id="email"
           v-model.trim="email"
@@ -97,12 +87,7 @@
       </div>
 
       <div>
-        <label
-          for="password"
-          class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          Password
-        </label>
+        <label :for="password" :class="fieldLabelClass">Password</label>
         <div class="relative">
           <input
             id="password"
@@ -111,18 +96,24 @@
             name="password"
             autocomplete="new-password"
             required
-            :class="[inputClass, 'pe-11']"
+            :class="[inputClass, 'pe-12']"
             :aria-invalid="Boolean(fieldErrors.password)"
             :aria-describedby="fieldErrors.password ? 'password-error' : undefined"
           />
+          <!--
+            Full-height, 44px wide, corner-matched to the field with `rounded-e-md`.
+            It used to be `px-3` hugging a 20px glyph, which measured about 28px of
+            hit area sitting inside a 48px field and left the eye hunting for it.
+          -->
           <button
             type="button"
-            class="absolute inset-y-0 end-0 flex items-center px-3 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
+            class="absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-md text-slate transition-colors hover:text-ink dark:text-gray-400 dark:hover:text-gray-200"
             :aria-label="showPassword ? 'Hide password' : 'Show password'"
+            :aria-pressed="showPassword"
             @click="showPassword = !showPassword"
           >
-            <EyeOff v-if="showPassword" class="size-5" />
-            <Eye v-else class="size-5" />
+            <EyeOff v-if="showPassword" class="size-5" aria-hidden="true" />
+            <Eye v-else class="size-5" aria-hidden="true" />
           </button>
         </div>
         <p
@@ -135,12 +126,7 @@
       </div>
 
       <div>
-        <label
-          for="confirmPassword"
-          class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          Confirm password
-        </label>
+        <label :for="confirmPassword" :class="fieldLabelClass">Confirm password</label>
         <input
           id="confirmPassword"
           v-model="confirmPassword"
@@ -162,12 +148,12 @@
       </div>
 
       <Button type="submit" class="w-full justify-center" :disabled="isSubmitting">
-        <LoaderCircle v-if="isSubmitting" class="size-4 animate-spin" />
+        <LoaderCircle v-if="isSubmitting" class="size-4 animate-spin" aria-hidden="true" />
         {{ isSubmitting ? 'Creating account...' : 'Create account' }}
       </Button>
     </form>
 
-    <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+    <p class="mt-6 text-center text-sm text-slate">
       Already have an account?
       <router-link
         to="/auth/login"
@@ -185,6 +171,7 @@ import { ref } from 'vue'
 import { Eye, EyeOff, LoaderCircle, MailCheck } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
 import Button from '@/components/ui/Button.vue'
+import { fieldLabelClass, textInputClass } from '@/components/ui/controlClasses'
 import AuthShell from '@/components/auth/AuthShell.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -205,8 +192,7 @@ const fieldErrors = ref<{
   confirmPassword?: string
 }>({})
 
-const inputClass =
-  'w-full rounded border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500'
+const inputClass = textInputClass
 
 /**
  * The only place a password policy is expressed. Supabase enforces its own

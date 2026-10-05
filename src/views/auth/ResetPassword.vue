@@ -35,12 +35,7 @@
       @submit.prevent="handleSubmit"
     >
       <div>
-        <label
-          for="password"
-          class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          New password
-        </label>
+        <label :for="password" :class="fieldLabelClass">New password</label>
         <input
           id="password"
           v-model="password"
@@ -57,12 +52,7 @@
       </div>
 
       <div>
-        <label
-          for="confirmPassword"
-          class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          Confirm new password
-        </label>
+        <label :for="confirmPassword" :class="fieldLabelClass">Confirm new password</label>
         <input
           id="confirmPassword"
           v-model="confirmPassword"
@@ -87,7 +77,7 @@
       </Button>
     </form>
 
-    <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+    <p class="mt-6 text-center text-sm text-slate">
       <router-link
         to="/auth/login"
         class="font-medium text-brand-600 hover:underline dark:text-brand-400"
@@ -104,6 +94,7 @@ import { onMounted, ref } from 'vue'
 import { LoaderCircle } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
 import Button from '@/components/ui/Button.vue'
+import { fieldLabelClass, textInputClass } from '@/components/ui/controlClasses'
 import AuthShell from '@/components/auth/AuthShell.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -119,8 +110,7 @@ const fieldErrors = ref<{ password?: string; confirmPassword?: string }>({})
 
 const MIN_PASSWORD_LENGTH = 8
 
-const inputClass =
-  'w-full rounded border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500'
+const inputClass = textInputClass
 
 onMounted(async () => {
   // getSession picks up the recovery token that detectSessionInUrl already

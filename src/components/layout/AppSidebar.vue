@@ -1,7 +1,18 @@
 <template>
+  <!--
+    `id="app-sidebar"` is what the header's toggle points `aria-controls` at. It
+    existed as a string in AppHeader and as nothing in the document, which is worse
+    than not claiming the relationship at all.
+
+    `bg-canvas` rather than the `bg-white dark:bg-gray-900` pair it used to carry:
+    the token already resolves to #ffffff in light and #1a1a1a in dark, so the pair
+    and the token rendered identically and the token is the one that survives a
+    change to the ramp.
+  -->
   <aside
+    id="app-sidebar"
     :class="[
-      'fixed flex flex-col mt-0 top-0 px-5 start-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-99999 border-e border-gray-200',
+      'fixed start-0 top-0 z-99999 flex h-screen flex-col border-e border-gray-200 bg-canvas px-5 text-gray-900 transition-all duration-300 ease-in-out dark:border-gray-800 dark:text-gray-900',
       {
         'xl:w-[290px]': isExpanded || isMobileOpen || isHovered,
         'xl:w-[90px]': !isExpanded && !isHovered,
@@ -32,17 +43,30 @@
     </div>
 
     <div class="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
-      <nav class="mb-6">
+      <nav class="mb-6" aria-label="Sections">
+        <!--
+          The group label. `text-slate`, not `text-gray-400`: #a4a097 on white is
+          2.6:1 and this is 12px body-sized type, which main.css's own note rules
+          out. `text-slate` is 6.8:1 and still lighter than the item labels below
+          it, so the hierarchy survives the contrast fix.
+
+          When the rail is collapsed the label is replaced by an ellipsis. A glyph
+          standing in for a word carries an accessible name of its own, so the name
+          is repeated for anything that is not looking at the screen.
+        -->
         <h2
           :class="[
-            'mb-4 text-xs uppercase flex leading-5 text-gray-400',
+            'mb-4 flex text-xs leading-5 font-medium text-slate uppercase',
             !isExpanded && !isHovered ? 'xl:justify-center' : 'justify-start',
           ]"
         >
           <template v-if="isExpanded || isHovered || isMobileOpen">
             {{ sectionLabel }}
           </template>
-          <MoreHorizontal v-else />
+          <template v-else>
+            <MoreHorizontal class="size-4" aria-hidden="true" />
+            <span class="sr-only">{{ sectionLabel }}</span>
+          </template>
         </h2>
 
         <ul class="flex flex-col gap-1">

@@ -389,6 +389,34 @@
     text-rendering: optimizeLegibility;
   }
 
+  /*
+    The focus ring, declared once.
+
+    DESIGN.md specifies it - elevation level 3, a 2px primary outline - and until
+    now it was applied by hand to whichever control somebody remembered. Anything
+    without a `focus-visible` utility was left on the user-agent default, which is
+    a black-or-white double ring that changes colour with the theme and reads as a
+    rendering artefact rather than as focus.
+
+    `:where()` holds this at zero specificity on purpose. It is a floor, not an
+    override: a component that already declares its own `focus-visible:outline-*`
+    or `focus:ring-*` still wins, and inputs that suppress the outline in favour of
+    a ring keep the ring.
+
+    brand-400 in dark, not brand-500. #5645d4 on the dark canvas #1a1a1a measures
+    2.8:1, just under the 3:1 WCAG 2.2 asks of a focus indicator; brand-400 #7c69d8
+    measures 4.3:1 on the same ground.
+  */
+  :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+  }
+
+  .dark :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):
+      focus-visible {
+    outline-color: var(--color-brand-400);
+  }
+
   body {
     @apply relative font-normal font-outfit z-1 bg-gray-50;
     /* Notion's body leading is 1.55, looser than the 1.5 that shipped with the

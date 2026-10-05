@@ -22,13 +22,18 @@
         the text optically aligned to the page edge. A bare text link measures
         about 20px, which is under the 24px minimum target size and awkward to
         hit on a phone.
+
+        `text-slate` rather than the `text-gray-500` this carried: #787671 on the
+        #f6f5f4 surface measures 4.17:1, which fails AA for 14px text, and it is
+        the one place the auth pages still spoke the old TailAdmin grey. `text-slate`
+        is the token every authenticated screen already uses and measures 6.2:1 here.
       -->
       <RouterLink
         to="/"
-        class="-ms-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 dark:text-gray-400 dark:hover:text-white/90"
+        class="-ms-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-slate transition-colors hover:text-ink focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 dark:hover:text-white/90"
       >
         <!-- Points back toward the start of the reading direction, so it flips in RTL. -->
-        <ArrowLeft class="size-4 shrink-0 rtl:rotate-180" />
+        <ArrowLeft class="size-4 shrink-0 rtl:rotate-180" aria-hidden="true" />
         Back to home
       </RouterLink>
 
@@ -47,12 +52,12 @@
             to="/"
             class="rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500/20"
           >
-            <BrandMark class="size-12" />
+            <BrandMark class="size-12" aria-hidden="true" />
             <span class="sr-only">IT Learning Hub home</span>
           </RouterLink>
 
           <h1 class="mt-4 text-title-lg text-gray-900 dark:text-white/90">{{ title }}</h1>
-          <p v-if="description" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p v-if="description" class="mt-1 text-sm text-slate dark:text-slate">
             {{ description }}
           </p>
         </div>
