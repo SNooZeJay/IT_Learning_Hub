@@ -76,7 +76,7 @@ const LESSON_COLUMNS =
   'id, module_id, title, summary, content, lesson_type, position, duration_minutes, is_preview, video_url, status, is_required'
 
 const MATERIAL_COLUMNS =
-  'id, lesson_id, title, file_path, file_type, file_size, position, created_at'
+  'id, lesson_id, title, material_type, position, content_text, external_url, file_path, file_type, file_size, created_at, updated_at'
 
 const PROGRESS_COLUMNS =
   'id, enrollment_id, lesson_id, student_id, status, progress_percent, last_position_seconds, started_at, completed_at'
