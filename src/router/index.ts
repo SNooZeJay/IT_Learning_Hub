@@ -182,6 +182,17 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Edit course', roles: ['instructor'] },
       },
       {
+        // Its own page rather than another panel on the course screen, because
+        // this is where the answer key is. `quiz_with_answers` returns every
+        // correct answer on the course in one payload, and that should be read on
+        // demand in a place reached deliberately, not left loaded on a page an
+        // instructor keeps open all day.
+        path: 'courses/:id/quiz',
+        name: 'instructor-course-quiz',
+        component: () => import('@/views/instructor/QuizManager.vue'),
+        meta: { title: 'Quizzes', roles: ['instructor'] },
+      },
+      {
         path: 'students',
         name: 'instructor-students',
         component: () => import('@/views/instructor/Students.vue'),

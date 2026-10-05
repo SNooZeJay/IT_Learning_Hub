@@ -441,7 +441,10 @@ async function moveQuestion(index: number, offset: number): Promise<void> {
 
   busy.value = true
   try {
-    await reorderQuestions(current.id, ordered.map((question) => question.id))
+    await reorderQuestions(
+      current.id,
+      ordered.map((question) => question.id),
+    )
     announce(`Moved question ${index + 1} to position ${target + 1}.`)
     await loadQuiz(current.id)
   } catch (error) {
@@ -718,7 +721,10 @@ watch(
             <div class="px-5 py-5 sm:px-6">
               <div class="flex flex-wrap items-baseline justify-between gap-2">
                 <h3 class="text-theme-sm text-gray-900 dark:text-white/90">Questions</h3>
-                <p v-if="quiz.questions.length > 0" class="text-sm text-gray-500 dark:text-gray-400">
+                <p
+                  v-if="quiz.questions.length > 0"
+                  class="text-sm text-gray-500 dark:text-gray-400"
+                >
                   {{ quiz.questions.length }}
                   {{ quiz.questions.length === 1 ? 'question' : 'questions' }}, worth
                   {{ totalPoints }} {{ totalPoints === 1 ? 'point' : 'points' }}
@@ -746,9 +752,13 @@ watch(
                 <li
                   v-for="(question, index) in quiz.questions"
                   :key="question.id"
-                  class="rounded-lg border border-gray-200 p-4 dark:border-gray-800"
+                  class="flex flex-col gap-3 rounded-lg border border-gray-200 p-4 sm:flex-row sm:items-start dark:border-gray-800"
                 >
-                  <div class="flex items-start gap-3">
+                  <!-- On a phone the prompt gets the full width and the row of
+                       controls sits under it; from sm up the controls sit beside
+                       it. Squeezing both onto one line at 390px leaves the
+                       question about half the space it needs. -->
+                  <div class="flex min-w-0 flex-1 items-start gap-3">
                     <span
                       class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-600 dark:bg-white/[0.06] dark:text-gray-300"
                     >
@@ -782,7 +792,10 @@ watch(
                             v-if="option.isCorrect"
                             class="mt-0.5 size-4 shrink-0 text-success-600 dark:text-success-400"
                           />
-                          <X v-else class="mt-0.5 size-4 shrink-0 text-gray-300 dark:text-gray-600" />
+                          <X
+                            v-else
+                            class="mt-0.5 size-4 shrink-0 text-gray-300 dark:text-gray-600"
+                          />
                           <span
                             :class="
                               option.isCorrect
@@ -795,7 +808,10 @@ watch(
                         </li>
                       </ul>
 
-                      <ul v-if="question.acceptedAnswers.length > 0" class="mt-2.5 flex flex-col gap-1">
+                      <ul
+                        v-if="question.acceptedAnswers.length > 0"
+                        class="mt-2.5 flex flex-col gap-1"
+                      >
                         <li
                           v-for="answer in question.acceptedAnswers"
                           :key="answer"
@@ -817,45 +833,47 @@ watch(
                         {{ question.explanation }}
                       </p>
                     </div>
+                  </div>
 
-                    <div
-                      class="flex shrink-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-1"
+                  <!-- A full-width row of four buttons on a phone, one row
+                       beside the question from sm up. The two labelled buttons
+                       grow when their label appears, so they are min-width
+                       rather than a fixed square the text would overflow. -->
+                  <div class="grid shrink-0 grid-cols-4 gap-1 sm:flex sm:items-center">
+                    <button
+                      type="button"
+                      :aria-label="`Move question ${index + 1} up`"
+                      :disabled="index === 0 || busy"
+                      class="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-white/90"
+                      @click="moveQuestion(index, -1)"
                     >
-                      <button
-                        type="button"
-                        :aria-label="`Move question ${index + 1} up`"
-                        :disabled="index === 0 || busy"
-                        class="inline-flex size-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-white/90"
-                        @click="moveQuestion(index, -1)"
-                      >
-                        <ArrowUp class="size-4" aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        :aria-label="`Move question ${index + 1} down`"
-                        :disabled="index === quiz.questions.length - 1 || busy"
-                        class="inline-flex size-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-white/90"
-                        @click="moveQuestion(index, 1)"
-                      >
-                        <ArrowDown class="size-4" aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        class="inline-flex size-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.06] dark:hover:text-white/90"
-                        @click="openEditQuestion(question)"
-                      >
-                        <Pencil class="size-4" aria-hidden="true" />
-                        <span class="sr-only sm:not-sr-only sm:ms-1">Edit</span>
-                      </button>
-                      <button
-                        type="button"
-                        class="inline-flex size-9 items-center justify-center rounded-lg text-gray-500 hover:bg-error-50 hover:text-error-600 dark:text-gray-400 dark:hover:bg-error-500/10 dark:hover:text-error-400"
-                        @click="confirmRemoveQuestion(question)"
-                      >
-                        <Trash2 class="size-4" aria-hidden="true" />
-                        <span class="sr-only sm:not-sr-only sm:ms-1">Delete</span>
-                      </button>
-                    </div>
+                      <ArrowUp class="size-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      :aria-label="`Move question ${index + 1} down`"
+                      :disabled="index === quiz.questions.length - 1 || busy"
+                      class="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-white/90"
+                      @click="moveQuestion(index, 1)"
+                    >
+                      <ArrowDown class="size-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      class="inline-flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-lg px-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.06] dark:hover:text-white/90"
+                      @click="openEditQuestion(question)"
+                    >
+                      <Pencil class="size-4 shrink-0" aria-hidden="true" />
+                      <span class="sr-only sm:not-sr-only">Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="inline-flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-lg px-2 text-sm text-gray-500 hover:bg-error-50 hover:text-error-600 dark:text-gray-400 dark:hover:bg-error-500/10 dark:hover:text-error-400"
+                      @click="confirmRemoveQuestion(question)"
+                    >
+                      <Trash2 class="size-4 shrink-0" aria-hidden="true" />
+                      <span class="sr-only sm:not-sr-only">Delete</span>
+                    </button>
                   </div>
                 </li>
               </ol>
