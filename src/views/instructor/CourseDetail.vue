@@ -67,11 +67,11 @@
               :summary="curriculumSummary"
               editable
               @add-module="openModuleForm()"
-              @add-lesson="openLessonForm"
-              @add-material="openMaterialForm"
+              @add-lesson="openNewLessonForm"
+              @add-material="openNewMaterialForm"
               @edit-module="openModuleForm"
-              @edit-lesson="openLessonForm"
-              @edit-material="openMaterialForm"
+              @edit-lesson="openEditLessonForm"
+              @edit-material="openEditMaterialForm"
               @remove-module="confirmRemoveModule"
               @remove-lesson="confirmRemoveLesson"
               @remove-material="confirmRemoveMaterial"
@@ -587,50 +587,68 @@ function closeMaterialForm(): void {
   materialForm.error = null
 }
 
+/**
+ * Open the module form, for editing an existing module or creating a new one.
+ *
+ * The emitted payload is the id of whatever was clicked, so one handler serves
+ * both. `undefined` means "create".
+ */
 function openModuleForm(moduleId?: string): void {
   moduleForm.module = moduleId ? (moduleIndex.value.get(moduleId) ?? null) : null
   moduleForm.error = null
   moduleForm.open = true
 }
 
-function openLessonForm(lessonId?: string, moduleId?: string): void {
-  if (lessonId) {
-    const lesson = lessonIndex.value.get(lessonId)
-    if (!lesson) return
-    lessonForm.lesson = lesson
-    lessonForm.moduleId = lesson.moduleId
-    lessonForm.moduleTitle = moduleIndex.value.get(lesson.moduleId)?.title ?? ''
-  } else {
-    lessonForm.lesson = null
-    lessonForm.moduleId = moduleId ?? ''
-    lessonForm.moduleTitle = moduleIndex.value.get(moduleId ?? '')?.title ?? ''
-  }
+/**
+ * Open the lesson form for a NEW lesson in `moduleId`.
+ *
+ * Separate from the edit path on purpose. These were one function with two
+ * optional parameters, and the outline emits a *module* id for "add" and a
+ * *lesson* id for "edit" - so a single signature received a module id in the
+ * lesson slot, the lookup missed, and the form silently never opened. Splitting
+ * them makes the payload type obvious at each call site.
+ */
+function openNewLessonForm(moduleId: string): void {
+  lessonForm.lesson = null
+  lessonForm.moduleId = moduleId
+  lessonForm.moduleTitle = moduleIndex.value.get(moduleId)?.title ?? ''
   lessonForm.error = null
   lessonForm.open = true
 }
 
-function openMaterialForm(materialId?: string, lessonId?: string): void {
-  if (materialId) {
-    for (const module of curriculumModules.value) {
-      for (const lesson of module.lessons) {
-        const found = lesson.materials.find((m) => m.id === materialId)
-        if (found) {
-          materialForm.material = found
-          materialForm.lessonId = lesson.id
-          materialForm.lessonTitle = lesson.title
-          materialForm.error = null
-          materialForm.open = true
-          return
-        }
-      }
-    }
-    return
-  }
+function openEditLessonForm(lessonId: string): void {
+  const lesson = lessonIndex.value.get(lessonId)
+  if (!lesson) return
+  lessonForm.lesson = lesson
+  lessonForm.moduleId = lesson.moduleId
+  lessonForm.moduleTitle = moduleIndex.value.get(lesson.moduleId)?.title ?? ''
+  lessonForm.error = null
+  lessonForm.open = true
+}
+
+/** New material on `lessonId`, or edit the material with `materialId`. */
+function openNewMaterialForm(lessonId: string): void {
   materialForm.material = null
-  materialForm.lessonId = lessonId ?? ''
-  materialForm.lessonTitle = lessonIndex.value.get(lessonId ?? '')?.title ?? ''
+  materialForm.lessonId = lessonId
+  materialForm.lessonTitle = lessonIndex.value.get(lessonId)?.title ?? ''
   materialForm.error = null
   materialForm.open = true
+}
+
+function openEditMaterialForm(materialId: string): void {
+  for (const module of curriculumModules.value) {
+    for (const lesson of module.lessons) {
+      const found = lesson.materials.find((m) => m.id === materialId)
+      if (found) {
+        materialForm.material = found
+        materialForm.lessonId = lesson.id
+        materialForm.lessonTitle = lesson.title
+        materialForm.error = null
+        materialForm.open = true
+        return
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
