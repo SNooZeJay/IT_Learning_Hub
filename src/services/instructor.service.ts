@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from './supabase/client'
-import type { Database as BaseDatabase } from './supabase/types'
+import type { Database } from './supabase/types'
 import type {
   Course,
   CourseCategoryRow,
@@ -87,7 +87,15 @@ const SUBMISSION_COLUMNS =
 export type AssignmentStatus = 'draft' | 'published'
 export type SubmissionStatus = 'submitted' | 'graded'
 
-export interface AssignmentRow {
+/**
+ * Declared as type aliases rather than interfaces, and that is load-bearing.
+ *
+ * A TypeScript `interface` has no implicit index signature, so it does not
+ * satisfy the client's `GenericTable` constraint of `Record<string, unknown>` -
+ * which makes `from()` fall back to `never` and quietly untypes every insert and
+ * update against the table. A type alias of an object literal does carry one.
+ */
+export type AssignmentRow = {
   id: string
   course_id: string
   module_id: string | null
@@ -101,7 +109,7 @@ export interface AssignmentRow {
   updated_at: string
 }
 
-export interface AssignmentSubmissionRow {
+export type AssignmentSubmissionRow = {
   id: string
   assignment_id: string
   course_id: string
@@ -169,9 +177,7 @@ export class InstructorError extends Error {
  */
 function messageOf(error: { message: string } | null, fallback: string): string {
   if (!error) return fallback
-  return (
-    error.message.replace(/^(?:ERROR:\s*|[A-Z]{5}:\s*)/, '').trim() || fallback
-  )
+  return error.message.replace(/^(?:ERROR:\s*|[A-Z]{5}:\s*)/, '').trim() || fallback
 }
 
 // ---------------------------------------------------------------------------
@@ -525,7 +531,13 @@ function categoryNameOf(row: CourseWithCategory): string | null {
 /** The shared shape of `courses` for both the list and the single read. */
 const COURSE_SELECT_WITH_CATEGORY = `${COURSE_COLUMNS}, course_categories!left(name)`
 
-function toCourse(row: CourseRow, categoryName: string | null): Course {
+/**
+ * The course view model. Deliberately carries no category name: the category
+ * only arrives on the reads that embed it, and a field that is present on some
+ * courses and silently null on others is a field every caller has to guard.
+ * `InstructorCourse` adds it, and only where it is always populated.
+ */
+function toCourse(row: CourseRow): Course {
   return {
     id: row.id,
     categoryId: row.category_id,
@@ -598,7 +610,7 @@ export async function listInstructorCourses(instructorId: string): Promise<Instr
 
   const rows = (data ?? []) as unknown as CourseWithCategory[]
   return rows.map((row) => ({
-    ...toCourse(row, categoryNameOf(row)),
+    ...toCourse(row),
     categoryName: categoryNameOf(row),
     moduleCount: counts.moduleCount.get(row.id) ?? 0,
     lessonCount: counts.lessonCount.get(row.id) ?? 0,
@@ -625,7 +637,7 @@ export async function getInstructorCourse(courseId: string): Promise<InstructorC
   const categoryName = categoryNameOf(row)
 
   return {
-    ...toCourse(row, categoryName),
+    ...toCourse(row),
     categoryName,
     moduleCount: counts.moduleCount.get(row.id) ?? 0,
     lessonCount: counts.lessonCount.get(row.id) ?? 0,
@@ -650,8 +662,7 @@ export async function listCourseCurriculum(courseId: string): Promise<CourseModu
     .eq('course_id', courseId)
     .order('position', { ascending: true })
 
-  if (moduleError)
-    throw new InstructorError(messageOf(moduleError, 'Could not load the modules.'))
+  if (moduleError) throw new InstructorError(messageOf(moduleError, 'Could not load the modules.'))
   if (!moduleRows?.length) return []
 
   const modules = (moduleRows as unknown as ModuleRow[]).map(toModule)
@@ -665,8 +676,7 @@ export async function listCourseCurriculum(courseId: string): Promise<CourseModu
     )
     .order('position', { ascending: true })
 
-  if (lessonError)
-    throw new InstructorError(messageOf(lessonError, 'Could not load the lessons.'))
+  if (lessonError) throw new InstructorError(messageOf(lessonError, 'Could not load the lessons.'))
 
   const lessons = ((lessonRows ?? []) as unknown as LessonRow[]).map(toLesson)
 
@@ -778,9 +788,10 @@ export async function getQuizAnswerKey(quizId: string): Promise<QuizAnswerKey> {
         prompt: String(question.prompt ?? ''),
         points: Number(question.points ?? 0),
         position: Number(question.position ?? 0),
-        explanation: question.explanation === null || question.explanation === undefined
-          ? null
-          : String(question.explanation),
+        explanation:
+          question.explanation === null || question.explanation === undefined
+            ? null
+            : String(question.explanation),
         options: options.map((option) => {
           const value = (option ?? {}) as Record<string, unknown>
           return {
@@ -896,7 +907,7 @@ export async function createInstructorCourse(
 
   if (error) throw new InstructorError(messageOf(error, 'Could not create the course.'))
 
-  const course = toCourse(data as unknown as CourseRow, null)
+  const course = toCourse(data as unknown as CourseRow)
 
   const { error: linkError } = await supabase
     .from('course_instructors')
@@ -924,7 +935,11 @@ export async function updateInstructorCourse(
   courseId: string,
   patch: CoursePatch,
 ): Promise<Course> {
-  const update: Record<string, unknown> = {}
+  // Typed as the row's own Update shape rather than `Record<string, unknown>`.
+  // The mapped keys are snake_case because PostgREST writes the column names, so
+  // the conversion from the camelCase patch happens here and nowhere else.
+  type CourseUpdate = Database['public']['Tables']['courses']['Update']
+  const update: CourseUpdate = {}
   if (patch.title !== undefined) update.title = patch.title
   if (patch.slug !== undefined) update.slug = patch.slug
   if (patch.description !== undefined) update.description = patch.description
@@ -944,7 +959,20 @@ export async function updateInstructorCourse(
     .single()
 
   if (error) throw new InstructorError(messageOf(error, 'Could not save this course.'))
-  return toCourse(data as unknown as CourseRow, null)
+  return toCourse(data as unknown as CourseRow)
+}
+
+/**
+ * Delete a course.
+ *
+ * Nothing is cleaned up by hand: `courses` cascades to modules, lessons, their
+ * progress rows, the quizzes and the enrolments, in the database. Doing it
+ * client-side would mean a chain of deletes that can half-finish and leave rows
+ * pointing at nothing.
+ */
+export async function deleteInstructorCourse(courseId: string): Promise<void> {
+  const { error } = await supabase.from('courses').delete().eq('id', courseId)
+  if (error) throw new InstructorError(messageOf(error, 'Could not delete this course.'))
 }
 
 // ---------------------------------------------------------------------------
@@ -1013,7 +1041,8 @@ export interface ModulePatch {
 }
 
 export async function updateModule(moduleId: string, patch: ModulePatch): Promise<Module> {
-  const update: Record<string, unknown> = {}
+  type ModuleUpdate = Database['public']['Tables']['modules']['Update']
+  const update: ModuleUpdate = {}
   if (patch.title !== undefined) update.title = patch.title
   if (patch.description !== undefined) update.description = patch.description
 
@@ -1081,7 +1110,8 @@ export interface LessonPatch {
 }
 
 export async function updateLesson(lessonId: string, patch: LessonPatch): Promise<Lesson> {
-  const update: Record<string, unknown> = {}
+  type LessonUpdate = Database['public']['Tables']['lessons']['Update']
+  const update: LessonUpdate = {}
   if (patch.title !== undefined) update.title = patch.title
   if (patch.lessonType !== undefined) update.lesson_type = patch.lessonType
   if (patch.content !== undefined) update.content = patch.content
@@ -1117,15 +1147,19 @@ export async function deleteLesson(lessonId: string): Promise<void> {
  * rather than a confident 0% - the two mean different things to a student and
  * an instructor reading the same page.
  */
-export async function listInstructorStudents(instructorId: string): Promise<InstructorStudentRow[]> {
+export async function listInstructorStudents(
+  instructorId: string,
+): Promise<InstructorStudentRow[]> {
   const courseIds = await listInstructorCourseIds(instructorId)
   if (courseIds.length === 0) return []
 
-  const [{ data: enrollmentRows, error: enrollmentError }, { data: moduleData, error: moduleError }] =
-    await Promise.all([
-      supabase.from('enrollments').select(ENROLLMENT_COLUMNS).in('course_id', courseIds),
-      supabase.from('modules').select('id, course_id').in('course_id', courseIds),
-    ])
+  const [
+    { data: enrollmentRows, error: enrollmentError },
+    { data: moduleData, error: moduleError },
+  ] = await Promise.all([
+    supabase.from('enrollments').select(ENROLLMENT_COLUMNS).in('course_id', courseIds),
+    supabase.from('modules').select('id, course_id').in('course_id', courseIds),
+  ])
 
   if (enrollmentError)
     throw new InstructorError(messageOf(enrollmentError, 'Could not load your students.'))
@@ -1168,10 +1202,7 @@ export async function listInstructorStudents(instructorId: string): Promise<Inst
       supabase
         .from('profiles')
         .select(PROFILE_COLUMNS)
-        .in(
-          'id',
-          [...new Set(enrollments.map((row) => row.student_id))],
-        ),
+        .in('id', [...new Set(enrollments.map((row) => row.student_id))]),
       supabase.from('courses').select('id, title').in('id', courseIds),
     ])
 
@@ -1226,10 +1257,14 @@ export async function listInstructorStudents(instructorId: string): Promise<Inst
         completedAt: enrollment.completed_at,
         lessonsTotal: total,
         lessonsCompleted: Math.min(completed, total),
-        progressPercent: total === 0 ? null : Math.round((Math.min(completed, total) / total) * 100),
+        progressPercent:
+          total === 0 ? null : Math.round((Math.min(completed, total) / total) * 100),
       }
     })
-    .sort((a, b) => a.studentName.localeCompare(b.studentName) || a.courseTitle.localeCompare(b.courseTitle))
+    .sort(
+      (a, b) =>
+        a.studentName.localeCompare(b.studentName) || a.courseTitle.localeCompare(b.courseTitle),
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -1240,9 +1275,13 @@ export async function listInstructorStudents(instructorId: string): Promise<Inst
  * Assignment submissions for the caller's courses, oldest first.
  *
  * Oldest first is deliberate: an overdue submission is the one that has been
- * waiting longest, so it should not sit below three fresh ones. `includeGraded`
- * controls whether the graded record shows alongside the queue - they are
- * history, and the default view is work still to do.
+ * waiting longest, so it should not sit below three fresh ones.
+ *
+ * `includeGraded` is about submissions only, not assignments. It controls the
+ * `status = 'submitted'` filter and nothing else, because a submission against a
+ * draft assignment still has to be gradable - an instructor who has published
+ * an assignment, collected work and then set it back to draft should not find
+ * their queue has quietly emptied.
  */
 export async function listGradingQueue(
   instructorId: string,
@@ -1253,20 +1292,18 @@ export async function listGradingQueue(
   const courseIds = await listInstructorCourseIds(instructorId)
   if (courseIds.length === 0) return []
 
-  let assignmentQuery = supabase
+  const { data: assignmentRows, error: assignmentError } = await assessment
     .from('assignments')
     .select(ASSIGNMENT_COLUMNS)
     .in('course_id', courseIds)
-  if (!includeGraded) assignmentQuery = assignmentQuery.eq('status', 'published')
 
-  const { data: assignmentRows, error: assignmentError } = await assignmentQuery
   if (assignmentError)
     throw new InstructorError(messageOf(assignmentError, 'Could not load the assignments.'))
 
   const assignments = (assignmentRows ?? []) as unknown as AssignmentRow[]
   if (assignments.length === 0) return []
 
-  let submissionQuery = supabase
+  let submissionQuery = assessment
     .from('assignment_submissions')
     .select(SUBMISSION_COLUMNS)
     .in(
@@ -1288,10 +1325,7 @@ export async function listGradingQueue(
       supabase
         .from('profiles')
         .select(PROFILE_COLUMNS)
-        .in(
-          'id',
-          [...new Set(submissions.map((row) => row.student_id))],
-        ),
+        .in('id', [...new Set(submissions.map((row) => row.student_id))]),
     ])
 
   if (courseError) throw new InstructorError(messageOf(courseError, 'Could not load your courses.'))
@@ -1347,7 +1381,7 @@ export async function gradeSubmission(
   feedback: string,
   graderId: string,
 ): Promise<AssignmentSubmission> {
-  const { data, error } = await supabase
+  const { data, error } = await assessment
     .from('assignment_submissions')
     .update({
       grade,
@@ -1392,16 +1426,19 @@ export async function getInstructorInsights(instructorId: string): Promise<Instr
     }
   }
 
-  const [{ data: courseRows, error: courseError }, { data: enrollmentRows, error: enrollmentError }, { data: attemptRows, error: attemptError }] =
-    await Promise.all([
-      supabase.from('courses').select('id, title, status').in('id', courseIds),
-      supabase.from('enrollments').select('course_id, student_id, status').in('course_id', courseIds),
-      supabase
-        .from('quiz_attempts')
-        .select('course_id, percentage, status')
-        .in('course_id', courseIds)
-        .eq('status', 'submitted'),
-    ])
+  const [
+    { data: courseRows, error: courseError },
+    { data: enrollmentRows, error: enrollmentError },
+    { data: attemptRows, error: attemptError },
+  ] = await Promise.all([
+    supabase.from('courses').select('id, title, status').in('id', courseIds),
+    supabase.from('enrollments').select('course_id, student_id, status').in('course_id', courseIds),
+    supabase
+      .from('quiz_attempts')
+      .select('course_id, percentage, status')
+      .in('course_id', courseIds)
+      .eq('status', 'submitted'),
+  ])
 
   if (courseError) throw new InstructorError(messageOf(courseError, 'Could not load your courses.'))
   if (enrollmentError)
@@ -1476,10 +1513,45 @@ export async function getInstructorInsights(instructorId: string): Promise<Instr
       completionRate:
         totalEnrolments === 0 ? 0 : Math.round((totalCompletions / totalEnrolments) * 100),
       attempts: totalAttempts,
-      averageQuizScore:
-        totalAttempts === 0 ? null : Math.round(totalScoreSum / totalAttempts),
+      averageQuizScore: totalAttempts === 0 ? null : Math.round(totalScoreSum / totalAttempts),
     },
   }
+}
+
+// ---------------------------------------------------------------------------
+// Assignments
+// ---------------------------------------------------------------------------
+
+/**
+ * Every assignment on one course, or on any course the caller teaches.
+ *
+ * Separate from `listUpcomingDeadlines` because that one answers a calendar
+ * question and so drops undated assignments and filters by date. The course
+ * sidebar needs the whole list - including a draft assignment with no deadline,
+ * which is exactly the row an instructor needs to notice.
+ */
+export async function listAssignments(options: {
+  instructorId?: string
+  courseId?: string
+}): Promise<Assignment[]> {
+  let courseIds: string[]
+  if (options.courseId) {
+    courseIds = [options.courseId]
+  } else if (options.instructorId) {
+    courseIds = await listInstructorCourseIds(options.instructorId)
+  } else {
+    return []
+  }
+  if (courseIds.length === 0) return []
+
+  const { data, error } = await assessment
+    .from('assignments')
+    .select(ASSIGNMENT_COLUMNS)
+    .in('course_id', courseIds)
+    .order('due_at', { ascending: true, nullsFirst: false })
+
+  if (error) throw new InstructorError(messageOf(error, 'Could not load the assignments.'))
+  return ((data ?? []) as unknown as AssignmentRow[]).map(toAssignment)
 }
 
 // ---------------------------------------------------------------------------
@@ -1503,7 +1575,7 @@ export async function listUpcomingDeadlines(
   const courseIds = await listInstructorCourseIds(instructorId)
   if (courseIds.length === 0) return []
 
-  const { data: assignmentRows, error: assignmentError } = await supabase
+  const { data: assignmentRows, error: assignmentError } = await assessment
     .from('assignments')
     .select(ASSIGNMENT_COLUMNS)
     .in('course_id', courseIds)
@@ -1521,17 +1593,19 @@ export async function listUpcomingDeadlines(
     ? assignments
     : assignments.filter((row) => (row.due_at ?? '') >= cutoff)
 
-  const [{ data: submissionRows, error: submissionError }, { data: courseRows, error: courseError }] =
-    await Promise.all([
-      supabase
-        .from('assignment_submissions')
-        .select('assignment_id, status')
-        .in(
-          'assignment_id',
-          assignments.map((row) => row.id),
-        ),
-      supabase.from('courses').select('id, title').in('id', courseIds),
-    ])
+  const [
+    { data: submissionRows, error: submissionError },
+    { data: courseRows, error: courseError },
+  ] = await Promise.all([
+    assessment
+      .from('assignment_submissions')
+      .select('assignment_id, status')
+      .in(
+        'assignment_id',
+        assignments.map((row) => row.id),
+      ),
+    supabase.from('courses').select('id, title').in('id', courseIds),
+  ])
 
   if (submissionError)
     throw new InstructorError(messageOf(submissionError, 'Could not load the submissions.'))

@@ -84,7 +84,8 @@ const QUIZ_COLUMNS = 'id, course_id, title, passing_score, attempts_allowed, sta
 const ATTEMPT_COLUMNS =
   'id, quiz_id, course_id, attempt_number, status, score, max_score, percentage, passed, started_at, submitted_at'
 
-const ASSIGNMENT_COLUMNS = 'id, course_id, module_id, title, instructions, due_at, max_points, status'
+const ASSIGNMENT_COLUMNS =
+  'id, course_id, module_id, title, instructions, due_at, max_points, status'
 
 const SUBMISSION_COLUMNS =
   'id, assignment_id, course_id, student_id, submission_text, file_path, submitted_at, grade, feedback, graded_by, graded_at, status'
@@ -92,17 +93,13 @@ const SUBMISSION_COLUMNS =
 const CERTIFICATE_COLUMNS =
   'id, user_id, course_id, enrollment_id, certificate_number, final_percentage, issued_at, revoked_at, revoked_by, revoke_reason'
 
-const NOTIFICATION_COLUMNS =
-  'id, user_id, type, title, body, link, read_at, created_at'
+const NOTIFICATION_COLUMNS = 'id, user_id, type, title, body, link, read_at, created_at'
 
 // ---------------------------------------------------------------------------
 // Local row types for the tables `later` reads.
 // ---------------------------------------------------------------------------
 
-export type RequirementType =
-  | 'complete_all_lessons'
-  | 'min_quiz_average'
-  | 'submit_all_assignments'
+export type RequirementType = 'complete_all_lessons' | 'min_quiz_average' | 'submit_all_assignments'
 
 export type NotificationType =
   | 'enrolment_confirmed'
@@ -503,9 +500,10 @@ function toAssignmentGrade(
     submissionStatus: submission?.status ?? null,
     submissionText: submission?.submission_text ?? null,
     submissionFile: submission?.file_path ?? null,
-    grade: submission?.grade === null || submission?.grade === undefined
-      ? null
-      : Number(submission.grade),
+    grade:
+      submission?.grade === null || submission?.grade === undefined
+        ? null
+        : Number(submission.grade),
     feedback: submission?.feedback ?? null,
     gradedAt: submission?.graded_at ?? null,
   }
@@ -591,10 +589,7 @@ async function courseTitles(courseIds: string[]): Promise<Map<string, string>> {
   const titles = new Map<string, string>()
   if (courseIds.length === 0) return titles
 
-  const { data, error } = await supabase
-    .from('courses')
-    .select('id, title')
-    .in('id', courseIds)
+  const { data, error } = await supabase.from('courses').select('id, title').in('id', courseIds)
 
   if (error) throw new LearningError(messageOf(error, 'Could not load course titles.'))
   for (const row of data ?? []) titles.set(row.id, row.title)
@@ -658,9 +653,7 @@ export async function getLessonContext(
   if (!courseRows?.length) return null
 
   const enrollment = await findLiveEnrollment(module.courseId, studentId)
-  const progress = enrollment
-    ? await getLessonProgress(enrollment.id, lesson.id)
-    : null
+  const progress = enrollment ? await getLessonProgress(enrollment.id, lesson.id) : null
 
   return {
     lesson,
@@ -745,7 +738,10 @@ export async function getCourseOutline(
   const { data: lessonRows, error: lessonError } = await supabase
     .from('lessons')
     .select(LESSON_COLUMNS)
-    .in('module_id', modules.map((module) => module.id))
+    .in(
+      'module_id',
+      modules.map((module) => module.id),
+    )
     .order('position', { ascending: true })
 
   if (lessonError) throw new LearningError(messageOf(lessonError, 'Could not load the lessons.'))
@@ -799,8 +795,13 @@ export async function getCourseOutline(
 /**
  * Open a lesson: `not_started` becomes `in_progress`.
  *
- * Idempotent. A student who re-opens a lesson they are halfway through keeps the
- * percentage they had, because the update only touches `status` and `started_at`.
+ * This is an upsert on (enrollment_id, lesson_id), so opening the same lesson
+ * twice does not create a second row and cannot fail on the unique constraint.
+ *
+ * Note that it resets `progress_percent` to 0. That is deliberate for a lesson
+ * that has never been started, and callers must not use it as a "resume" button:
+ * `recordLessonPosition` is the write that preserves a position, and it is the
+ * one that clamps below 100.
  */
 export async function startLesson(enrollmentId: string, lessonId: string): Promise<LessonProgress> {
   const now = new Date().toISOString()
@@ -902,7 +903,10 @@ export async function completeLesson(
  * lesson is to be able to write it back, and a student who clicks "mark complete"
  * on the wrong lesson should not have to email an instructor about it.
  */
-export async function reopenLesson(enrollmentId: string, lessonId: string): Promise<LessonProgress> {
+export async function reopenLesson(
+  enrollmentId: string,
+  lessonId: string,
+): Promise<LessonProgress> {
   const { data, error } = await supabase
     .from('lesson_progress')
     .upsert(
@@ -1006,11 +1010,12 @@ export async function getStudentGrades(studentId: string): Promise<StudentGrades
         .order('issued_at', { ascending: false }),
     ])
 
-  if (attemptError) throw new LearningError(messageOf(attemptError, 'Could not load your attempts.'))
+  if (attemptError)
+    throw new LearningError(messageOf(attemptError, 'Could not load your attempts.'))
   if (certError) throw new LearningError(messageOf(certError, 'Could not load your certificates.'))
 
   const attempts = (attemptRows ?? []) as unknown as QuizAttemptRow[]
-  const certificates = ((certRows ?? []) as unknown as CertificateRow[])
+  const certificates = (certRows ?? []) as unknown as CertificateRow[]
 
   // Quiz metadata for the titles and the pass marks. Only quizzes that actually
   // have an attempt are fetched, so an unpublished quiz nobody sat is not read.
@@ -1130,11 +1135,10 @@ function summarise(
 
   const graded = assignments.filter((assignment) => assignment.grade !== null)
   const assignmentAverage = graded.length
-    ? (graded.reduce((sum, assignment) => {
+    ? graded.reduce((sum, assignment) => {
         const ratio = assignment.maxPoints > 0 ? (assignment.grade ?? 0) / assignment.maxPoints : 0
         return sum + ratio * 100
-      }, 0) /
-        graded.length)
+      }, 0) / graded.length
     : null
 
   return {
@@ -1145,7 +1149,8 @@ function summarise(
     quizzesAttempted: bestByQuiz.size,
     quizzesPassed: [...bestByQuiz.values()].filter((attempt) => attempt.passed === true).length,
     quizAverage: quizAverage === null ? null : round1(quizAverage),
-    assignmentsSubmitted: assignments.filter((assignment) => assignment.submittedAt !== null).length,
+    assignmentsSubmitted: assignments.filter((assignment) => assignment.submittedAt !== null)
+      .length,
     assignmentsGraded: graded.length,
     assignmentAverage: assignmentAverage === null ? null : round1(assignmentAverage),
     certificatesEarned: certificates.filter((certificate) => !certificate.revoked).length,
@@ -1185,17 +1190,32 @@ export async function listMyCertificates(studentId: string): Promise<Certificate
  * unmet — and each is worth more than any check this file could write, so the text
  * is carried through untouched and shown to the student as written.
  *
- * Returns the new certificate id. Throws `LearningError` with the database's
- * message on refusal.
+ * Returns the certificate it issued. Throws `LearningError` carrying the
+ * database's own refusal text.
  */
-export async function claimCertificate(courseId: string): Promise<string> {
+export async function claimCertificate(courseId: string): Promise<Certificate> {
   const { data, error } = await later.rpc('issue_certificate', { p_course_id: courseId })
 
   if (error) throw new LearningError(messageOf(error, 'Could not claim a certificate.'))
   if (typeof data !== 'string') {
-    throw new LearningError('The server did not return a certificate number.')
+    throw new LearningError('The server did not return a certificate id.')
   }
-  return data
+
+  // The RPC hands back an id, not a row. Re-read it rather than assembling a
+  // certificate from a number and a guess: the number, the final percentage and
+  // the issue date were all computed in Postgres and are not derivable here.
+  const { data: rows, error: readError } = await later
+    .from('certificates')
+    .select(CERTIFICATE_COLUMNS)
+    .eq('id', data)
+    .limit(1)
+
+  if (readError) throw new LearningError(messageOf(readError, 'Could not read the certificate.'))
+  const row = ((rows ?? []) as unknown as CertificateRow[])[0]
+  if (!row) throw new LearningError('The certificate was issued but could not be read back.')
+
+  const titles = await courseTitles([row.course_id])
+  return toCertificate(row, titles)
 }
 
 // ---------------------------------------------------------------------------
@@ -1283,20 +1303,15 @@ export async function getStudentDeadlines(studentId: string): Promise<StudentDea
   const courseIds = await liveCourseIds(studentId)
   if (courseIds.length === 0) return { assignments: [], materials: [] }
 
-  const [{ data: assignmentRows, error: assignmentError }, { data: moduleRows, error: moduleError }] =
-    await Promise.all([
-      later
-        .from('assignments')
-        .select(ASSIGNMENT_COLUMNS)
-        .in('course_id', courseIds)
-        .eq('status', 'published'),
-      supabase.from('modules').select(MODULE_COLUMNS).in('course_id', courseIds),
-    ])
+  const { data: assignmentRows, error: assignmentError } = await later
+    .from('assignments')
+    .select(ASSIGNMENT_COLUMNS)
+    .in('course_id', courseIds)
+    .eq('status', 'published')
 
   if (assignmentError) {
     throw new LearningError(messageOf(assignmentError, 'Could not load the assignments.'))
   }
-  if (moduleError) throw new LearningError(messageOf(moduleError, 'Could not load the modules.'))
 
   const assignments = ((assignmentRows ?? []) as unknown as AssignmentRow[]).filter(
     (row) => row.status === 'published',
@@ -1369,7 +1384,10 @@ async function outstandingMaterials(
   const { data: lessonRows, error: lessonError } = await supabase
     .from('lessons')
     .select(LESSON_COLUMNS)
-    .in('module_id', modules.map((module) => module.id))
+    .in(
+      'module_id',
+      modules.map((module) => module.id),
+    )
 
   if (lessonError) throw new LearningError(messageOf(lessonError, 'Could not load the lessons.'))
   const lessons = ((lessonRows ?? []) as unknown as LessonRow[]).map(toLesson)
@@ -1380,7 +1398,10 @@ async function outstandingMaterials(
   const { data: materialRows, error: materialError } = await supabase
     .from('lesson_materials')
     .select(MATERIAL_COLUMNS)
-    .in('lesson_id', lessons.map((lesson) => lesson.id))
+    .in(
+      'lesson_id',
+      lessons.map((lesson) => lesson.id),
+    )
     .order('position', { ascending: true })
 
   if (materialError) {
@@ -1415,10 +1436,7 @@ async function outstandingMaterials(
 }
 
 /** Lesson ids across these courses that this student has completed. */
-async function completedLessonIds(
-  courseIds: string[],
-  studentId: string,
-): Promise<Set<string>> {
+async function completedLessonIds(courseIds: string[], studentId: string): Promise<Set<string>> {
   const done = new Set<string>()
 
   const { data: enrollmentRows, error: enrollmentError } = await supabase

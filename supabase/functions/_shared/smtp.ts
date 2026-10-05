@@ -83,8 +83,27 @@ function toLines(raw: string): string[] {
   return raw.split('\r\n').filter((line) => line !== '')
 }
 
+/**
+ * Base64 for the AUTH LOGIN exchange.
+ *
+ * Uses btoa rather than Buffer. `Buffer` is a Node global and does not exist in
+ * Deno unless polyfilled, so this function threw `Buffer is not defined` on every
+ * send inside an Edge Function - while passing its unit tests, because vitest
+ * runs in Node where Buffer is present.
+ *
+ * That is the whole class of bug this file could not catch on its own: the tests
+ * exercise the logic, not the runtime. A green suite said nothing about whether
+ * this file could run where it actually runs.
+ *
+ * TextEncoder handles UTF-8; btoa handles binary. Chaining them is the standard
+ * Deno base64 idiom and matches Buffer.from(value, 'utf8') for the ASCII
+ * credentials SMTP auth uses.
+ */
 export function encodeHeader(value: string): string {
-  return Buffer.from(value, 'utf8').toString('base64')
+  const bytes = new TextEncoder().encode(value)
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary)
 }
 
 export interface SendResult {
@@ -188,15 +207,24 @@ export async function sendMail(
   // Dot-stuffing: a line consisting of a single dot ends the message early. Any
   // line in the body that begins with a dot needs an extra one.
   const body = envelope.replace(/\r\n\./g, '\r\n..')
-  await step('message', async () => {
-    await transport.write(body)
-    return transport.read()
-  })
 
-  // The authoritative reply is the one to the terminator: this is where a real
-  // server assigns the queue id that a support ticket needs. The reply to the
-  // body itself is only an interim acknowledgement.
+  // Write the body and the terminator, then read ONCE.
+  //
+  // The body is deliberately not followed by a read. SMTP has no reply to
+  // message content: after `354 Go ahead` the server says nothing until it
+  // receives the lone-dot terminator. Reading here blocks forever, the platform
+  // gateway eventually gives up, the socket closes, and Gmail reports the
+  // connection dropped part-way through the message.
+  //
+  // This version read after the body. It passed 38 unit tests, because the fake
+  // transport answers every read with a canned reply - a read that should never
+  // happen is indistinguishable from one that should. Only a transcript against
+  // Gmail showed the exchange stopping dead after `354 Go ahead`.
+  //
+  // The reply to the terminator is also the authoritative one: it carries the
+  // queue id a support ticket needs.
   const result = await step('body-end', async () => {
+    await transport.write(body)
     await transport.write('.')
     return transport.read()
   })

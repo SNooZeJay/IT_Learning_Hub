@@ -33,7 +33,9 @@
 
     <div class="mt-6 grid gap-6 lg:grid-cols-3">
       <div class="lg:col-span-2">
-        <div class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div
+          class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+        >
           <h2 class="text-title-sm text-gray-900 dark:text-white/90">My courses</h2>
           <div class="mt-6">
             <EmptyState
@@ -53,10 +55,16 @@
       </div>
 
       <div>
-        <div class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div
+          class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+        >
           <h2 class="text-title-sm text-gray-900 dark:text-white/90">Needs grading</h2>
           <div class="mt-6">
-            <EmptyState title="Nothing to grade" description="Submissions appear here as students hand them in." :icon="ListChecks" />
+            <EmptyState
+              title="Nothing to grade"
+              description="Submissions appear here as students hand them in."
+              :icon="ListChecks"
+            />
           </div>
         </div>
       </div>

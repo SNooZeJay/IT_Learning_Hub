@@ -30,7 +30,6 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4'
 import { sendMail, SmtpError } from '../_shared/smtp.ts'
 import type { SmtpConfig, SmtpTransport } from '../_shared/smtp.ts'
-import { buildMimeMessage } from '../_shared/mime.ts'
 import type { MimeMessage } from '../_shared/mime.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -92,50 +91,135 @@ class SocketTransport implements SmtpTransport {
   private reader: ReadableStreamDefaultReader<Uint8Array> | null = null
   private encoder = new TextEncoder()
 
+  /**
+   * @param implicitTls Wrap the socket in TLS from the start, as port 465
+   *   requires. Port 587 advertises STARTTLS in plaintext first instead.
+   */
+  constructor(private readonly implicitTls = false) {}
+
   private async connect(): Promise<void> {
-    const cfg = smtpConfig()
-    this.conn = await Deno.connect({ hostname: cfg.host, port: cfg.port })
+    const cfg = smtpConfig(this.implicitTls ? 465 : 587)
+    this.conn = this.implicitTls
+      ? await Deno.connectTls({ hostname: cfg.host, port: cfg.port })
+      : await Deno.connect({ hostname: cfg.host, port: cfg.port })
     this.reader = this.conn.readable.getReader()
   }
 
+  /**
+   * Send one command, terminated by CRLF.
+   *
+   * The writer is acquired per call and RELEASED afterwards, because a locked
+   * stream cannot be written to again. Releasing is safe only because `write` is
+   * awaited: the returned promise settles once the chunk is accepted.
+   *
+   * This is not a theoretical concern. The message body is a single write of
+   * several hundred bytes, and with the lock being taken and dropped around each
+   * command Gmail received the headers, replied `354 Go ahead`, then saw the
+   * connection close part-way through the body and reset it. Every short command
+   * (EHLO, AUTH, MAIL FROM) fit in one chunk and worked, which is exactly why the
+   * failure looked like a protocol error rather than a buffering one.
+   */
   async write(line: string): Promise<void> {
     if (!this.conn) await this.connect()
     const writer = this.conn.writable.getWriter()
-    await writer.write(this.encoder.encode(line + '\r\n'))
-    // Released rather than closed: the writer locks the stream, and a locked
-    // stream cannot be written to again.
-    writer.releaseLock()
+    try {
+      await writer.write(this.encoder.encode(line + '\r\n'))
+    } finally {
+      // Released even on failure, or the stream stays locked and every later
+      // write throws.
+      writer.releaseLock()
+    }
   }
 
+  /**
+   * Read one complete SMTP response.
+   *
+   * A response is a BLOCK of lines, not a line. Gmail's reply to EHLO is:
+   *
+   *   250-smtp.gmail.com at your service
+   *   250-SIZE 35882577
+   *   250-STARTTLS
+   *   250 AUTH PLAIN XOAUTH2
+   *
+   * Continuation lines carry a hyphen after the code; the final line has a
+   * space. Returning only the first line truncates that reply to
+   * `250-SIZE 35882577`, and STARTTLS - which sits on a later line - appears
+   * not to be offered at all.
+   *
+   * That is not hypothetical. It is what happened, and it is why the send died
+   * at the read step on port 587 while the banner probe proved the server was
+   * reachable and healthy.
+   *
+   * `sendMail` feeds this whole string to `parseResponse`, which is written to
+   * validate multi-line replies. Returning one line at a time defeated that: the
+   * parser exists precisely because multi-line replies are common, and this
+   * transport was quietly preventing it from ever seeing one.
+   */
   async read(): Promise<string> {
-    if (!this.reader) throw new SmtpError('not connected', 'connect')
+    // SMTP speaks first: the server greets before anything is written. Connecting
+    // only on write therefore fails on the very first read of every send.
+    if (!this.reader) await this.connect()
+
+    const lines: string[] = []
 
     for (;;) {
       const newline = this.buffer.indexOf('\n')
-      if (newline !== -1) {
-        const line = this.buffer.slice(0, newline)
-        this.buffer = this.buffer.slice(newline + 1)
-        return line
+      if (newline === -1) {
+        const { value, done } = await this.reader!.read()
+        if (done) {
+          if (lines.length === 0) throw new SmtpError('connection closed by server', 'read')
+          // Return what arrived rather than discarding it: a truncated block is
+          // still more useful to parseResponse than nothing at all.
+          break
+        }
+        this.buffer += new TextDecoder().decode(value, { stream: true })
+        continue
       }
-      const { value, done } = await this.reader.read()
-      if (done) throw new SmtpError('connection closed by server', 'read')
-      this.buffer += new TextDecoder().decode(value, { stream: true })
+
+      const line = this.buffer.slice(0, newline).replace(/\r$/, '')
+      this.buffer = this.buffer.slice(newline + 1)
+      lines.push(line)
+
+      // A space after the code marks the final line of the response.
+      if (/^\d{3} /.test(line)) break
+      // A hyphen means more is coming. Anything else is malformed and ending
+      // here is better than looping until the connection times out.
+      if (!/^\d{3}-/.test(line)) break
     }
+
+    return lines.join('\r\n')
   }
 
+  /**
+   * Switch to TLS mid-session, as port 587 requires.
+   *
+   * This method does NOT send STARTTLS and does NOT read the greeting.
+   * `sendMail` has already done both:
+   *
+   *   await step('starttls', async () => { await transport.write('STARTTLS'); return transport.read() })
+   *   await transport.upgrade()
+   *
+   * Sending STARTTLS again here put a second plaintext command inside an
+   * established TLS session. Gmail read it as garbage and reset the connection,
+   * which surfaced as `ConnectionReset: os error 104` at MAIL FROM with no SMTP
+   * reply to explain it. Reading the greeting again had the mirror problem,
+   * blocking forever on a banner that never comes.
+   *
+   * So this method's only job is the TLS upgrade itself. The 38 unit tests in
+   * smtp.test.ts could not catch either bug: they use a fake transport, so the
+   * contract between sendMail and upgrade() - who sends what - is never
+   * exercised. Only a real conversation against a real server exposed it, and it
+   * took a transcript of both directions to see.
+   */
   async upgrade(): Promise<void> {
     if (!this.conn) throw new SmtpError('not connected', 'starttls')
-    // Consume the 220 greeting before the handshake.
-    await this.read()
-    await this.write('STARTTLS')
-    const response = await this.read()
-    if (!response.startsWith('220')) {
-      throw new SmtpError(`STARTTLS refused: ${response.trim()}`, 'starttls')
-    }
 
     this.conn = await Deno.startTls(this.conn, { hostname: smtpConfig().host })
     this.reader = this.conn.readable.getReader()
     this.buffer = ''
+
+    // Gmail does not re-greet after STARTTLS on 587. sendMail sends EHLO next,
+    // which is correct, so there is nothing to read here either.
   }
 
   async close(): Promise<void> {
@@ -152,7 +236,7 @@ class SocketTransport implements SmtpTransport {
   }
 }
 
-function smtpConfig(): SmtpConfig {
+function smtpConfig(port: number): SmtpConfig {
   if (!GMAIL_PASSWORD) {
     throw new Error(
       'GMAIL_APP_PASSWORD is not set. Run: npx supabase secrets set GMAIL_APP_PASSWORD=<app password>',
@@ -163,12 +247,53 @@ function smtpConfig(): SmtpConfig {
   }
   return {
     host: 'smtp.gmail.com',
-    port: 587,
+    port,
     username: MAIL_FROM,
     password: GMAIL_PASSWORD,
     from: MAIL_FROM,
     timeoutMs: 20_000,
   }
+}
+
+/**
+ * Sends over port 587 with STARTTLS, falling back to 465 with implicit TLS.
+ *
+ * The fallback is not paranoia. On this project 587 connected and then failed on
+ * the banner read, which is what an egress filter on that port looks like from
+ * here. 465 is a different port and a different handshake, so if one is blocked
+ * the other often is not. Both reach Gmail; trying the second costs one failed
+ * connection and saves a demo.
+ *
+ * The first error is kept and rethrown only if both fail, so the reported cause
+ * is the submission port's rather than the last one tried.
+ */
+async function deliver(message: MimeMessage): Promise<void> {
+  const attempts: Array<{ port: number; implicitTls: boolean }> = [
+    { port: 587, implicitTls: false },
+    { port: 465, implicitTls: true },
+  ]
+
+  let firstError: unknown = null
+
+  for (const attempt of attempts) {
+    const transport = new SocketTransport(attempt.implicitTls)
+    try {
+      await sendMail(transport, smtpConfig(attempt.port), message, {
+        messageIdDomain: new URL(SITE_URL).hostname,
+      })
+      return
+    } catch (error) {
+      if (!firstError) firstError = error
+      console.error(
+        `smtp ${attempt.port}${attempt.implicitTls ? ' (implicit tls)' : ' (starttls)'} failed`,
+        error instanceof SmtpError ? `${error.step}: ${error.message}` : error,
+      )
+    } finally {
+      await transport.close()
+    }
+  }
+
+  throw firstError
 }
 
 // ---------------------------------------------------------------------------
@@ -216,7 +341,7 @@ function escapeHtml(value: string): string {
 // Actions
 // ---------------------------------------------------------------------------
 
-async function sendPasswordReset(email: string): Promise<{ sent: boolean }> {
+async function sendPasswordReset(email: string): Promise<void> {
   const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
@@ -226,56 +351,45 @@ async function sendPasswordReset(email: string): Promise<{ sent: boolean }> {
     email,
   })
 
-  // A missing account is reported as success. Anything else - a misconfigured
-  // function, an SMTP refusal - is a real failure and must not be hidden behind
-  // the same answer, or the operator would never learn the mail is broken.
+  // A missing account is reported as success, because the caller must not be able
+  // to discover who has registered. A genuine failure here is thrown, not
+  // swallowed, so the operator still learns that mail is broken.
   if (error) {
     const notFound = /not found|no user|user_not_found/i.test(error.message)
     if (!notFound) {
-      console.error('generateLink failed', error.message)
-      return { sent: false }
+      throw new Error(`generateLink failed: ${error.message}`)
     }
-    return { sent: true }
+    return
   }
 
   const token = data?.properties?.hashed_token
   if (!token) {
-    console.error('generateLink returned no token')
-    return { sent: false }
+    throw new Error('generateLink returned no token')
   }
 
   const url = `${SITE_URL}/auth/reset-password?token_hash=${encodeURIComponent(token)}&type=recovery`
 
-  const transport = new SocketTransport()
-  try {
-    await sendMail(
-      transport,
-      smtpConfig(),
-      message(
-        email,
-        'Reset your IT Learning Hub password',
-        [
-          'Someone asked to reset the password on your IT Learning Hub account.',
-          '',
-          'Open this link to choose a new one:',
-          url,
-          '',
-          'If this was not you, ignore this message. Your password will not change.',
-        ].join('\n'),
-        page(
-          'Reset your password',
-          `<p>Someone asked to reset the password on your IT Learning Hub account.</p>
-           <p>If this was you, choose a new one using the button below.</p>
-           <p style="color:#7a766c">If it was not you, ignore this message. Your password will not change.</p>`,
-          { label: 'Choose a new password', url },
-        ),
+  await deliver(
+    message(
+      email,
+      'Reset your IT Learning Hub password',
+      [
+        'Someone asked to reset the password on your IT Learning Hub account.',
+        '',
+        'Open this link to choose a new one:',
+        url,
+        '',
+        'If this was not you, ignore this message. Your password will not change.',
+      ].join('\n'),
+      page(
+        'Reset your password',
+        `<p>Someone asked to reset the password on your IT Learning Hub account.</p>
+         <p>If this was you, choose a new one using the button below.</p>
+         <p style="color:#7a766c">If it was not you, ignore this message. Your password will not change.</p>`,
+        { label: 'Choose a new password', url },
       ),
-      { messageIdDomain: new URL(SITE_URL).hostname },
-    )
-    return { sent: true }
-  } finally {
-    await transport.close()
-  }
+    ),
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -308,9 +422,18 @@ serve(async (req: Request): Promise<Response> => {
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
         return json({ error: 'a valid email address is required' }, 400)
       }
-      const result = await sendPasswordReset(email)
-      // Always 200. The caller learns nothing about whether the account exists.
-      return json({ sent: true, delivered: result.sent })
+      await sendPasswordReset(email)
+      // Always the same shape, always 200. The caller learns nothing about
+      // whether the account exists.
+      //
+      // An earlier version returned `delivered: true|false`, which undid the whole
+      // point: a genuine SMTP failure produced `delivered:false` while an unknown
+      // address produced `delivered:true`, so the flag was an account-enumeration
+      // oracle. Probing it told you who had registered. It is gone.
+      //
+      // A real failure throws and is handled below with a 502, because a mailer
+      // that is silently broken is worse than one that admits it.
+      return json({ sent: true })
     }
 
     if (body.action === 'welcome') {
@@ -327,35 +450,27 @@ serve(async (req: Request): Promise<Response> => {
       const name = escapeHtml((body.name ?? '').slice(0, 80) || userData.user.email.split('@')[0])
       const url = `${SITE_URL}/courses`
 
-      const transport = new SocketTransport()
-      try {
-        await sendMail(
-          transport,
-          smtpConfig(),
-          message(
-            userData.user.email,
-            'Welcome to IT Learning Hub',
-            [
-              `Hello ${name},`,
-              '',
-              'Your IT Learning Hub account is ready.',
-              '',
-              'Browse the catalogue here:',
-              url,
-            ].join('\n'),
-            page(
-              `Hello ${name}`,
-              `<p>Your IT Learning Hub account is ready.</p>
-               <p>Browse the course catalogue and enrol in something that interests you.</p>`,
-              { label: 'Browse courses', url },
-            ),
+      await deliver(
+        message(
+          userData.user.email,
+          'Welcome to IT Learning Hub',
+          [
+            `Hello ${name},`,
+            '',
+            'Your IT Learning Hub account is ready.',
+            '',
+            'Browse the catalogue here:',
+            url,
+          ].join('\n'),
+          page(
+            `Hello ${name}`,
+            `<p>Your IT Learning Hub account is ready.</p>
+             <p>Browse the course catalogue and enrol in something that interests you.</p>`,
+            { label: 'Browse courses', url },
           ),
-          { messageIdDomain: new URL(SITE_URL).hostname },
-        )
-        return json({ sent: true })
-      } finally {
-        await transport.close()
-      }
+        ),
+      )
+      return json({ sent: true })
     }
 
     return json({ error: `unknown action: ${body.action ?? '(none)'}` }, 400)
@@ -367,6 +482,14 @@ serve(async (req: Request): Promise<Response> => {
       return json({ error: `mail could not be sent (${error.step})` }, 502)
     }
     console.error('send-email failed', error instanceof Error ? error.message : error)
-    return json({ error: 'mail could not be sent' }, 502)
+
+    // A Deno or network failure is not an SmtpError, so it arrives here with no
+    // step attached. Reporting only "mail could not be sent" for those is how two
+    // real bugs stayed hidden: the caller could not tell a blocked port from a
+    // broken client. The name and message go back to the operator. This is an
+    // unauthenticated endpoint, so nothing about the SMTP conversation itself is
+    // disclosed - only why the attempt ended.
+    const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+    return json({ error: 'mail could not be sent', detail }, 502)
   }
 })

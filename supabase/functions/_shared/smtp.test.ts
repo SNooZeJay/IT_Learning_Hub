@@ -103,9 +103,20 @@ function happy(over: Record<string, string> = {}): ScriptStep[] {
     ['mailFrom', `MAIL FROM:<${USERNAME}>`, '250 2.1.0 Ok'],
     ['rcptTo1', 'RCPT TO:<student@ncst.edu.ph>', '250 2.1.5 Ok'],
     ['data', 'DATA', '354 End data with <CR><LF>.<CR><LF>'],
-    ['body', '(message body)', '250 2.0.0 Ok: queued'],
-    // The authoritative queue id lands on the reply to the terminator, not to the
-    // payload, so a support ticket has something real to quote.
+    // No step for the message body, and that is the point.
+    //
+    // SMTP has no reply to message content. After `354 Go ahead` the server stays
+    // silent until it receives the lone-dot terminator. The script used to contain
+    // a `body` step with a `250` reply, which meant the fake answered a read that
+    // should never have happened - so it agreed with a client that hung forever
+    // against real Gmail.
+    //
+    // The FakeTransport throws when a read arrives that no step scripted, so
+    // removing this entry turns the silence into an enforced part of the
+    // contract: if sendMail ever reads after the body again, these tests fail.
+    //
+    // The queue id lands on the reply to the terminator, which is also the
+    // authoritative acknowledgement - the one a support ticket can quote.
     ['terminator', '.', '250 2.0.0 Ok: queued as ABC123'],
     ['quit', 'QUIT', '221 2.0.0 Bye'],
   ]

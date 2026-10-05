@@ -25,26 +25,26 @@ import type {
  * 1. Row Level Security is the authority, not this file. Nothing here asks "is
  *    this admin?" - the policies answer that from `auth.uid()`. Every function
  *    below therefore behaves identically for a caller who is not an admin,
- *    except that it returns nothing, which is the correct behaviour rather than
- *    an error to hide.
+ *    except that it returns nothing, which is the correct answer rather than an
+ *    error to hide.
  *
  * 2. Every write goes through a path the database actually grants. Roles change
  *    through `set_user_role`; account status, course status, categories and
  *    instructor assignments go through the RLS policies on their own tables.
- *    There is no write here that a browser session cannot perform.
+ *    No write here is one a browser session could not perform.
  *
  * 3. Postgres owns the refusals. `set_user_role` raises "Cannot demote the last
  *    administrator.", a duplicate category slug raises the unique-violation text,
  *    and a category still in use raises the foreign-key text. Those messages are
- *    the useful part of the response, so they are passed through rather than
+ *    the useful part of the response, so they pass through rather than being
  *    replaced with a generic failure. See `AdminError`.
  *
  * 4. Payments are read-only here, and that is a fact about grants rather than a
- *    missing feature. `payments` has SELECT and DELETE policies for
- *    `authenticated` but no UPDATE policy, and the functions that settle or fail a
- *    payment (`settle_payment`, `fail_payment`) are SECURITY DEFINER with EXECUTE
- *    granted to `service_role` only. No browser session can mark money as moved,
- *    so this file does not pretend to offer it.
+ *    missing feature. `payments` grants `authenticated` SELECT and DELETE but no
+ *    UPDATE, and the functions that settle or fail a payment (`settle_payment`,
+ *    `fail_payment`) are SECURITY DEFINER with EXECUTE granted to `service_role`
+ *    only. No browser session can mark money as moved, so this file does not
+ *    pretend to offer it.
  */
 
 // ---------------------------------------------------------------------------
@@ -71,26 +71,27 @@ const PAYMENT_COLUMNS =
 const ATTEMPT_COLUMNS = 'id, quiz_id, course_id, percentage, passed, status, submitted_at'
 
 /**
- * `payment_events` is a real table with admin-visible rows, but it is absent from
- * the hand-written `Database` type in `services/supabase/types.ts`, which is
- * deliberately maintained in its own change. Rather than widen the shared client
- * for every caller in the app, the two untyped surfaces this file needs - this
- * table and the `set_user_role` / `record_activity` RPCs - are given the narrowest
- * shape that still lets Postgres answer, and their error is surfaced untouched.
+ * `payment_events` and `certificates` are real tables with admin-visible rows,
+ * but neither is in the hand-written `Database` type in
+ * `services/supabase/types.ts`, which is deliberately maintained in its own
+ * change. Rather than widen the shared client for every caller in the app, the
+ * two untyped surfaces this file needs are given the narrowest shape that still
+ * lets Postgres answer, and their error is surfaced untouched.
  *
- * It is an adapter, not an escape hatch: every value that comes back through it is
- * narrowed by `toPaymentEvent` below before a view can touch it.
+ * It is an adapter, not an escape hatch: nothing crosses it un-narrowed, and both
+ * readers below validate the shape they were handed.
  */
 const PAYMENT_EVENT_COLUMNS =
   'id, event_id, provider, event_type, resource_id, payment_id, signature_verified, processing_status, reported_amount_centavos, reported_currency, livemode, failure_code, failure_message, received_at, processed_at'
 
 interface QueryResponse {
   data: unknown
+  count: number | null
   error: { message: string } | null
 }
 
 interface UntypedQuery extends PromiseLike<QueryResponse> {
-  select(columns: string): UntypedQuery
+  select(columns: string, options?: { count?: 'exact'; head?: boolean }): UntypedQuery
   eq(column: string, value: string): UntypedQuery
   order(column: string, options: { ascending: boolean; nullsFirst?: boolean }): UntypedQuery
   limit(count: number): UntypedQuery
@@ -114,12 +115,12 @@ const callRpc = supabase.rpc as unknown as (
 /**
  * A database failure, carrying the message Postgres chose.
  *
- * The admin surfaces this at the exact control that caused it rather than at the
- * top of the page, because the refusals worth reading are specific and local:
- * "Cannot demote the last administrator.", "permission denied for function
- * set_user_role", "update or delete on table course_categories violates foreign
- * key constraint". Replacing any of those with "Something went wrong" would throw
- * away the only sentence in the response.
+ * Views surface this at the control that caused it rather than at the top of the
+ * page, because the refusals worth reading are specific and local: "Cannot
+ * demote the last administrator.", "permission denied for function set_user_role",
+ * "update or delete on table course_categories violates foreign key constraint".
+ * Replacing any of those with "Something went wrong" throws away the only
+ * sentence in the response.
  */
 export class AdminError extends Error {
   constructor(message: string) {
@@ -131,10 +132,9 @@ export class AdminError extends Error {
 /**
  * Postgres error text, made presentable.
  *
- * Same narrow strip as `quiz.service`: it removes a leading `ERROR: ` and a
- * five-character SQLSTATE and nothing else. An earlier broader pattern also ate
- * the first colon of a timestamp, which cost the explanation along with the
- * prefix.
+ * The same narrow strip `quiz.service` uses: it removes a leading `ERROR: ` and a
+ * five-character SQLSTATE and nothing else. A broader pattern also ate the first
+ * colon of a timestamp, which cost the explanation along with the prefix.
  */
 function messageOf(error: { message: string } | null, fallback: string): string {
   if (!error) return fallback
@@ -151,9 +151,9 @@ function fail(error: { message: string } | null, fallback: string): AdminError {
 
 /**
  * The live `payment_status` enum carries `cancelled`, which the app's
- * `PaymentStatus` union does not. Narrowing it away here rather than editing
- * `types/enums.ts` keeps this change inside its own files, and widening it here
- * means a cancelled payment renders as a real state instead of falling into a
+ * `PaymentStatus` union does not. Widening it here rather than editing
+ * `types/enums.ts` keeps this change inside its own files, and it means a
+ * cancelled payment renders as the real state it is rather than falling into a
  * catch-all bucket that pretends the value does not exist.
  */
 export type AdminPaymentStatus = PaymentStatus | 'cancelled'
@@ -170,6 +170,12 @@ export const PAYMENT_STATUSES: readonly AdminPaymentStatus[] = [
 export const ROLES: readonly Role[] = ['admin', 'instructor', 'student'] as const
 export const ACCOUNT_STATUSES: readonly AccountStatus[] = ['active', 'invited', 'suspended']
 export const COURSE_STATUSES: readonly CourseStatus[] = ['draft', 'published', 'archived']
+export const ENROLLMENT_STATUSES: readonly EnrollmentStatus[] = [
+  'pending',
+  'active',
+  'completed',
+  'dropped',
+] as const
 
 export const ROLE_LABELS: Record<Role, string> = {
   admin: 'Admin',
@@ -204,7 +210,7 @@ export const PAYMENT_STATUS_LABELS: Record<AdminPaymentStatus, string> = {
   cancelled: 'Cancelled',
 }
 
-/** A person, as the admin roster needs them: profile plus `created_at`. */
+/** A person, as the admin roster needs them: the profile plus `created_at`. */
 export interface AdminUser {
   id: string
   role: Role
@@ -305,10 +311,10 @@ export type PaymentEventStatus = 'received' | 'processed' | 'ignored' | 'failed'
 /**
  * One webhook the payment provider delivered.
  *
- * Read alongside a payment because it is the evidence for the read-only
- * decision: `signatureVerified` and `processingStatus` show what the Edge
- * Function concluded, and `failureMessage` is why a payment is in the state it
- * is in. Nothing in the browser can add a row here - the table has no INSERT
+ * Read alongside a payment because it is the evidence for the read-only decision:
+ * `signatureVerified` and `processingStatus` show what the Edge Function
+ * concluded, and `failureMessage` is why a payment sits in the state it is in.
+ * Nothing in the browser can add a row here - `payment_events` has no INSERT
  * policy for `authenticated` at all.
  */
 export interface AdminPaymentEvent {
@@ -336,26 +342,26 @@ export interface CountByLabel {
 }
 
 export interface MonthBucket {
-  label: string
-  /** `YYYY-MM`, used as the stable key the data is bucketed by. */
+  /** `YYYY-MM`. The stable key the data is bucketed by. */
   key: string
+  label: string
   count: number
-  /** centavos, only meaningful on the revenue series. */
+  /** centavos, meaningful only on the revenue series. */
   centavos: number
 }
 
 /**
  * Everything the analytics page plots.
  *
- * Counts are totals for the whole platform and are computed from rows rather than
- * from a stored aggregate, so a number on this page can be traced back to a query.
+ * Counts are derived from rows or from `head: true` counts, never from a stored
+ * aggregate, so every number on that page can be traced back to a query.
  */
 export interface PlatformAnalytics {
   usersByRole: CountByLabel[]
+  userStatus: CountByLabel[]
   coursesByStatus: CountByLabel[]
   enrollmentsByStatus: CountByLabel[]
   paymentsByStatus: CountByLabel[]
-  userStatus: CountByLabel[]
   revenue: {
     paidCentavos: number
     refundedCentavos: number
@@ -373,8 +379,8 @@ export interface PlatformAnalytics {
     pending: number
     /**
      * completed / (active + completed). Dropped rows are excluded: a student who
-     * left is neither a success nor a failure, and counting them would make the
-     * rate fall for reasons that have nothing to do with teaching.
+     * left is neither a success nor a failure, and counting them would move the
+     * rate for reasons that have nothing to do with teaching.
      */
     completionRate: number
   }
@@ -389,7 +395,7 @@ export interface PlatformAnalytics {
   enrollmentsByMonth: MonthBucket[]
 }
 
-/** The read-only facts the settings page is allowed to show. */
+/** The read-only facts the settings screen is allowed to show. */
 export interface PlatformOverview {
   users: {
     total: number
@@ -413,7 +419,6 @@ export interface PlatformOverview {
     activeEnrollments: number
     completedEnrollments: number
     certificates: number
-    revokedCertificates: number
   }
   money: {
     paidCentavos: number
@@ -424,31 +429,29 @@ export interface PlatformOverview {
     paidCount: number
     refundedCount: number
   }
-  activity: {
-    logEntries: number
-    recentLogEntries: number
-    paymentEvents: number
-  }
 }
 
 /**
  * How many months the two time series on the analytics page show.
  *
- * Six is chosen so every month label fits under its column without rotating,
- * which is the point at which a chart stops being readable at a glance.
+ * Six is chosen because that is the point at which every month label still fits
+ * under its column unrotated, and a chart you have to tilt your head to read is
+ * not a chart.
  */
 const MONTH_WINDOW = 6
 
 /**
  * Payment and webhook history is capped so a page load cannot be unbounded.
  *
- * Capped rather than paginated because these are admin audit views: the newest
- * rows are the ones being read. When the cap is hit the views say so, because a
- * silently truncated ledger that looks complete is the worst outcome here.
+ * Capped rather than paginated because these are audit views: the newest rows are
+ * the ones being read. When the cap is hit the views say so, because a silently
+ * truncated ledger that looks complete is the worst outcome on a money screen.
  */
 const PAYMENT_LIMIT = 500
 const PAYMENT_EVENT_LIMIT = 200
-const ACTIVITY_LOG_WINDOW_DAYS = 30
+
+export const ADMIN_PAYMENT_LIMIT = PAYMENT_LIMIT
+export const ADMIN_PAYMENT_EVENT_LIMIT = PAYMENT_EVENT_LIMIT
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -465,6 +468,15 @@ interface CountResponse {
  */
 async function readCount(query: PromiseLike<CountResponse>, fallback: string): Promise<number> {
   const { count, error } = await query
+  if (error) throw fail(error, fallback)
+  return count ?? 0
+}
+
+/** The same count, for the two tables the hand-written `Database` type omits. */
+async function readUntypedCount(table: string, fallback: string): Promise<number> {
+  const { count, error } = await untypedTables
+    .from(table)
+    .select('id', { count: 'exact', head: true })
   if (error) throw fail(error, fallback)
   return count ?? 0
 }
@@ -498,7 +510,7 @@ function toCategory(row: CourseCategoryRow): AdminCategory {
 /**
  * `status` is widened to `AdminPaymentStatus` because the live enum is wider than
  * the app's `PaymentStatus` union. The cast is confined to this one line rather
- * than spread through the view models.
+ * than spread across the view models.
  */
 function toPayment(row: PaymentRow): AdminPayment {
   return {
@@ -519,34 +531,29 @@ function toPayment(row: PaymentRow): AdminPayment {
   }
 }
 
+function textOrNull(value: unknown): string | null {
+  return value === null || value === undefined ? null : String(value)
+}
+
 function toPaymentEvent(raw: unknown): AdminPaymentEvent {
   const row = (raw ?? {}) as Record<string, unknown>
+  const reported = row.reported_amount_centavos
   return {
     id: String(row.id ?? ''),
     eventId: String(row.event_id ?? ''),
     provider: String(row.provider ?? ''),
     eventType: String(row.event_type ?? ''),
-    resourceId: row.resource_id === null || row.resource_id === undefined ? null : String(row.resource_id),
-    paymentId: row.payment_id === null || row.payment_id === undefined ? null : String(row.payment_id),
+    resourceId: textOrNull(row.resource_id),
+    paymentId: textOrNull(row.payment_id),
     signatureVerified: row.signature_verified === true,
     processingStatus: String(row.processing_status ?? 'received') as PaymentEventStatus,
-    reportedAmountCentavos:
-      row.reported_amount_centavos === null || row.reported_amount_centavos === undefined
-        ? null
-        : Number(row.reported_amount_centavos),
-    reportedCurrency:
-      row.reported_currency === null || row.reported_currency === undefined
-        ? null
-        : String(row.reported_currency),
+    reportedAmountCentavos: reported === null || reported === undefined ? null : Number(reported),
+    reportedCurrency: textOrNull(row.reported_currency),
     livemode: row.livemode === true,
-    failureCode: row.failure_code === null || row.failure_code === undefined ? null : String(row.failure_code),
-    failureMessage:
-      row.failure_message === null || row.failure_message === undefined
-        ? null
-        : String(row.failure_message),
+    failureCode: textOrNull(row.failure_code),
+    failureMessage: textOrNull(row.failure_message),
     receivedAt: String(row.received_at ?? ''),
-    processedAt:
-      row.processed_at === null || row.processed_at === undefined ? null : String(row.processed_at),
+    processedAt: textOrNull(row.processed_at),
   }
 }
 
@@ -575,7 +582,13 @@ function monthKeyOf(iso: string): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
-/** Turns a name into the slug the unique index on `course_categories` expects. */
+/**
+ * Turns a name into the slug the unique index on `course_categories` expects.
+ *
+ * Generated in the browser rather than by a database default, because the column
+ * has no default: a category with a name but no slug cannot be inserted, and
+ * deriving it here is the one rule the form needs.
+ */
 export function slugify(value: string): string {
   return value
     .trim()
@@ -585,12 +598,19 @@ export function slugify(value: string): string {
     .slice(0, 80)
 }
 
-function countBy<T>(
+/**
+ * One row per enum value, so a status with a count of zero still appears.
+ *
+ * A chart or a filter that silently omits "0 refunded" reads as "no refunds
+ * happen" rather than "no refunds have happened yet", and the two are different
+ * facts. Every value in the enum is listed, zero included.
+ */
+function countBy<T extends string>(
   keys: readonly T[],
-  label: (key: T) => string,
+  labels: Record<T, string>,
   tally: (key: T) => number,
 ): CountByLabel[] {
-  return keys.map((key) => ({ key: String(key), label: label(key), count: tally(key) }))
+  return keys.map((key) => ({ key, label: labels[key], count: tally(key) }))
 }
 
 // ---------------------------------------------------------------------------
@@ -601,8 +621,8 @@ function countBy<T>(
  * Every account, whatever the role or status.
  *
  * Ordered by name. `can_view_profile` decides the rows, so a caller who is not an
- * administrator receives only the profiles it is entitled to rather than an error
- * - which is the correct answer for the wrong caller.
+ * administrator receives only the profiles it is entitled to rather than an error,
+ * which is the correct answer for the wrong caller.
  */
 export async function listAllUsers(): Promise<AdminUser[]> {
   const { data, error } = await supabase
@@ -618,8 +638,8 @@ export async function listAllUsers(): Promise<AdminUser[]> {
  * Students with their enrolment counts.
  *
  * Enrolments are fetched whole and aggregated here rather than with one count
- * query per student: PostgREST has no count-by-group, and a page that issued N
- * queries to draw one table would be slow for the wrong reason.
+ * query per student: PostgREST has no count-by-group, and a page that issued one
+ * query per row to draw a single table would be slow for the wrong reason.
  */
 export async function listAllStudents(): Promise<AdminStudent[]> {
   const [{ data: profileRows, error: profileError }, { data: enrollmentRows, error: enrollError }] =
@@ -672,8 +692,8 @@ export async function listAllStudents(): Promise<AdminStudent[]> {
 /**
  * Instructors with the courses each of them teaches.
  *
- * `course_instructors` is the table that decides what an instructor can see
- * (`is_instructor_of` reads it, not `courses.created_by`), so this join is the
+ * `course_instructors` is the table that decides what an instructor can see -
+ * `is_instructor_of` reads it, not `courses.created_by` - so this join follows the
  * same relationship the database uses rather than an approximation of it.
  */
 export async function listAllInstructors(): Promise<AdminInstructor[]> {
@@ -708,9 +728,9 @@ export async function listAllInstructors(): Promise<AdminInstructor[]> {
   const coursesByInstructor = new Map<string, AdminInstructorCourse[]>()
   for (const row of (assignmentRows ?? []) as CourseInstructorRow[]) {
     const course = coursesById.get(row.course_id)
-    // A dangling assignment cannot happen while the foreign key holds, but a
-    // course hidden by RLS can leave the join short. Skipping it is right: the
-    // instructor did not teach something that is not visible.
+    // Skipping an unmatched assignment is right rather than defensive: the
+    // instructor did not teach something that is not visible, and rendering an
+    // untitled row would claim otherwise.
     if (!course) continue
     const list = coursesByInstructor.get(row.instructor_id) ?? []
     list.push({ courseId: row.course_id, assignedAt: row.assigned_at, ...course })
@@ -738,19 +758,17 @@ export async function listAllInstructors(): Promise<AdminInstructor[]> {
  * Change a person's role.
  *
  * `set_user_role` is the only supported path, and it is used rather than an
- * `update` on `profiles` for two reasons that both matter:
- *
- *  - it sets `app.allow_role_change` for the transaction, which is what the
- *    `prevent_role_self_change` trigger honours, so the change goes through the
- *    database's own audited door rather than around it;
- *  - the same trigger still refuses to demote the final administrator, on this
- *    path and every other. That refusal arrives here as raised exception text
- *    and is shown verbatim.
+ * `update` on `profiles` for two reasons that both matter. It sets
+ * `app.allow_role_change` for the transaction, which is what the
+ * `prevent_role_self_change` trigger honours, so the change goes through the
+ * database's own door rather than around it. And that trigger still refuses to
+ * demote the final administrator, on this path and every other; the refusal
+ * arrives here as raised exception text and is shown verbatim.
  *
  * If the function is not granted to `authenticated`, PostgREST answers with
- * "permission denied for function set_user_role". That is reported to the admin
- * unchanged rather than dressed up as a transient failure, because it is a
- * statement about the deployment and not about the row being edited.
+ * "permission denied for function set_user_role". That is reported unchanged
+ * rather than dressed up as a transient failure, because it is a statement about
+ * the deployment and not about the row being edited.
  */
 export async function changeUserRole(userId: string, role: Role): Promise<void> {
   const { error } = await callRpc('set_user_role', { target_id: userId, new_role: role })
@@ -779,8 +797,8 @@ export async function changeUserStatus(userId: string, status: AccountStatus): P
 /**
  * Every course, including drafts and archived rows.
  *
- * The published-only catalogue is not this function: an administrator has to be
- * able to see what has not shipped yet, which is the whole job of this screen.
+ * Deliberately not the published-only catalogue: an administrator has to be able
+ * to see what has not shipped yet, which is the whole job of this screen.
  */
 export async function listAllCourses(): Promise<AdminCourse[]> {
   const [
@@ -867,10 +885,10 @@ export async function listAllCourses(): Promise<AdminCourse[]> {
  * afterwards. Clearing it on unpublish would throw away when the course first
  * shipped, which is the only date the catalogue sorts by; leaving it means an
  * unpublished course keeps its place in the ordering rather than jumping to the
- * bottom for being edited.
+ * bottom for having been edited.
  *
- * There is no readiness check here. A course can legitimately be published with
- * no lessons - a coming-soon listing is a real thing - so any gate would be a
+ * There is no readiness gate here. A course can legitimately be published with no
+ * lessons - a coming-soon listing is a real thing - so any check would be a
  * guess, and a guess that blocks a legitimate publish is worse than none.
  */
 export async function setCourseStatus(courseId: string, status: CourseStatus): Promise<void> {
@@ -886,7 +904,7 @@ export async function setCourseStatus(courseId: string, status: CourseStatus): P
  *
  * `course_instructors` has a composite primary key, so a second assignment for
  * the same pair is refused by the database with the duplicate-key text rather than
- * silently creating a duplicate row.
+ * quietly creating a duplicate row.
  */
 export async function assignInstructor(courseId: string, instructorId: string): Promise<void> {
   const { error } = await supabase
@@ -920,7 +938,10 @@ export async function removeInstructor(courseId: string, instructorId: string): 
 export async function listAdminCategories(): Promise<AdminCategory[]> {
   const [{ data: categoryRows, error: categoryError }, { data: courseRows, error: courseError }] =
     await Promise.all([
-      supabase.from('course_categories').select(CATEGORY_COLUMNS).order('name', { ascending: true }),
+      supabase
+        .from('course_categories')
+        .select(CATEGORY_COLUMNS)
+        .order('name', { ascending: true }),
       supabase.from('courses').select('id, category_id'),
     ])
 
@@ -980,9 +1001,9 @@ export async function updateCategory(
  *
  * Only possible when nothing points at it. `courses.category_id` is a foreign key
  * with no `ON DELETE` action, so an in-use category raises the constraint text,
- * and that text is the useful answer: it says which relationship blocked it.
- * Silently nulling the reference instead would quietly reorganise the catalogue
- * behind the administrator's back.
+ * and that text is the useful answer: it names the relationship that blocked it.
+ * Quietly nulling the reference instead would reorganise the catalogue behind the
+ * administrator's back.
  */
 export async function deleteCategory(categoryId: string): Promise<void> {
   const { error } = await supabase.from('course_categories').delete().eq('id', categoryId)
@@ -996,11 +1017,14 @@ export async function deleteCategory(categoryId: string): Promise<void> {
 /**
  * Every payment an administrator can see, newest first.
  *
- * Returns at most `PAYMENT_LIMIT` rows. Callers show the limit when it is hit,
- * because a ledger that looks complete and is not is the failure mode that
- * matters on a money screen.
+ * At most `PAYMENT_LIMIT` rows. Callers report the limit when it is hit, because
+ * a ledger that looks complete and is not is the failure mode that matters on a
+ * money screen.
  */
-export async function listAdminPayments(): Promise<{ payments: AdminPayment[]; truncated: boolean }> {
+export async function listAdminPayments(): Promise<{
+  payments: AdminPayment[]
+  truncated: boolean
+}> {
   const [
     { data: paymentRows, error: paymentError },
     { data: nameRows, error: nameError },
@@ -1030,7 +1054,6 @@ export async function listAdminPayments(): Promise<{ payments: AdminPayment[]; t
   }
 
   const rows = (paymentRows ?? []) as PaymentRow[]
-  const truncated = rows.length > PAYMENT_LIMIT
 
   const payments = rows.slice(0, PAYMENT_LIMIT).map((row) => {
     const payment = toPayment(row)
@@ -1041,15 +1064,14 @@ export async function listAdminPayments(): Promise<{ payments: AdminPayment[]; t
     }
   })
 
-  return { payments, truncated }
+  return { payments, truncated: rows.length > PAYMENT_LIMIT }
 }
 
 /**
  * Recent webhook deliveries, newest first.
  *
- * Read-only by construction: `payment_events` has a SELECT policy for admins and
- * no INSERT policy for `authenticated`, so there is no browser path that could
- * fabricate a receipt.
+ * Read-only by construction: `payment_events` grants admins SELECT and nobody
+ * INSERT, so there is no browser path that could fabricate a receipt.
  */
 export async function listAdminPaymentEvents(): Promise<{
   events: AdminPaymentEvent[]
@@ -1074,26 +1096,71 @@ export async function listAdminPaymentEvents(): Promise<{
 // Analytics and the settings facts
 // ---------------------------------------------------------------------------
 
+/** The whole revenue picture, summed from rows because Postgres has no money type. */
+function emptyMoney() {
+  return {
+    paidCentavos: 0,
+    refundedCentavos: 0,
+    pendingCentavos: 0,
+    failedCentavos: 0,
+    cancelledCentavos: 0,
+    paidCount: 0,
+    refundedCount: 0,
+  }
+}
+
+function tallyMoney(
+  payments: Array<{ amount_centavos: number; status: AdminPaymentStatus }>,
+): ReturnType<typeof emptyMoney> {
+  const money = emptyMoney()
+
+  for (const payment of payments) {
+    switch (payment.status) {
+      case 'paid':
+        money.paidCentavos += payment.amount_centavos
+        money.paidCount += 1
+        break
+      case 'refunded':
+        money.refundedCentavos += payment.amount_centavos
+        money.refundedCount += 1
+        break
+      case 'pending':
+        money.pendingCentavos += payment.amount_centavos
+        break
+      case 'failed':
+        money.failedCentavos += payment.amount_centavos
+        break
+      case 'cancelled':
+        money.cancelledCentavos += payment.amount_centavos
+        break
+    }
+  }
+
+  return money
+}
+
 /**
  * Platform-wide counts, aggregations and two monthly series.
  *
- * Built from rows for the series and `head: true` counts for the totals, so the
+ * The series are built from rows and the totals from `head: true` counts, so the
  * payload stays proportional to what is plotted rather than to how many people
  * are registered.
  */
 export async function getPlatformAnalytics(): Promise<PlatformAnalytics> {
   const [
-    admins,
-    instructors,
-    students,
+    adminCount,
+    instructorCount,
+    studentCount,
     activeUsers,
     invitedUsers,
     suspendedUsers,
     publishedCourses,
     draftCourses,
     archivedCourses,
-    paidCourses,
     quizCount,
+    { data: paymentRows, error: paymentError },
+    { data: enrollmentRows, error: enrollError },
+    { data: attemptRows, error: attemptError },
   ] = await Promise.all([
     readCount(
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'admin'),
@@ -1111,10 +1178,7 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalytics> {
       'Could not count students.',
     ),
     readCount(
-      supabase
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'active'),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       'Could not count active accounts.',
     ),
     readCount(
@@ -1150,23 +1214,13 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalytics> {
       'Could not count archived courses.',
     ),
     readCount(
-      supabase.from('courses').select('id', { count: 'exact', head: true }).gt('price_centavos', 0),
-      'Could not count paid courses.',
-    ),
-    readCount(
       supabase.from('quizzes').select('id', { count: 'exact', head: true }),
       'Could not count quizzes.',
     ),
+    supabase.from('payments').select('amount_centavos, status, created_at, paid_at'),
+    supabase.from('enrollments').select('id, status, enrolled_at'),
+    supabase.from('quiz_attempts').select(ATTEMPT_COLUMNS),
   ])
-
-  const [{ data: paymentRows, error: paymentError }, { data: enrollmentRows, error: enrollError }, { data: attemptRows, error: attemptError }] =
-    await Promise.all([
-      supabase
-        .from('payments')
-        .select('amount_centavos, status, created_at, paid_at'),
-      supabase.from('enrollments').select('id, status, enrolled_at'),
-      supabase.from('quiz_attempts').select(ATTEMPT_COLUMNS),
-    ])
 
   if (paymentError) throw fail(paymentError, 'Could not read payment history.')
   if (enrollError) throw fail(enrollError, 'Could not read enrolments.')
@@ -1179,42 +1233,12 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalytics> {
     paid_at: string | null
   }>
 
-  const revenue = {
-    paidCentavos: 0,
-    refundedCentavos: 0,
-    pendingCentavos: 0,
-    failedCentavos: 0,
-    cancelledCentavos: 0,
-    paidCount: 0,
-    refundedCount: 0,
-  }
-
   const revenueByMonth = monthWindow(MONTH_WINDOW)
   const revenueIndex = new Map(revenueByMonth.map((bucket) => [bucket.key, bucket]))
   const paymentsByStatus = new Map<AdminPaymentStatus, number>()
 
   for (const payment of payments) {
     paymentsByStatus.set(payment.status, (paymentsByStatus.get(payment.status) ?? 0) + 1)
-
-    switch (payment.status) {
-      case 'paid':
-        revenue.paidCentavos += payment.amount_centavos
-        revenue.paidCount += 1
-        break
-      case 'refunded':
-        revenue.refundedCentavos += payment.amount_centavos
-        revenue.refundedCount += 1
-        break
-      case 'pending':
-        revenue.pendingCentavos += payment.amount_centavos
-        break
-      case 'failed':
-        revenue.failedCentavos += payment.amount_centavos
-        break
-      case 'cancelled':
-        revenue.cancelledCentavos += payment.amount_centavos
-        break
-    }
 
     // Revenue belongs to the month the money arrived, which is `paid_at` and not
     // the day the row was created: a payment started on the 30th and settled on
@@ -1264,22 +1288,15 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalytics> {
     }
   }
 
-  const enrollmentStatuses: readonly EnrollmentStatus[] = [
-    'active',
-    'completed',
-    'pending',
-    'dropped',
-  ]
-
   const active = enrollmentsByStatusMap.get('active') ?? 0
   const completed = enrollmentsByStatusMap.get('completed') ?? 0
   const decided = active + completed
 
   return {
     usersByRole: [
-      { key: 'student', label: ROLE_LABELS.student, count: students },
-      { key: 'instructor', label: ROLE_LABELS.instructor, count: instructors },
-      { key: 'admin', label: ROLE_LABELS.admin, count: admins },
+      { key: 'student', label: ROLE_LABELS.student, count: studentCount },
+      { key: 'instructor', label: ROLE_LABELS.instructor, count: instructorCount },
+      { key: 'admin', label: ROLE_LABELS.admin, count: adminCount },
     ],
     userStatus: [
       { key: 'active', label: ACCOUNT_STATUS_LABELS.active, count: activeUsers },
@@ -1291,13 +1308,17 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalytics> {
       { key: 'draft', label: COURSE_STATUS_LABELS.draft, count: draftCourses },
       { key: 'archived', label: COURSE_STATUS_LABELS.archived, count: archivedCourses },
     ],
-    enrollmentsByStatus: countBy(enrollmentStatuses, ENROLLMENT_STATUS_LABELS, (status) =>
-      enrollmentsByStatusMap.get(status) ?? 0,
+    enrollmentsByStatus: countBy(
+      ENROLLMENT_STATUSES,
+      ENROLLMENT_STATUS_LABELS,
+      (status) => enrollmentsByStatusMap.get(status) ?? 0,
     ),
-    paymentsByStatus: countBy(PAYMENT_STATUSES, PAYMENT_STATUS_LABELS, (status) =>
-      paymentsByStatus.get(status) ?? 0,
+    paymentsByStatus: countBy(
+      PAYMENT_STATUSES,
+      PAYMENT_STATUS_LABELS,
+      (status) => paymentsByStatus.get(status) ?? 0,
     ),
-    revenue,
+    revenue: tallyMoney(payments),
     enrollment: {
       total: enrollments.length,
       active,
@@ -1310,8 +1331,7 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalytics> {
       quizCount,
       submittedAttempts,
       attemptsInProgress,
-      averagePercentage:
-        percentageCount === 0 ? null : Math.round(percentageSum / percentageCount),
+      averagePercentage: percentageCount === 0 ? null : Math.round(percentageSum / percentageCount),
       passRate: gradedCount === 0 ? null : Math.round((passedCount / gradedCount) * 100),
     },
     revenueByMonth,
@@ -1346,9 +1366,7 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
     totalEnrollments,
     activeEnrollments,
     completedEnrollments,
-    certificateCount,
-    revokedCertificates,
-    logCount,
+    { data: paymentRows, error: paymentError },
   ] = await Promise.all([
     readCount(
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'admin'),
@@ -1366,10 +1384,7 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
       'Could not count students.',
     ),
     readCount(
-      supabase
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'active'),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       'Could not count active accounts.',
     ),
     readCount(
@@ -1446,74 +1461,12 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
         .eq('status', 'completed'),
       'Could not count completed enrolments.',
     ),
-    readCount(
-      supabase.from('certificates').select('id', { count: 'exact', head: true }),
-      'Could not count certificates.',
-    ),
-    readCount(
-      supabase
-        .from('certificates')
-        .select('id', { count: 'exact', head: true })
-        .not('revoked_at', 'is', null),
-      'Could not count revoked certificates.',
-    ),
-    readCount(
-      supabase.from('activity_logs').select('id', { count: 'exact', head: true }),
-      'Could not count activity log entries.',
-    ),
+    supabase.from('payments').select('amount_centavos, status'),
   ])
 
-  const [{ data: paymentRows, error: paymentError }, { data: logRows, error: logError }, { data: eventRows, error: eventError }] =
-    await Promise.all([
-      supabase.from('payments').select('amount_centavos, status'),
-      supabase
-        .from('activity_logs')
-        .select('id, created_at')
-        .gte(
-          'created_at',
-          new Date(Date.now() - ACTIVITY_LOG_WINDOW_DAYS * 86_400_000).toISOString(),
-        ),
-      untypedTables.from('payment_events').select('id').limit(1),
-    ])
-
   if (paymentError) throw fail(paymentError, 'Could not read payment history.')
-  if (logError) throw fail(logError, 'Could not read the activity log.')
-  if (eventError) throw fail(eventError, 'Could not read payment events.')
 
-  const money = {
-    paidCentavos: 0,
-    refundedCentavos: 0,
-    pendingCentavos: 0,
-    failedCentavos: 0,
-    cancelledCentavos: 0,
-    paidCount: 0,
-    refundedCount: 0,
-  }
-
-  for (const payment of (paymentRows ?? []) as Array<{
-    amount_centavos: number
-    status: AdminPaymentStatus
-  }>) {
-    switch (payment.status) {
-      case 'paid':
-        money.paidCentavos += payment.amount_centavos
-        money.paidCount += 1
-        break
-      case 'refunded':
-        money.refundedCentavos += payment.amount_centavos
-        money.refundedCount += 1
-        break
-      case 'pending':
-        money.pendingCentavos += payment.amount_centavos
-        break
-      case 'failed':
-        money.failedCentavos += payment.amount_centavos
-        break
-      case 'cancelled':
-        money.cancelledCentavos += payment.amount_centavos
-        break
-    }
-  }
+  const certificateCount = await readUntypedCount('certificates', 'Could not count certificates.')
 
   return {
     users: {
@@ -1546,17 +1499,10 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
       activeEnrollments,
       completedEnrollments,
       certificates: certificateCount,
-      revokedCertificates,
     },
-    money,
-    activity: {
-      logEntries: logCount,
-      // The windowed count is a length, not a `head` count: the rows themselves
-      // are already in hand from the same query, so counting them here costs
-      // nothing and cannot disagree with the list it summarises.
-      recentLogEntries: (logRows ?? []).length,
-      paymentEvents: eventRows ? 1 : 0,
-    },
+    money: tallyMoney(
+      (paymentRows ?? []) as Array<{ amount_centavos: number; status: AdminPaymentStatus }>,
+    ),
   }
 }
 
@@ -1569,13 +1515,13 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
  *
  * Returns the database's message on failure instead of throwing. The action being
  * logged has already happened by the time this runs, so throwing would report a
- * successful change as a failed one - a worse lie than a missing audit row the
- * caller is told about. Returning the reason lets the view show a warning beside
- * the control that did succeed.
+ * successful change as a failed one, which is a worse lie than a missing audit
+ * row the caller has been told about. Returning the reason lets the view show a
+ * warning beside the control that did succeed.
  *
- * `activity_logs` has no INSERT policy for `authenticated` at all, so the RPC is
- * the only available door; it is SECURITY DEFINER and writes `auth.uid()` as the
- * actor, so the entry cannot be attributed to somebody else.
+ * `activity_logs` grants nobody INSERT, so this SECURITY DEFINER RPC is the only
+ * door. It writes `auth.uid()` as the actor, so an entry cannot be attributed to
+ * somebody else.
  */
 export async function logAdminAction(
   action: string,
@@ -1592,6 +1538,3 @@ export async function logAdminAction(
 
   return error ? messageOf(error, 'Could not write to the activity log.') : null
 }
-
-export const ADMIN_PAYMENT_LIMIT = PAYMENT_LIMIT
-export const ADMIN_PAYMENT_EVENT_LIMIT = PAYMENT_EVENT_LIMIT

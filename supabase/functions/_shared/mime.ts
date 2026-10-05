@@ -61,7 +61,7 @@ function assertNoHeaderInjection(value: string, field: string): void {
  * The domain is validated label by label rather than with one loose character
  * class. A single permissive pattern accepts `a@b..com` and `a@b.c`, because the
  * middle "label" is allowed to contain the dots that are supposed to separate
- * labels — and an address that a mail server accepts but no mail client can parse
+ * labels Ã¢â‚¬â€ and an address that a mail server accepts but no mail client can parse
  * is a silently undeliverable message.
  */
 const LOCAL_PART = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]+$/
@@ -110,7 +110,7 @@ export function addressDomain(address: string): string {
 /**
  * Encode a header value that may contain non-ASCII.
  *
- * Subject lines legitimately carry names like "Juan — certificate ready", and a
+ * Subject lines legitimately carry names like "Juan Ã¢â‚¬â€ certificate ready", and a
  * raw 8-bit header is at the mercy of whatever the receiving client guesses.
  * RFC 2047 base64 is the reliable answer.
  */
@@ -196,7 +196,7 @@ export interface BuildOptions {
  * Build a complete RFC 5322 message.
  *
  * Every part is CRLF-terminated, which SMTP requires and which most hand-rolled
- * senders get subtly wrong — LF-only messages pass a test harness and get
+ * senders get subtly wrong Ã¢â‚¬â€ LF-only messages pass a test harness and get
  * mangled or silently truncated by a real MTA.
  */
 export function buildMimeMessage(message: MimeMessage, options: BuildOptions): string {
@@ -225,9 +225,18 @@ export function buildMimeMessage(message: MimeMessage, options: BuildOptions): s
   headers.push('Auto-Submitted: auto-generated')
 
   if (message.html) {
-    headers.push(`Content-Type: multipart/alternative; boundary="${boundary(now)}"`)
-
+    // Computed ONCE and used for both the header and the body.
+    //
+    // `boundary()` contains Math.random(), so calling it twice produces two
+    // different values. The header then declares one boundary while the body is
+    // delimited by another, and no mail client can parse that: Gmail showed the
+    // raw MIME source - boundary markers, Content-Type lines and base64 blobs
+    // visible as the message text.
+    //
+    // The unit tests missed it because they asserted on headers and body
+    // separately and never checked that the two agreed. Real mail has to parse.
     const b = boundary(now)
+    headers.push(`Content-Type: multipart/alternative; boundary="${b}"`)
     const parts = [
       `--${b}`,
       'Content-Type: text/plain; charset=utf-8',

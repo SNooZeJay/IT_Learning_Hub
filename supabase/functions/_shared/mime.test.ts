@@ -52,7 +52,9 @@ describe('envelope integrity', () => {
   })
 
   it('refuses CRLF in a recipient', () => {
-    expect(() => buildMimeMessage(msg({ to: ['a@b.com\r\nBcc: x@y.com'] }), opts)).toThrow(MimeError)
+    expect(() => buildMimeMessage(msg({ to: ['a@b.com\r\nBcc: x@y.com'] }), opts)).toThrow(
+      MimeError,
+    )
   })
 
   it('refuses a recipient that is not an address', () => {
@@ -133,6 +135,40 @@ describe('message shape', () => {
   it('closes a multipart message with the terminating boundary', () => {
     const built = buildMimeMessage(msg({ html: '<p>Hi</p>' }), opts)
     expect(built.trimEnd()).toMatch(/----=_ITH_\w+_\w+--$/)
+  })
+
+  it('declares the same boundary in the header that it delimits the body with', () => {
+    // The bug this pins: `boundary()` contains Math.random(), and it was called
+    // twice - once for the Content-Type header and once for the body. The two
+    // values differed, so the declared boundary matched nothing and Gmail fell
+    // back to displaying the raw MIME source, boundary markers and base64 blobs
+    // visible as the message text.
+    //
+    // The two assertions above could both pass while that was true: the header
+    // contained "multipart/alternative" and the body ended with a well-formed
+    // closing boundary. What was missing is the only thing that matters - that
+    // they are the SAME boundary.
+    const built = buildMimeMessage(msg({ html: '<p>Hi</p>' }), opts)
+
+    const declared = /boundary="([^"]+)"/.exec(built)?.[1]
+    expect(declared).toBeTruthy()
+
+    // Every boundary delimiter line in the body must use the declared value.
+    // The delimiter is `--` followed by the boundary, and the boundary itself
+    // starts with `----=_ITH_`, so match the line and compare against `declared`
+    // rather than trying to re-derive the value with a fragile character class.
+    const delimiterLines = built
+      .split('\r\n')
+      .filter((line) => line.startsWith('--') && line.includes('_ITH_'))
+
+    expect(delimiterLines.length).toBeGreaterThan(0)
+    for (const line of delimiterLines) {
+      const value = line.replace(/^--/, '').replace(/--$/, '')
+      expect(value).toBe(declared)
+    }
+
+    // And the closing delimiter must be the declared boundary plus "--".
+    expect(built.trimEnd().endsWith(`--${declared}--`)).toBe(true)
   })
 
   it('is byte-for-byte reproducible for a fixed id, so a retry sends the same message', () => {
