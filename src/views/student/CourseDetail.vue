@@ -63,6 +63,64 @@
               </EmptyState>
 
               <CurriculumOutline v-else :modules="curriculumModules" :summary="curriculumSummary" />
+
+              <!--
+                Assessments sit after the curriculum, because that is the order they
+                belong in: learn the material, then be assessed on it.
+
+                Before this there was no link from a course page to its quiz at
+                all. The only route was a past-attempt link on the grades screen,
+                so a student who had never sat the quiz could not find it.
+              -->
+              <section
+                v-if="quizzes.length > 0"
+                class="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800"
+                aria-labelledby="course-quizzes-heading"
+              >
+                <h2
+                  id="course-quizzes-heading"
+                  class="text-theme-sm text-gray-900 dark:text-white/90"
+                >
+                  Assessments
+                </h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Read the instructions before you start. Each one tells you what to expect.
+                </p>
+
+                <ul role="list" class="mt-4 flex flex-col gap-2">
+                  <li v-for="quiz in quizzes" :key="quiz.id">
+                    <router-link
+                      :to="`/student/quizzes/${quiz.id}`"
+                      class="flex items-center gap-4 rounded-lg border border-gray-200 px-4 py-3.5 transition-colors hover:border-brand-400 hover:bg-gray-50 dark:border-gray-800 dark:hover:border-brand-500 dark:hover:bg-white/[0.02]"
+                    >
+                      <span
+                        class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-white/[0.06] dark:text-gray-400"
+                      >
+                        <ClipboardList class="size-4" aria-hidden="true" />
+                      </span>
+                      <span class="min-w-0 flex-1">
+                        <span class="block font-medium text-gray-900 dark:text-white/90">
+                          {{ quiz.title }}
+                        </span>
+                        <span
+                          class="mt-0.5 block text-xs text-gray-500 tabular-nums dark:text-gray-400"
+                        >
+                          {{ quiz.questions.length }}
+                          {{ quiz.questions.length === 1 ? 'question' : 'questions' }} · pass at
+                          {{ quiz.passingScore }}%
+                          <template v-if="quiz.timeLimitMinutes">
+                            · {{ quiz.timeLimitMinutes }} min limit
+                          </template>
+                        </span>
+                      </span>
+                      <ChevronRight
+                        class="size-4 shrink-0 text-gray-400 rtl:rotate-180"
+                        aria-hidden="true"
+                      />
+                    </router-link>
+                  </li>
+                </ul>
+              </section>
             </div>
           </div>
         </div>
@@ -165,7 +223,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { CircleCheck, LoaderCircle, Lock } from 'lucide-vue-next'
+import { ChevronRight, CircleCheck, ClipboardList, LoaderCircle, Lock } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
@@ -177,9 +235,10 @@ import { getCourseWithCurriculum, isPaid } from '@/services/course.service'
 import { findEnrollment, enrollInFreeCourse } from '@/services/enrollment.service'
 import { startCheckout } from '@/services/checkout.service'
 import { loadCurriculum, type Curriculum } from '@/services/curriculum.service'
+import { listQuizzesForCourse } from '@/services/quiz.service'
 import { useAuthStore } from '@/stores/auth'
 import { formatPeso } from '@/types'
-import type { Course } from '@/types'
+import type { Course, Quiz } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -214,6 +273,15 @@ const isEnrolledHere = computed(() => enrolledHere.value)
 const curriculum = ref<Curriculum | null>(null)
 const enrollmentId = ref<string | null>(null)
 
+/**
+ * Published quizzes on this course.
+ *
+ * Separate from the curriculum rather than part of it: a quiz is not a module, and
+ * folding it into the outline would imply it is something to work through in
+ * sequence. It is shown after the content instead.
+ */
+const quizzes = ref<Quiz[]>([])
+
 const curriculumModules = computed(() => curriculum.value?.modules ?? [])
 const curriculumSummary = computed(() => curriculum.value?.summary ?? null)
 
@@ -246,6 +314,10 @@ async function load(): Promise<void> {
       return
     }
     course.value = result.course
+
+    // Best-effort. A failure here must not hide the curriculum, so the assessment
+    // section simply does not appear rather than the page failing.
+    quizzes.value = await listQuizzesForCourse(result.course.id).catch(() => [])
 
     if (auth.profile) {
       const enrolment = await findEnrollment(result.course.id, auth.profile.id)

@@ -476,11 +476,13 @@ export type Database = {
           lesson_id: string | null
           title: string
           description: string | null
+          instructions: string | null
           passing_score: number
           attempts_allowed: number
           time_limit_minutes: number | null
           shuffle_questions: boolean
           reveal_answers: boolean
+          max_warnings: number
           status: Database['public']['Enums']['quiz_status']
           created_by: string
           created_at: string
@@ -493,11 +495,13 @@ export type Database = {
           lesson_id?: string | null
           title: string
           description?: string | null
+          instructions?: string | null
           passing_score?: number
           attempts_allowed?: number
           time_limit_minutes?: number | null
           shuffle_questions?: boolean
           reveal_answers?: boolean
+          max_warnings?: number
           status?: Database['public']['Enums']['quiz_status']
           created_by: string
           created_at?: string
@@ -508,11 +512,13 @@ export type Database = {
           lesson_id?: string | null
           title?: string
           description?: string | null
+          instructions?: string | null
           passing_score?: number
           attempts_allowed?: number
           time_limit_minutes?: number | null
           shuffle_questions?: boolean
           reveal_answers?: boolean
+          max_warnings?: number
           status?: Database['public']['Enums']['quiz_status']
           updated_at?: string
         }
@@ -667,6 +673,29 @@ export type Database = {
           max_score: number | null
           percentage: number | null
           passed: boolean | null
+          /**
+           * The shuffle, written once at start.
+           *
+           * Question ids in the order this attempt was served. Held on the attempt
+           * rather than computed in the browser because a browser-computed order is
+           * recomputed on every render, so a refresh would renumber the quiz under
+           * the student. Ids, not positions and not copies of the question, so
+           * grading by id is unaffected.
+           */
+          question_order: string[] | null
+          /** Map of question_id to the option ids this attempt was served. */
+          option_order: unknown | null
+          /**
+           * Focus-loss warnings, counted server-side.
+           *
+           * A column rather than browser state, so a reload cannot reset it. The
+           * only writer is `record_quiz_warning`, which stops at the limit.
+           */
+          warning_count: number
+          /** When this attempt ran out of time, or null. Read by the grading path. */
+          expires_at: string | null
+          /** student_submit, time_expired, warnings_exhausted, or null while open. */
+          ended_via: string | null
           started_at: string
           submitted_at: string | null
         }
@@ -682,6 +711,11 @@ export type Database = {
           max_score?: number | null
           percentage?: number | null
           passed?: boolean | null
+          question_order?: string[] | null
+          option_order?: unknown | null
+          warning_count?: number
+          expires_at?: string | null
+          ended_via?: string | null
           started_at?: string
           submitted_at?: string | null
         }
@@ -803,6 +837,39 @@ export type Database = {
         }
         Returns: undefined
       }
+      reorder_quiz_questions: {
+        Args: { p_quiz_id: string; p_ordered_ids: string[] }
+        Returns: undefined
+      }
+      reorder_quiz_options: {
+        Args: { p_question_id: string; p_ordered_ids: string[] }
+        Returns: undefined
+      }
+      /**
+       * The student's view of their own attempt: questions in the frozen order,
+       * options in the frozen order, and never `is_correct`. SECURITY DEFINER
+       * because the caller holds no SELECT on `quiz_options.is_correct`.
+       */
+      get_attempt_questions: { Args: { p_attempt_id: string }; Returns: unknown }
+      /** Saved selections for an open attempt. Never includes correctness. */
+      get_attempt_answers: { Args: { p_attempt_id: string }; Returns: unknown }
+      /** Stores one choice while the attempt is open. Never writes correctness. */
+      save_attempt_answer: {
+        Args: {
+          p_attempt_id: string
+          p_question_id: string
+          p_option_id?: string | null
+          p_text?: string | null
+        }
+        Returns: undefined
+      }
+      /** Increments the warning count and reports whether the attempt has ended. */
+      record_quiz_warning: {
+        Args: { p_attempt_id: string; p_reason?: string | null }
+        Returns: unknown
+      }
+      /** Everything the pre-quiz screen needs, and nothing more. */
+      quiz_briefing: { Args: { p_quiz_id: string }; Returns: unknown }
     }
 
     Enums: {

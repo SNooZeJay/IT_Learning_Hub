@@ -1,446 +1,551 @@
-<template>
-  <div>
-    <PageHeader
-      :title="quiz?.title ?? 'Quiz'"
-      :subtitle="headerSubtitle"
-      :crumbs="[
-        { label: 'Student', to: '/student/dashboard' },
-        { label: 'My courses', to: '/student/courses' },
-        { label: 'Quiz' },
-      ]"
-    />
-
-    <LoadingState v-if="isLoading" label="Loading quiz" />
-
-    <ErrorState v-else-if="errorMessage" :message="errorMessage" @retry="load" />
-
-    <EmptyState
-      v-else-if="!quiz"
-      title="This quiz is not available"
-      description="It may have been unpublished, or the link may be out of date."
-      :icon="ClipboardList"
-    />
-
-    <!-- ============================ RESULT ============================ -->
-    <template v-else-if="result">
-      <div class="mx-auto max-w-3xl">
-        <div
-          class="rounded-lg border p-6"
-          :class="
-            result.passed
-              ? 'border-success-200 bg-success-50 dark:border-success-500/30 dark:bg-success-500/10'
-              : 'border-warning-200 bg-warning-50 dark:border-warning-500/30 dark:bg-warning-500/10'
-          "
-        >
-          <div class="flex items-start gap-3">
-            <CheckCircle2 v-if="result.passed" class="mt-0.5 size-6 shrink-0 text-success-600" />
-            <XCircle v-else class="mt-0.5 size-6 shrink-0 text-warning-600" />
-            <div>
-              <h2 class="text-xl font-semibold tracking-tight text-gray-900 dark:text-white/90">
-                {{ result.passed ? 'Passed' : 'Not passed' }}
-              </h2>
-              <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">
-                You scored {{ result.percentage }}%, which is {{ result.passingScore }}% to pass.
-              </p>
-            </div>
-          </div>
-
-          <dl class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div
-              v-for="stat in [
-                { label: 'Score', value: `${result.score} / ${result.maxScore}` },
-                { label: 'Percentage', value: `${result.percentage}%` },
-                { label: 'Pass mark', value: `${result.passingScore}%` },
-                { label: 'Attempts left', value: String(result.attemptsRemaining) },
-              ]"
-              :key="stat.label"
-            >
-              <dt class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
-                {{ stat.label }}
-              </dt>
-              <dd class="mt-1 text-lg font-semibold text-gray-900 dark:text-white/90">
-                {{ stat.value }}
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        <!-- Per-question breakdown. Suppressed when the quiz says only the
-             outcome is disclosed, which is the whole point of that flag. -->
-        <div v-if="result.revealAnswers && result.answers.length" class="mt-8">
-          <h3 class="text-base font-semibold text-gray-900 dark:text-white/90">Question review</h3>
-          <ul class="mt-3 space-y-2">
-            <li
-              v-for="answer in result.answers"
-              :key="answer.questionId"
-              class="flex items-center gap-3 rounded border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800"
-            >
-              <CheckCircle2
-                v-if="answer.isCorrect"
-                class="size-5 shrink-0 text-success-600"
-                aria-hidden="true"
-              />
-              <XCircle v-else class="size-5 shrink-0 text-error-600" aria-hidden="true" />
-              <span class="text-sm text-gray-700 dark:text-gray-300">
-                Question {{ questionNumber(answer.questionId) }} —
-                {{ answer.isCorrect ? 'correct' : 'incorrect' }}
-              </span>
-              <span class="ms-auto text-sm text-gray-500 dark:text-gray-400">
-                {{ answer.pointsAwarded }} / {{ answer.points }} pts
-              </span>
-            </li>
-          </ul>
-        </div>
-
-        <p
-          v-else-if="!result.revealAnswers"
-          class="mt-6 rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-        >
-          This quiz does not reveal which questions were answered correctly. Only the score is
-          shown.
-        </p>
-
-        <div class="mt-8 flex flex-wrap gap-3">
-          <button
-            v-if="result.passed"
-            type="button"
-            class="inline-flex h-11 items-center justify-center rounded-md bg-gray-900 px-5 text-sm font-medium text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-            @click="finish"
-          >
-            Back to my courses
-          </button>
-          <button
-            v-else-if="result.attemptsRemaining > 0"
-            type="button"
-            class="inline-flex h-11 items-center justify-center rounded-md bg-brand-600 px-5 text-sm font-medium text-white hover:bg-brand-700"
-            :disabled="isBusy"
-            @click="begin"
-          >
-            Try again ({{ result.attemptsRemaining }} left)
-          </button>
-          <RouterLink
-            to="/student/courses"
-            class="inline-flex h-11 items-center justify-center rounded-md border border-gray-300 px-5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
-            Back to my courses
-          </RouterLink>
-        </div>
-      </div>
-    </template>
-
-    <!-- ============================ SITTING ============================ -->
-    <template v-else-if="attemptId">
-      <form class="mx-auto max-w-3xl" @submit.prevent="submit">
-        <!-- Timer. Advisory, not enforced: the deadline is not checked by the
-             database, so showing a hard countdown that then lets you submit
-             anyway would be a lie. -->
-        <div
-          v-if="remainingSeconds !== null"
-          class="mb-5 flex items-center gap-2 rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800"
-          role="timer"
-          aria-live="off"
-        >
-          <Timer class="size-4 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-          <span class="text-gray-700 dark:text-gray-300">
-            {{ remainingSeconds }}s remaining on this attempt
-          </span>
-          <span class="ms-auto text-xs text-gray-500 dark:text-gray-400">
-            The timer is a guide. Submitting is always allowed.
-          </span>
-        </div>
-
-        <ol class="space-y-5">
-          <li
-            v-for="(question, index) in questions"
-            :key="question.id"
-            class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
-          >
-            <fieldset>
-              <legend class="text-sm font-medium text-gray-900 dark:text-white/90">
-                <span class="text-gray-500 dark:text-gray-400">Question {{ index + 1 }}.</span>
-                {{ question.prompt }}
-                <span class="ms-1 text-xs font-normal text-gray-500 dark:text-gray-400">
-                  ({{ question.points }} {{ question.points === 1 ? 'point' : 'points' }})
-                </span>
-              </legend>
-
-              <div v-if="question.questionType === 'short_text'" class="mt-3">
-                <input
-                  v-model="answers[question.id]"
-                  type="text"
-                  :aria-label="`Your answer for question ${index + 1}`"
-                  placeholder="Type your answer"
-                  class="w-full rounded border border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-                />
-              </div>
-
-              <div v-else class="mt-3 space-y-2">
-                <label
-                  v-for="option in question.options"
-                  :key="option.id"
-                  class="flex cursor-pointer items-center gap-3 rounded border border-gray-200 px-4 py-3 text-sm transition-colors hover:bg-gray-50 has-checked:border-brand-500 has-checked:bg-brand-50 dark:border-gray-700 dark:hover:bg-gray-700/40 dark:has-checked:bg-brand-500/10"
-                >
-                  <input
-                    v-model="answers[question.id]"
-                    type="radio"
-                    :name="question.id"
-                    :value="option.id"
-                    class="size-4 shrink-0 text-brand-600 focus:ring-brand-500"
-                  />
-                  <span class="text-gray-700 dark:text-gray-300">{{ option.optionText }}</span>
-                </label>
-
-                <p
-                  v-if="question.options.length === 0"
-                  class="text-sm text-warning-600 dark:text-warning-400"
-                >
-                  This question has no answer options yet. Ask your instructor to check it.
-                </p>
-              </div>
-            </fieldset>
-          </li>
-        </ol>
-
-        <div class="mt-6 flex flex-wrap items-center gap-3">
-          <button
-            type="submit"
-            class="inline-flex h-11 items-center justify-center rounded-md bg-brand-600 px-5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-            :disabled="isBusy"
-          >
-            <LoaderCircle v-if="isBusy" class="me-2 size-4 animate-spin" aria-hidden="true" />
-            Submit answers
-          </button>
-          <p class="text-sm text-gray-500 dark:text-gray-400">
-            {{ answeredCount }} of {{ questions.length }} answered
-          </p>
-        </div>
-      </form>
-    </template>
-
-    <!-- ============================ NOT STARTED ============================ -->
-    <div v-else class="mx-auto max-w-3xl">
-      <div
-        class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"
-      >
-        <h2 class="text-lg font-semibold tracking-tight text-gray-900 dark:text-white/90">
-          Ready when you are
-        </h2>
-        <p v-if="quiz.description" class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-          {{ quiz.description }}
-        </p>
-
-        <dl class="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div
-            v-for="stat in [
-              { label: 'Questions', value: String(questions.length) },
-              { label: 'To pass', value: `${quiz.passingScore}%` },
-              { label: 'Attempts used', value: `${attemptsUsed} of ${quiz.attemptsAllowed}` },
-              {
-                label: 'Time limit',
-                value: quiz.timeLimitMinutes ? `${quiz.timeLimitMinutes} min` : 'None',
-              },
-            ]"
-            :key="stat.label"
-          >
-            <dt class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
-              {{ stat.label }}
-            </dt>
-            <dd class="mt-1 text-lg font-semibold text-gray-900 dark:text-white/90">
-              {{ stat.value }}
-            </dd>
-          </div>
-        </dl>
-
-        <p
-          v-if="bestAttempt"
-          class="mt-5 rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-        >
-          Your best so far is {{ bestAttempt.percentage }}% on attempt
-          {{ bestAttempt.attemptNumber }}.
-        </p>
-
-        <p
-          v-if="remaining === 0"
-          class="mt-5 rounded border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-300"
-        >
-          You have used all {{ quiz.attemptsAllowed }} attempts for this quiz.
-        </p>
-
-        <button
-          type="button"
-          class="mt-6 inline-flex h-11 items-center justify-center rounded-md bg-brand-600 px-5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-          :disabled="isBusy || remaining === 0"
-          @click="begin"
-        >
-          <LoaderCircle v-if="isBusy" class="me-2 size-4 animate-spin" aria-hidden="true" />
-          {{ attemptsUsed === 0 ? 'Start quiz' : 'Start another attempt' }}
-        </button>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+/**
+ * One quiz, from briefing to result.
+ *
+ * Four states, and the view owns the transitions between them:
+ *
+ *   briefing  - read the rules, then start or resume
+ *   running   - one question at a time, fullscreen, warnings counted
+ *   ending    - warnings exhausted or time up; submitting
+ *   result    - score, review, retake
+ *
+ * Two things here are worth reading the comments for, because both were broken in
+ * the version this replaces.
+ *
+ * Resume. `attemptId` used to be a ref, so a reload landed on the briefing screen
+ * while the open attempt sat in the database still counting against the three
+ * allowed. Every click of "Resume" from the grades page started *another* attempt
+ * and burned one. It is now recovered from the server on load, so a refresh
+ * mid-quiz resumes the same attempt with the same shuffled order.
+ *
+ * The shuffle. It used to be a computed that re-sorted on every evaluation, with a
+ * comment claiming the attempt pinned the ordering. Nothing did. Now the order is
+ * written once by `start_quiz_attempt` and read back, so a reload cannot renumber
+ * the quiz under a student who has already answered half of it.
+ */
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { CheckCircle2, ClipboardList, LoaderCircle, Timer, XCircle } from 'lucide-vue-next'
+import {
+  useAttemptClock,
+  useQuizFocusGuard,
+  exitFullscreen,
+  requestFullscreen,
+} from '@/composables/useQuizFocusGuard'
+import QuizBriefingPanel from '@/components/quiz/QuizBriefingPanel.vue'
+import QuizQuestionRunner from '@/components/quiz/QuizQuestionRunner.vue'
+import QuizWarningDialog from '@/components/quiz/QuizWarningDialog.vue'
+import QuizResultPanel from '@/components/quiz/QuizResultPanel.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
+import Alert from '@/components/ui/Alert.vue'
+import type { QuizBriefing, AttemptState, WarningOutcome } from '@/services/quiz.service'
 import {
-  attemptsRemaining,
-  getQuiz,
-  listMyAttempts,
-  QuizError,
+  findOpenAttempt,
+  getAttemptState,
+  getQuizBriefing,
+  getSavedAnswers,
+  recordWarning,
+  saveAnswer,
   startAttempt,
   submitAttempt,
+  type SubmittedAnswer,
 } from '@/services/quiz.service'
-import type { SubmittedAnswer } from '@/services/quiz.service'
-import type { Quiz, QuizAttempt, QuizQuestion, QuizResult } from '@/types'
+import type { QuizResult } from '@/types'
+
+type Phase = 'loading' | 'briefing' | 'running' | 'ending' | 'result' | 'unavailable'
 
 const route = useRoute()
 const router = useRouter()
 
-const quiz = ref<Quiz | null>(null)
-const attempts = ref<QuizAttempt[]>([])
-const attemptId = ref<string | null>(null)
-const result = ref<QuizResult | null>(null)
-/** questionId -> chosen option id, or the typed text for a short answer. */
-const answers = ref<Record<string, string>>({})
-
-const isLoading = ref(true)
-const isBusy = ref(false)
-const errorMessage = ref('')
-
-const remainingSeconds = ref<number | null>(null)
-let ticker: ReturnType<typeof setInterval> | null = null
-
 const quizId = computed(() => String(route.params.id ?? ''))
 
-const attemptsUsed = computed(() => attempts.value.length)
-const remaining = computed(() =>
-  quiz.value ? attemptsRemaining(quiz.value, attemptsUsed.value) : 0,
-)
+const phase = ref<Phase>('loading')
+const errorMessage = ref('')
+const actionError = ref('')
 
-/**
- * Shuffling happens here rather than in SQL because it is presentation: it must
- * not change on a refresh mid-quiz, and the attempt is what pins the ordering.
- */
-const questions = computed<QuizQuestion[]>(() => {
-  if (!quiz.value) return []
-  const list = quiz.value.questions
-  return quiz.value.shuffleQuestions ? [...list].sort(() => Math.random() - 0.5) : list
+const briefing = ref<QuizBriefing | null>(null)
+const openAttemptId = ref<string | null>(null)
+const alreadyPassed = ref(false)
+
+const attemptId = ref<string | null>(null)
+const attempt = ref<AttemptState | null>(null)
+const answers = ref<Record<string, string>>({})
+const currentIndex = ref(0)
+const flagged = ref<Set<string>>(new Set())
+
+const result = ref<QuizResult | null>(null)
+const endedVia = ref<string | null>(null)
+
+const starting = ref(false)
+const submitting = ref(false)
+const retaking = ref(false)
+const supportOpen = ref(false)
+
+/** The warning currently on screen, if any. */
+const warning = ref<{
+  number: number
+  max: number
+  remaining: number
+  reason: string
+  final: boolean
+} | null>(null)
+
+/** Set when the attempt must be submitted because the consequence arrived. */
+const pendingEnd = ref(false)
+
+// ---------------------------------------------------------------------------
+// The clock, and the focus guard
+// ---------------------------------------------------------------------------
+
+const clock = useAttemptClock(() => attempt.value?.expiresAt ?? null)
+
+const inAttempt = computed(() => phase.value === 'running')
+
+const guard = useQuizFocusGuard({
+  active: () => phase.value === 'running' && warning.value === null,
+  onWarning: (reason) => void handleFocusLoss(reason),
+  onFullscreenExit: () => void handleFocusLoss('left_fullscreen'),
 })
 
-const answeredCount = computed(
-  () => questions.value.filter((question) => (answers.value[question.id] ?? '').trim()).length,
-)
+/** The clock counts from the server's expiresAt, not from a local start. */
+watch(inAttempt, (running) => (running ? clock.start() : clock.stop()), { immediate: true })
 
-const bestAttempt = computed(() =>
-  attempts.value
-    .filter((attempt) => attempt.percentage !== null)
-    .reduce<QuizAttempt | null>(
-      (best, attempt) =>
-        !best || (attempt.percentage ?? 0) > (best.percentage ?? 0) ? attempt : best,
-      null,
-    ),
-)
-
-const headerSubtitle = computed(() => {
-  if (!quiz.value) return 'Check your answers and submit.'
-  const count = quiz.value.questions.length
-  return `${count} question${count === 1 ? '' : 's'} · ${quiz.value.passingScore}% to pass`
-})
-
-function questionNumber(questionId: string): number {
-  return questions.value.findIndex((question) => question.id === questionId) + 1
-}
+// ---------------------------------------------------------------------------
+// Loading
+// ---------------------------------------------------------------------------
 
 async function load(): Promise<void> {
-  isLoading.value = true
+  phase.value = 'loading'
   errorMessage.value = ''
+  result.value = null
+  attemptId.value = null
+  attempt.value = null
+  endedVia.value = null
+  currentIndex.value = 0
+
+  const data = await getQuizBriefing(quizId.value).catch(() => null)
+  if (!data) {
+    phase.value = 'unavailable'
+    return
+  }
+
+  briefing.value = data
+  alreadyPassed.value = data.attemptsUsed > 0
+
+  // Recover an open attempt before deciding what to show. Without this a reload
+  // mid-quiz presented the briefing screen and every click started a new attempt.
+  const existing = await findOpenAttempt(quizId.value).catch(() => null)
+  openAttemptId.value = existing
+  phase.value = 'briefing'
+}
+
+/** Adopt an existing attempt rather than creating one. */
+async function resume(attemptIdToResume: string): Promise<void> {
+  starting.value = true
+  actionError.value = ''
   try {
-    const [loaded, mine] = await Promise.all([getQuiz(quizId.value), listMyAttempts(quizId.value)])
-    quiz.value = loaded
-    attempts.value = mine
+    await enterAttempt(attemptIdToResume)
   } catch (error) {
-    // QuizError messages are written to be shown to a person ("no attempts
-    // remaining: 3 of 3 used"), so they pass through untouched.
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Could not load this quiz. Try again.'
+    actionError.value = error instanceof Error ? error.message : 'Could not reopen that attempt.'
   } finally {
-    isLoading.value = false
+    starting.value = false
   }
 }
 
-function startTimer(minutes: number | null): void {
-  stopTimer()
-  if (!minutes) return
-  remainingSeconds.value = minutes * 60
-  ticker = setInterval(() => {
-    if (remainingSeconds.value === null) return
-    remainingSeconds.value = Math.max(remainingSeconds.value - 1, 0)
-    if (remainingSeconds.value === 0) stopTimer()
-  }, 1000)
-}
-
-function stopTimer(): void {
-  if (ticker !== null) {
-    clearInterval(ticker)
-    ticker = null
-  }
-}
-
-async function begin(): Promise<void> {
-  isBusy.value = true
-  errorMessage.value = ''
+async function start(): Promise<void> {
+  starting.value = true
+  actionError.value = ''
   try {
-    attemptId.value = await startAttempt(quizId.value)
-    result.value = null
-    answers.value = {}
-    attempts.value = await listMyAttempts(quizId.value)
-    startTimer(quiz.value?.timeLimitMinutes ?? null)
+    // Fullscreen is requested first and synchronously. Browsers only grant it from
+    // a user gesture, so anything awaited before this loses the gesture and the
+    // request is silently refused.
+    await requestFullscreen()
+    const id = await startAttempt(quizId.value)
+    await enterAttempt(id)
   } catch (error) {
-    if (error instanceof QuizError) errorMessage.value = error.message
-    else errorMessage.value = 'Could not start this quiz. Try again.'
+    actionError.value =
+      error instanceof Error ? error.message : 'Could not start the quiz. Please try again.'
+    // Leaving fullscreen on a failure matters: the student should not be left
+    // staring at a fullscreen window with no quiz in it.
+    await exitFullscreen()
   } finally {
-    isBusy.value = false
+    starting.value = false
   }
 }
 
-async function submit(): Promise<void> {
-  if (!attemptId.value) return
-  isBusy.value = true
-  errorMessage.value = ''
+async function enterAttempt(id: string): Promise<void> {
+  attemptId.value = id
+
+  const [state, saved] = await Promise.all([
+    getAttemptState(id),
+    getSavedAnswers(id).catch(() => ({}) as never),
+  ])
+
+  if (!state) {
+    phase.value = 'unavailable'
+    return
+  }
+
+  attempt.value = state
+
+  // The order comes from the server, in the order this attempt was served. It is
+  // not re-derived here, because a client-side shuffle is recomputed on reload.
+  answers.value = {}
+  for (const question of state.questions) {
+    const entry = saved[question.questionId]
+    if (!entry) continue
+    if (entry.optionId) answers.value[question.questionId] = entry.optionId
+    else if (entry.text) answers.value[question.questionId] = entry.text
+  }
+
+  // Land on the first unanswered question. A resumed attempt that dropped the
+  // student back at question 1 with eleven answered would look like their work was
+  // lost.
+  currentIndex.value = Math.max(
+    0,
+    state.questions.findIndex((q) => !answers.value[q.questionId]),
+  )
+  if (currentIndex.value === -1) currentIndex.value = 0
+
+  phase.value = 'running'
+
+  // Attached only once the quiz is genuinely being sat. Listening on mount would
+  // record a warning for the student reading the briefing.
+  await nextTick()
+  guard.attach()
+}
+
+// ---------------------------------------------------------------------------
+// Answering
+// ---------------------------------------------------------------------------
+
+const answeredCount = computed(
+  () => Object.values(answers.value).filter((v) => v !== undefined && v.trim() !== '').length,
+)
+
+async function handleAnswer(payload: {
+  questionId: string
+  optionId: string | null
+  text: string | null
+}): Promise<void> {
+  answers.value = { ...answers.value, [payload.questionId]: payload.optionId ?? payload.text ?? '' }
+
+  // Persisted as it is made, so a refresh does not lose it. A failure here is
+  // deliberately swallowed: the answer is still submitted explicitly at the end,
+  // and interrupting the student with an error they cannot act on would be worse
+  // than a save that will be retried.
   try {
-    const payload: SubmittedAnswer[] = []
-    for (const question of questions.value) {
-      const answer = (answers.value[question.id] ?? '').trim()
-      if (!answer) continue
-      payload.push(
-        question.questionType === 'short_text'
-          ? { questionId: question.id, text: answer }
-          : { questionId: question.id, optionId: answer },
-      )
+    await saveAnswer({
+      attemptId: attemptId.value!,
+      questionId: payload.questionId,
+      optionId: payload.optionId,
+      text: payload.text,
+    })
+  } catch {
+    // Intentionally ignored. See above.
+  }
+}
+
+function toggleFlag(questionId: string): void {
+  const next = new Set(flagged.value)
+  if (next.has(questionId)) next.delete(questionId)
+  else next.add(questionId)
+  flagged.value = next
+}
+
+// ---------------------------------------------------------------------------
+// Warnings
+// ---------------------------------------------------------------------------
+
+const REASON_TEXT: Record<string, string> = {
+  tab_hidden: 'You switched to another tab or minimised this one.',
+  window_blurred: 'This window lost focus, which usually means you moved to another application.',
+  left_fullscreen: 'The quiz left fullscreen.',
+}
+
+async function handleFocusLoss(reason: string): Promise<void> {
+  if (!attemptId.value || phase.value !== 'running' || warning.value) return
+
+  // Show the dialog immediately rather than after the round trip, so the student is
+  // looking at the consequence while the server is being asked about it.
+  let outcome: WarningOutcome
+  try {
+    outcome = await recordWarning(attemptId.value, reason)
+  } catch {
+    // The server refused. That means the attempt is already submitted or no longer
+    // open, so the safest response is to stop the quiz rather than continue
+    // counting warnings against nothing.
+    phase.value = 'ending'
+    await finish('warnings_exhausted')
+    return
+  }
+
+  if (attempt.value) {
+    attempt.value = {
+      ...attempt.value,
+      warningCount: outcome.warningCount,
+      maxWarnings: outcome.maxWarnings,
     }
+  }
 
-    // The score comes back from the database. Nothing here computes one.
-    result.value = await submitAttempt(attemptId.value, payload)
-    stopTimer()
-    attempts.value = await listMyAttempts(quizId.value)
-  } catch (error) {
-    if (error instanceof QuizError) errorMessage.value = error.message
-    else errorMessage.value = 'Could not submit your answers. Try again.'
-  } finally {
-    isBusy.value = false
+  warning.value = {
+    number: outcome.warningCount,
+    max: outcome.maxWarnings,
+    remaining: outcome.remaining,
+    reason: REASON_TEXT[reason] ?? 'You moved away from the quiz.',
+    final: outcome.ended,
+  }
+
+  if (outcome.ended) pendingEnd.value = true
+}
+
+async function acknowledgeWarning(): Promise<void> {
+  const current = warning.value
+  warning.value = null
+  if (!current) return
+
+  if (current.final && pendingEnd.value) {
+    pendingEnd.value = false
+    phase.value = 'ending'
+    await finish('warnings_exhausted')
+    return
+  }
+
+  // Suppress the next moment. Returning focus to the quiz after acknowledging a
+  // dialog can itself fire a blur, and counting that would punish the student for
+  // reading the warning.
+  guard.suppress()
+  try {
+    await requestFullscreen()
+  } catch {
+    // A refused fullscreen request is not fatal; the warnings still work.
   }
 }
 
-function finish(): void {
-  void router.push('/student/courses')
+// ---------------------------------------------------------------------------
+// Finishing
+// ---------------------------------------------------------------------------
+
+/** Whether the attempt may be submitted now. Time up forces it. */
+const timeExpired = computed(() => clock.expired.value)
+
+/**
+ * Why Submit is blocked, if it is.
+ *
+ * Never silently: an empty quiz is a real choice to make, so the button says what
+ * will happen rather than refusing and leaving the student guessing.
+ */
+const blockedReason = computed(() => {
+  if (timeExpired.value) return 'Time is up, so this is being submitted now.'
+  if (answeredCount.value === 0) return 'Answer at least one question before submitting.'
+  return ''
+})
+
+const canSubmit = computed(() => blockedReason.value === '')
+
+async function handleSubmit(): Promise<void> {
+  if (!canSubmit.value || submitting.value) return
+
+  // Time up submits regardless, and says so rather than appearing to refuse.
+  if (answeredCount.value === 0) {
+    actionError.value = 'Answer at least one question before submitting.'
+    return
+  }
+  await finish('student_submit')
 }
+
+/**
+ * Submit the attempt.
+ *
+ * The button is disabled while this runs and the function refuses a second submit
+ * anyway, so a double click cannot produce two results. The `finally` block turns
+ * fullscreen off on every path including failure, because a student left in a
+ * fullscreen window with no quiz in it cannot work out how to get back.
+ */
+async function finish(via: string): Promise<void> {
+  if (submitting.value || !attemptId.value) return
+  submitting.value = true
+  actionError.value = ''
+
+  try {
+    const payload: SubmittedAnswer[] = Object.entries(answers.value)
+      .filter(([, value]) => value !== undefined && value.trim() !== '')
+      .map(([questionId, value]) => ({ questionId, optionId: value }))
+
+    result.value = await submitAttempt(attemptId.value, payload)
+    endedVia.value = via
+    phase.value = 'result'
+    clock.stop()
+    guard.detach()
+    warning.value = null
+    await exitFullscreen()
+  } catch (error) {
+    actionError.value =
+      error instanceof Error ? error.message : 'Your answers could not be submitted.'
+    // Back to the quiz rather than a dead end. The attempt is still open, the
+    // answers are still saved, and Submit will work on a second attempt.
+    phase.value = 'running'
+  } finally {
+    submitting.value = false
+  }
+}
+
+/** Back to the course list. Also the "Try again" path: reload and start again. */
+async function handleRetake(): Promise<void> {
+  retaking.value = true
+  try {
+    if (result.value?.passed) {
+      await router.push('/student/courses')
+      return
+    }
+    await load()
+  } finally {
+    retaking.value = false
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle
+// ---------------------------------------------------------------------------
 
 onMounted(load)
-onBeforeUnmount(stopTimer)
+
+onBeforeUnmount(() => {
+  guard.detach()
+  clock.stop()
+  // Leaving the quiz view should not strand the student in fullscreen. When the
+  // attempt is still open it stays open and resumable, which is the point of
+  // saving answers as they go.
+  void exitFullscreen()
+})
 </script>
+
+<template>
+  <div>
+    <LoadingState v-if="phase === 'loading'" label="Loading quiz" />
+
+    <ErrorState
+      v-else-if="phase === 'unavailable'"
+      message="This quiz is not available. It may have been unpublished, or you may not be enrolled in the course it belongs to."
+      @retry="load"
+    />
+
+    <template v-else-if="briefing">
+      <PageHeader
+        :title="phase === 'result' && result ? 'Your result' : 'Quiz'"
+        :crumbs="[
+          { label: 'Student', to: '/student/dashboard' },
+          { label: 'Courses', to: '/student/courses' },
+          { label: briefing.title },
+        ]"
+      />
+
+      <div class="mt-6">
+        <Alert
+          v-if="actionError"
+          variant="error"
+          title="Something went wrong"
+          :message="actionError"
+          class="mb-5"
+        />
+
+        <!-- Sitting. No page header: the quiz owns the screen while it is running,
+             because the only thing that matters is the question in front of you. -->
+        <template v-if="phase === 'running' || phase === 'ending'">
+          <div
+            v-if="attempt"
+            class="mx-auto mb-5 flex max-w-3xl flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-3 dark:border-gray-800"
+          >
+            <div class="min-w-0">
+              <p class="truncate text-sm font-medium text-gray-900 dark:text-white/90">
+                {{ briefing.title }}
+              </p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                Attempt {{ attempt.attemptNumber }} of {{ attempt.attemptsAllowed }}
+                <template v-if="attempt.warningCount > 0">
+                  <span class="text-warning-600 dark:text-warning-400">
+                    · {{ attempt.warningCount }} warning{{ attempt.warningCount === 1 ? '' : 's' }}
+                  </span>
+                </template>
+              </p>
+            </div>
+
+            <!-- The clock. Turns red in the last five minutes, because a number
+                 changing on its own is easy to miss while reading. -->
+            <div
+              v-if="clock.secondsLeft.value !== null"
+              class="shrink-0 rounded-lg px-3 py-1.5 text-center"
+              :class="
+                clock.urgent.value
+                  ? 'bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-400'
+                  : 'bg-gray-100 text-gray-700 dark:bg-white/[0.06] dark:text-gray-200'
+              "
+            >
+              <p class="text-xs uppercase tracking-wide opacity-70">Time left</p>
+              <p class="text-sm font-semibold tabular-nums">{{ clock.label.value }}</p>
+            </div>
+          </div>
+
+          <QuizQuestionRunner
+            v-if="attempt && phase === 'running'"
+            :questions="attempt.questions"
+            :answers="answers"
+            :current-index="currentIndex"
+            :flagged="flagged"
+            :submitting="submitting"
+            :submitting-blocked="!canSubmit"
+            @update:current-index="currentIndex = $event"
+            @answer="handleAnswer"
+            @toggle-flag="toggleFlag"
+            @submit="handleSubmit"
+          />
+
+          <div v-else class="mx-auto max-w-3xl py-12 text-center">
+            <LoadingState label="Submitting your answers" />
+            <p v-if="actionError" class="mt-4 text-sm text-error-600 dark:text-error-400">
+              {{ actionError }}
+            </p>
+          </div>
+        </template>
+
+        <QuizResultPanel
+          v-else-if="phase === 'result' && result"
+          :result="result"
+          :quiz-title="briefing.title"
+          :can-retake="!result.passed && result.attemptsRemaining > 0"
+          :ended-by-time="endedVia === 'time_expired'"
+          :ended-by-warnings="endedVia === 'warnings_exhausted'"
+          :retaking="retaking"
+          @retake="handleRetake"
+        />
+
+        <QuizBriefingPanel
+          v-else
+          :briefing="briefing"
+          :already-passed="alreadyPassed"
+          :has-open-attempt="Boolean(openAttemptId)"
+          :open-attempt-id="openAttemptId"
+          :starting="starting"
+          :support-open="supportOpen"
+          @start="start"
+          @resume="resume"
+          @toggle-support="supportOpen = !supportOpen"
+        />
+      </div>
+    </template>
+
+    <!-- Over everything, and only while running: an unanswered submit is
+         explained here rather than by a disabled control with no explanation. -->
+    <QuizWarningDialog
+      :open="warning !== null"
+      :warning-number="warning?.number ?? 0"
+      :max-warnings="warning?.max ?? 3"
+      :remaining="warning?.remaining ?? 0"
+      :reason="warning?.reason ?? ''"
+      :final="warning?.final ?? false"
+      :ending="submitting"
+      @acknowledge="acknowledgeWarning"
+    />
+  </div>
+</template>

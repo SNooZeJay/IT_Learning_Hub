@@ -120,9 +120,7 @@ export class QuizError extends Error {
  */
 function messageOf(error: { message: string } | null, fallback: string): string {
   if (!error) return fallback
-  return (
-    error.message.replace(/^(?:ERROR:\s*|[A-Z]{5}:\s*)/, '').trim() || fallback
-  )
+  return error.message.replace(/^(?:ERROR:\s*|[A-Z]{5}:\s*)/, '').trim() || fallback
 }
 
 // ---------------------------------------------------------------------------
@@ -149,18 +147,31 @@ export async function listQuizzesForCourse(courseId: string): Promise<Quiz[]> {
   const quizzes = quizRows.map((row) => toQuiz(row as QuizRow))
   const quizIds = quizzes.map((q) => q.id)
 
-  const [{ data: questionRows, error: questionError }, { data: optionRows, error: optionError }] =
-    await Promise.all([
-      supabase
-        .from('quiz_questions')
-        .select(STUDENT_QUESTION_COLUMNS)
-        .in('quiz_id', quizIds)
-        .order('position', { ascending: true }),
-      supabase
-        .from('quiz_options')
-        .select(STUDENT_OPTION_COLUMNS)
-        .order('position', { ascending: true }),
-    ])
+  const { data: questionRows, error: questionError } = await supabase
+    .from('quiz_questions')
+    .select(STUDENT_QUESTION_COLUMNS)
+    .in('quiz_id', quizIds)
+    .order('position', { ascending: true })
+
+  if (questionError) throw new QuizError(messageOf(questionError, 'Could not load the questions.'))
+  if (!questionRows?.length) return quizzes.map((quiz) => ({ ...quiz, questions: [] }))
+
+  // Scoped to this course's questions.
+  //
+  // This query had no `.in('question_id', ...)` at all, so it fetched every
+  // option row in the database. The JavaScript grouped them by question, so the
+  // quiz that rendered looked correct - but the network payload carried the full
+  // option text of every published quiz on the platform, for every student, on
+  // every course page. It was also O(platform) rather than O(course).
+  const questionIds = questionRows.map((row) => row.id)
+
+  const { data: optionRows, error: optionError } = await supabase
+    .from('quiz_options')
+    .select(STUDENT_OPTION_COLUMNS)
+    .in('question_id', questionIds)
+    .order('position', { ascending: true })
+
+  if (optionError) throw new QuizError(messageOf(optionError, 'Could not load the answers.'))
 
   if (questionError) throw new QuizError(messageOf(questionError, 'Could not load the questions.'))
   if (optionError) throw new QuizError(messageOf(optionError, 'Could not load the answers.'))
@@ -298,4 +309,164 @@ function toResult(data: unknown): QuizResult {
       }
     }),
   }
+}
+
+// ---------------------------------------------------------------------------
+// The attempt experience
+// ---------------------------------------------------------------------------
+//
+// Everything below goes through a SECURITY DEFINER function rather than a direct
+// table read, and that is not a stylistic choice.
+//
+// `get_attempt_questions` decides what a student is shown for an attempt: the
+// questions in the order this attempt was served, the options in the order this
+// attempt was served, and never `is_correct`. The student holds no SELECT grant on
+// that column, so a direct query cannot ask for it - but a client that reads
+// tables directly also decides its own ordering, and that is how a shuffle
+// computed in the browser gets renumbered by a refresh.
+//
+// The order is written once, by `start_quiz_attempt`, into
+// `quiz_attempts.question_order` and `option_order`. Those hold *ids*, never
+// positions and never copies of the question, so grading - which looks an option
+// up by id and checks the key - cannot be affected by where anything was
+// displayed.
+
+/** What the pre-quiz screen shows. Contains no question text and no key. */
+export interface QuizBriefing {
+  quizId: string
+  title: string
+  description: string | null
+  instructions: string | null
+  questionCount: number
+  totalPoints: number
+  passingScore: number
+  attemptsAllowed: number
+  attemptsUsed: number
+  timeLimitMinutes: number | null
+  maxWarnings: number
+  shuffleQuestions: boolean
+  revealAnswers: boolean
+}
+
+/**
+ * Everything the pre-quiz screen needs, in one call.
+ *
+ * Returns null rather than throwing when the quiz is not visible, because
+ * "you cannot see this" and "this does not exist" are the same answer to a
+ * student who followed a stale link.
+ */
+export async function getQuizBriefing(quizId: string): Promise<QuizBriefing | null> {
+  const { data, error } = await supabase.rpc('quiz_briefing', { p_quiz_id: quizId })
+  if (error) throw new QuizError(messageOf(error, 'Could not load this quiz.'))
+  if (!data) return null
+  return data as unknown as QuizBriefing
+}
+
+/** One question as served to an attempt. No correctness field exists on this type. */
+export interface ServedQuestion {
+  questionId: string
+  prompt: string
+  questionType: QuestionType
+  points: number
+  /** Always empty for a short_text question: the accepted answers stay on the server. */
+  options: QuizOption[]
+}
+
+/** The whole open-attempt state, in one call. */
+export interface AttemptState {
+  questions: ServedQuestion[]
+  expiresAt: string | null
+  warningCount: number
+  maxWarnings: number
+  timeLimitMinutes: number | null
+  attemptNumber: number
+  attemptsAllowed: number
+  status: string
+  passed: boolean | null
+  percentage: number | null
+  score: number | null
+  maxScore: number | null
+  revealAnswers: boolean
+}
+
+export async function getAttemptState(attemptId: string): Promise<AttemptState | null> {
+  const { data, error } = await supabase.rpc('get_attempt_questions', {
+    p_attempt_id: attemptId,
+  })
+  if (error) throw new QuizError(messageOf(error, 'Could not load this attempt.'))
+  if (!data) return null
+  return data as unknown as AttemptState
+}
+
+/** Saved selections for an open attempt. Never includes correctness. */
+export async function getSavedAnswers(
+  attemptId: string,
+): Promise<Record<string, { optionId: string | null; text: string | null }>> {
+  const { data, error } = await supabase.rpc('get_attempt_answers', {
+    p_attempt_id: attemptId,
+  })
+  if (error) throw new QuizError(messageOf(error, 'Could not recover your saved answers.'))
+  return (data ?? {}) as Record<string, { optionId: string | null; text: string | null }>
+}
+
+/**
+ * Store one answer choice as it is made.
+ *
+ * Fire and forget from the interface's point of view: a failure here must not
+ * interrupt answering, because the answer is still submitted explicitly at the
+ * end. It exists so a refresh does not lose work - which the old Laravel system
+ * did, with no mechanism at all and no test covering it.
+ */
+export async function saveAnswer(input: {
+  attemptId: string
+  questionId: string
+  optionId?: string | null
+  text?: string | null
+}): Promise<void> {
+  const { error } = await supabase.rpc('save_attempt_answer', {
+    p_attempt_id: input.attemptId,
+    p_question_id: input.questionId,
+    p_option_id: input.optionId ?? null,
+    p_text: input.text ?? null,
+  })
+  if (error) throw new QuizError(messageOf(error, 'Could not save that answer.'))
+}
+
+/**
+ * Record a focus-loss warning and learn what it cost.
+ *
+ * The count is a database column, not browser state, so it survives a reload and
+ * cannot be reset by the student. The function stops counting at the limit and
+ * reports `ended`, so the interface is told the consequence rather than working it
+ * out from a number and guessing.
+ */
+export interface WarningOutcome {
+  warningCount: number
+  maxWarnings: number
+  remaining: number
+  ended: boolean
+}
+
+export async function recordWarning(attemptId: string, reason: string): Promise<WarningOutcome> {
+  const { data, error } = await supabase.rpc('record_quiz_warning', {
+    p_attempt_id: attemptId,
+    p_reason: reason,
+  })
+  if (error) throw new QuizError(messageOf(error, 'Could not record that warning.'))
+  return data as unknown as WarningOutcome
+}
+
+/** An open attempt on a quiz, if the student has one. Powers "Resume". */
+export async function findOpenAttempt(quizId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('quiz_attempts')
+    .select('id')
+    .eq('quiz_id', quizId)
+    .eq('status', 'in_progress')
+    .order('attempt_number', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw new QuizError(messageOf(error, 'Could not check for an open attempt.'))
+  return (data as { id: string } | null)?.id ?? null
 }
