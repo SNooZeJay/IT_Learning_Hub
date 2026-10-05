@@ -159,6 +159,14 @@
 
             <div class="mt-6">
               <Alert
+                v-if="paymentNotice"
+                variant="success"
+                title="Payment"
+                :message="paymentNotice"
+                class="mb-3"
+              />
+
+              <Alert
                 v-if="actionError"
                 variant="error"
                 title="Could not enrol"
@@ -215,7 +223,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { BookOpen, CircleCheck, FileText, LoaderCircle, Lock, PlayCircle } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -225,6 +233,7 @@ import Alert from '@/components/ui/Alert.vue'
 import Button from '@/components/ui/Button.vue'
 import { getCourseWithCurriculum, isPaid } from '@/services/course.service'
 import { findEnrollment, enrollInFreeCourse } from '@/services/enrollment.service'
+import { startCheckout } from '@/services/checkout.service'
 import { useAuthStore } from '@/stores/auth'
 import { formatPeso } from '@/types'
 import type { Course, Lesson, Module } from '@/types'
@@ -232,6 +241,7 @@ import type { Course, Lesson, Module } from '@/types'
 type ModuleWithLessons = Module & { lessons: Lesson[] }
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 
 const course = ref<Course | null>(null)
@@ -241,6 +251,12 @@ const isLoading = ref(true)
 const isActing = ref(false)
 const errorMessage = ref('')
 const actionError = ref('')
+/**
+ * Set after returning from PayMongo, so the page can say what happened instead of
+ * silently reloading as if nothing occurred. The learner comes back here whether
+ * they paid or gave up, and the two need to read differently.
+ */
+const paymentNotice = ref('')
 
 const slug = computed(() => String(route.params.id ?? ''))
 
@@ -293,6 +309,25 @@ async function load(): Promise<void> {
       const enrolment = await findEnrollment(result.course.id, auth.profile.id)
       enrolledHere.value = enrolment?.status === 'active' || enrolment?.status === 'completed'
     }
+
+    // The learner returning from the provider. The webhook settles asynchronously,
+    // so the enrolment may not be active yet on the very first render - which is
+    // why this says "confirming" rather than claiming success.
+    const payment = route.query.payment
+    if (payment === 'success') {
+      paymentNotice.value = enrolledHere.value
+        ? 'Payment received. Your place on this course is active.'
+        : 'Payment received. We are confirming it with the provider - your lessons unlock in a moment.'
+    } else if (payment === 'cancelled') {
+      paymentNotice.value =
+        'Checkout cancelled. You have not been charged. You can try again whenever you like.'
+    }
+
+    // Drop the query so a refresh does not replay the notice, and so the browser
+    // back button does not walk through it twice.
+    if (payment) {
+      void router.replace({ query: { ...route.query, payment: undefined } })
+    }
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Could not load this course.'
   } finally {
@@ -300,11 +335,50 @@ async function load(): Promise<void> {
   }
 }
 
+/**
+ * Enrol, by whichever route the course actually needs.
+ *
+ * A free course is enrolled directly. A paid one opens a hosted checkout and
+ * sends the learner to the provider - the browser never decides a payment
+ * succeeded, and `enrolledHere` is not set on this path. It becomes true only
+ * after the webhook has settled the payment and a reload re-reads the enrolment.
+ *
+ * This previously called `enrollInFreeCourse` for both, so a paid course threw
+ * "This course is paid. Payment is required before enrolling." from behind a
+ * button labelled "Enrol for ₱1,500.00". The price rendered correctly and the
+ * copy mentioned PayMongo, so the paid path read as implemented - but nothing in
+ * the frontend called `create-checkout` at all.
+ */
 async function handleEnrol(): Promise<void> {
   if (!course.value || !auth.profile) return
   actionError.value = ''
+  paymentNotice.value = ''
   isActing.value = true
   try {
+    if (isPaidCourse.value) {
+      const result = await startCheckout(course.value.id)
+
+      if (!result.requiresPayment) {
+        // The function says this course is free, which contradicts the price on
+        // this page. Enrolling directly is the useful response to a backend and
+        // frontend disagreeing about a price, rather than sending the learner to
+        // a checkout for something that costs nothing.
+        await enrollInFreeCourse(course.value, auth.profile.id)
+        enrolledHere.value = true
+        return
+      }
+
+      if (!result.checkoutUrl) {
+        actionError.value = 'The payment provider did not return a checkout link.'
+        return
+      }
+
+      // Full navigation, not a router push: this leaves the app for PayMongo's
+      // hosted page. window.location is correct here and router.push is not.
+      window.location.href = result.checkoutUrl
+      return
+    }
+
     await enrollInFreeCourse(course.value, auth.profile.id)
     enrolledHere.value = true
   } catch (error) {
