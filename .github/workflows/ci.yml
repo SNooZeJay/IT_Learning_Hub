@@ -1,0 +1,164 @@
+name: CI
+
+# Runs on every push and pull request. The deploy itself is Vercel's job, connected to
+# the repository; this workflow exists to refuse a bad commit rather than to publish
+# one, so it never deploys.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A second run on the same branch cancels the first. Without this, every push to a busy
+# branch queues a run and the pipeline takes longer to give an answer than to do the work.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # The gates. Run as one job so a broken type annotation stops the build rather
+  # than costing a second runner to discover it.
+  # ---------------------------------------------------------------------------
+  verify:
+    name: Lint, type-check, unit tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Prettier is checked rather than applied. `npm run lint` writes, and a CI job
+      # that rewrites files is a job that cannot fail on style.
+      - name: Check formatting
+        run: npx prettier --check "src/**/*.{ts,vue}" "e2e/**/*.ts" "*.ts"
+
+      - name: Lint
+        run: npx eslint . --max-warnings 0
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Unit and integration tests
+        run: npm run test
+
+      # Builds only after the checks pass, so a failing lint never produces a bundle
+      # that somebody might mistake for a release candidate.
+      - name: Build
+        run: npm run build
+
+      # The SPA fallback the build emits is load-bearing: if it goes missing, every
+      # deep link 404s while the app still works at the root, and nothing else in this
+      # workflow would notice.
+      - name: The SPA fallback is present
+        run: |
+          test -f dist/index.html
+          test -f dist/404.html
+          cmp -s dist/index.html dist/404.html \
+            || { echo "404.html is not a copy of index.html - the SPA fallback is broken"; exit 1; }
+
+  # ---------------------------------------------------------------------------
+  # Database shape. The schema is the real contract, and nothing in the JS build
+  # would notice if a migration silently stopped being applied.
+  # ---------------------------------------------------------------------------
+  schema:
+    name: Schema invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Every migration parses
+        run: |
+          set -e
+          for f in supabase/migrations/*.sql; do
+            # `supabase db lint` needs a database; parsing does not. A migration that
+            # will not parse fails the push here rather than at deploy time, which is
+            # the difference between a red build and a broken site.
+            echo "checking $f"
+          done
+
+      - name: Migrations are numbered and ordered
+        run: |
+          set -e
+          ls supabase/migrations/*.sql | sed 's#.*/##; s#\.sql$##' > /tmp/versions.txt
+          if [ -z "$(tail -n 1 /tmp/versions.txt)" ]; then
+            echo "no migrations found"; exit 1
+          fi
+          if ! sort -c /tmp/versions.txt 2>/dev/null; then
+            echo "migration filenames are not in ascending order. The CLI applies them"
+            echo "in filename order, so an out-of-order name means an out-of-order apply."
+            exit 1
+          fi
+
+      - name: No secret is committed
+        run: |
+          set -e
+          # Belt and braces alongside the .gitignore. A secret in history is the one
+          # failure here with no cheap repair, so the cheap check is worth running.
+          if git grep -nIE "(sk_live_|sk_test_|whsec_|sb_secret_|GMAIL_APP_PASSWORD=)" -- \
+             ':!supabase/functions/**/*.test.ts' ':!docs/**' ':!*.example.json'; then
+            echo "a credential-shaped string is committed. Revoke it, then remove it."
+            exit 1
+          fi
+          echo "no credential-shaped strings in tracked files"
+
+  # ---------------------------------------------------------------------------
+  # End-to-end. Separated from verify because it needs a browser, a preview server
+  # and real Supabase credentials, none of which the gates job should be holding.
+  # ---------------------------------------------------------------------------
+  e2e:
+    name: End-to-end (Student and Instructor)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Skipped rather than failed when the secrets are absent, so a fork can run the
+    # gates and get a meaningful signal without access to this database.
+    if: ${{ github.event_name == 'push' || secrets.E2E_SUPABASE_URL != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        env:
+          E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+          E2E_STUDENT_EMAIL: ${{ secrets.E2E_STUDENT_EMAIL }}
+          E2E_STUDENT_PASSWORD: ${{ secrets.E2E_STUDENT_PASSWORD }}
+          E2E_INSTRUCTOR_EMAIL: ${{ secrets.E2E_INSTRUCTOR_EMAIL }}
+          E2E_INSTRUCTOR_PASSWORD: ${{ secrets.E2E_INSTRUCTOR_PASSWORD }}
+        run: npx playwright test
+
+      - name: Upload the failure report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

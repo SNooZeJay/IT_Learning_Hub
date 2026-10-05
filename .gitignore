@@ -45,3 +45,9 @@ scripts/*.local.json
 # that also builds on macOS and Linux. The launcher, its hash check and every
 # markdown reference stay committed.
 .agents/skills/impeccable/scripts/bin/
+
+# Playwright. Traces, screenshots and reports are run artefacts, not source.
+/test-results/
+/playwright-report/
+/blob-report/
+/.playwright/
