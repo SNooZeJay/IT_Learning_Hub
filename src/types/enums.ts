@@ -15,10 +15,21 @@ export type CourseStatus = 'draft' | 'published' | 'archived'
 
 export type CourseLevel = 'beginner' | 'intermediate' | 'advanced'
 
-export type EnrollmentStatus = 'active' | 'completed' | 'dropped'
+/**
+ * An enrolment sits `pending` between "student clicked enrol" and "payment
+ * confirmed". A free course skips straight to `active`; a paid one cannot start
+ * until PayMongo says the money arrived.
+ */
+export type EnrollmentStatus = 'pending' | 'active' | 'completed' | 'dropped'
 
 export type LessonType = 'article' | 'video'
 
 export type ProgressStatus = 'not_started' | 'in_progress' | 'completed'
 
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded'
+
+export type QuizStatus = 'draft' | 'published'
+
+export type QuestionType = 'multiple_choice' | 'true_false' | 'short_text'
+
+export type AttemptStatus = 'in_progress' | 'submitted'

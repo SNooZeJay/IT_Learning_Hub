@@ -1,0 +1,364 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+/**
+ * The client is mocked rather than stubbed per test so the assertions can be
+ * about what the service ASKS the database, which is the part that matters.
+ *
+ * Two of these tests exist because a failure would be invisible otherwise. If
+ * `listQuizzesForCourse` started selecting `*` on quiz_questions, the type-check
+ * would still pass, the build would still pass, and every student would be able
+ * to read the answer key. Nothing about a green gate notices. Only an assertion
+ * on the requested columns does.
+ */
+
+const from = vi.fn()
+const rpc = vi.fn()
+
+vi.mock('@/services/supabase/client', () => ({
+  supabase: {
+    from: (...args: unknown[]) => from(...args),
+    rpc: (...args: unknown[]) => rpc(...args),
+  },
+}))
+
+import {
+  attemptsRemaining,
+  getQuiz,
+  listMyAttempts,
+  listQuizzesForCourse,
+  QuizError,
+  startAttempt,
+  submitAttempt,
+} from '@/services/quiz.service'
+
+/** A thenable chain that resolves to whatever the test queued for that table. */
+function chain(result: { data?: unknown; error?: { message: string } | null }) {
+  const builder: Record<string, unknown> = {}
+  for (const method of ['select', 'eq', 'in', 'order', 'limit']) {
+    builder[method] = vi.fn(() => builder)
+  }
+  // `await` on the builder resolves it, which is how supabase-js query builders
+  // behave.
+  builder.then = (resolve: (v: unknown) => void) => resolve(result)
+  return builder
+}
+
+/** Queue a response per table name, in the order the service asks for them. */
+/** Builders handed out, keyed by table, so a test can inspect what was asked. */
+const builders: Record<string, ReturnType<typeof chain>[]> = {}
+
+/** Queue a response per table name, in the order the service asks for them. */
+function respondByTable(
+  responses: Record<string, { data?: unknown; error?: { message: string } | null }>,
+) {
+  for (const key of Object.keys(builders)) delete builders[key]
+  from.mockImplementation((table: string) => {
+    const builder = chain(responses[table] ?? { data: [] })
+    ;(builders[table] ??= []).push(builder)
+    return builder
+  })
+}
+
+/**
+ * The column list the service asked for on a table, or undefined if it never
+ * asked. Captured here rather than read back out of the mock's call record,
+ * because `from` receives only the table name - there is no second argument to
+ * destructure, and reaching for one yields undefined rather than an error.
+ */
+function selectedColumns(table: string): string | undefined {
+  const select = builders[table]?.[0]?.select as ReturnType<typeof vi.fn> | undefined
+  return select?.mock.calls[0]?.[0]
+}
+
+const quizRow = {
+  id: 'quiz-1',
+  course_id: 'course-1',
+  module_id: null,
+  lesson_id: null,
+  title: 'Networking basics',
+  description: null,
+  passing_score: '70',
+  attempts_allowed: 3,
+  time_limit_minutes: null,
+  shuffle_questions: false,
+  reveal_answers: true,
+  status: 'published',
+}
+
+const questionRow = {
+  id: 'q1',
+  quiz_id: 'quiz-1',
+  question_type: 'multiple_choice',
+  prompt: 'What is a subnet mask?',
+  points: '2',
+  position: 0,
+}
+
+const optionRows = [
+  { id: 'o1', question_id: 'q1', option_text: '255.255.255.0', position: 0 },
+  { id: 'o2', question_id: 'q1', option_text: 'A password', position: 1 },
+]
+
+beforeEach(() => {
+  from.mockReset()
+  rpc.mockReset()
+})
+
+describe('the answer key never crosses into a student query', () => {
+  it('names the columns it selects instead of asking for every column', async () => {
+    respondByTable({
+      quizzes: { data: [quizRow] },
+      quiz_questions: { data: [questionRow] },
+      quiz_options: { data: optionRows },
+    })
+
+    await listQuizzesForCourse('course-1')
+
+    const questionSelect = selectedColumns('quiz_questions')
+    const optionSelect = selectedColumns('quiz_options')
+
+    expect(questionSelect).toBeTypeOf('string')
+    expect(questionSelect).not.toBe('*')
+    expect(questionSelect).not.toContain('explanation')
+    expect(optionSelect).toBeTypeOf('string')
+    expect(optionSelect).not.toBe('*')
+    expect(optionSelect).not.toContain('is_correct')
+  })
+
+  it('does not leak the key through the shape it hands back either', async () => {
+    respondByTable({
+      quizzes: { data: [quizRow] },
+      quiz_questions: { data: [questionRow] },
+      quiz_options: { data: optionRows },
+    })
+
+    const [quiz] = await listQuizzesForCourse('course-1')
+    const serialised = JSON.stringify(quiz)
+
+    expect(serialised).not.toContain('is_correct')
+    expect(serialised).not.toContain('isCorrect')
+    // The option ids are needed to submit; the correctness flag is not.
+    expect(quiz.questions[0].options).toHaveLength(2)
+    expect(quiz.questions[0].options[0]).toEqual({ id: 'o1', optionText: '255.255.255.0' })
+  })
+})
+
+describe('attemptsRemaining', () => {
+  it('counts down and stops at zero', () => {
+    expect(attemptsRemaining({ attemptsAllowed: 3 }, 0)).toBe(3)
+    expect(attemptsRemaining({ attemptsAllowed: 3 }, 2)).toBe(1)
+    expect(attemptsRemaining({ attemptsAllowed: 3 }, 3)).toBe(0)
+  })
+
+  it('never goes negative when more attempts exist than allowed', () => {
+    // Reaching here means the cap was bypassed somewhere. Showing "-1
+    // attempts remaining" would compound that with a nonsense number.
+    expect(attemptsRemaining({ attemptsAllowed: 3 }, 5)).toBe(0)
+  })
+
+  it('applies the section 19.4 cap of three even if a quiz somehow claims more', () => {
+    expect(attemptsRemaining({ attemptsAllowed: 9 }, 0)).toBe(3)
+  })
+})
+
+describe('startAttempt', () => {
+  it('returns the id the database made', async () => {
+    rpc.mockResolvedValue({ data: 'attempt-7', error: null })
+    await expect(startAttempt('quiz-1')).resolves.toBe('attempt-7')
+  })
+
+  it('surfaces the database refusal in words a person can act on', async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: 'no attempts remaining: 3 of 3 used' } })
+    // The message is the whole value of the error. A generic "something went
+    // wrong" here would leave a student with no idea the limit was the problem.
+    await expect(startAttempt('quiz-1')).rejects.toThrow('no attempts remaining: 3 of 3 used')
+  })
+
+  it('refuses a non-string result rather than returning undefined', async () => {
+    rpc.mockResolvedValue({ data: null, error: null })
+    await expect(startAttempt('quiz-1')).rejects.toBeInstanceOf(QuizError)
+  })
+})
+
+describe('submitAttempt', () => {
+  it('sends answers and nothing else, and never computes a score', async () => {
+    rpc.mockResolvedValue({
+      data: {
+        attempt_id: 'attempt-7',
+        score: '2',
+        max_score: '2',
+        percentage: '100',
+        passed: true,
+        passing_score: '70',
+        attempts_remaining: 2,
+        reveal_answers: true,
+        answers: [{ question_id: 'q1', is_correct: true, points: '2', points_awarded: '2' }],
+      },
+      error: null,
+    })
+
+    const result = await submitAttempt('attempt-7', [{ questionId: 'q1', optionId: 'o1' }])
+
+    // The client sent answers. It did not send a score, a pass flag, or a
+    // percentage, because it has no standing to.
+    const payload = rpc.mock.calls[0][1]
+    expect(payload.p_answers).toEqual([{ question_id: 'q1', option_id: 'o1' }])
+    expect(Object.keys(payload)).toEqual(['p_attempt_id', 'p_answers'])
+    expect(JSON.stringify(payload)).not.toContain('score')
+
+    // And the score it returns is the database's, read straight through.
+    expect(result.percentage).toBe(100)
+    expect(result.passed).toBe(true)
+    expect(result.attemptsRemaining).toBe(2)
+  })
+
+  it('reports a failed quiz as failed even though the call succeeded', async () => {
+    rpc.mockResolvedValue({
+      data: {
+        attempt_id: 'a',
+        score: '1',
+        max_score: '4',
+        percentage: '25',
+        passed: false,
+        passing_score: '70',
+        attempts_remaining: 2,
+        reveal_answers: false,
+        answers: [],
+      },
+      error: null,
+    })
+
+    const result = await submitAttempt('a', [{ questionId: 'q1', text: 'subnet' }])
+
+    expect(result.passed).toBe(false)
+    expect(result.percentage).toBe(25)
+    expect(result.revealAnswers).toBe(false)
+  })
+
+  it('keeps a text answer and an option answer distinguishable on the wire', async () => {
+    rpc.mockResolvedValue({ data: { answers: [] }, error: null })
+
+    await submitAttempt('a', [
+      { questionId: 'q1', optionId: 'o1' },
+      { questionId: 'q2', text: 'a subnet mask' },
+    ])
+
+    expect(rpc.mock.calls[0][1].p_answers).toEqual([
+      { question_id: 'q1', option_id: 'o1' },
+      { question_id: 'q2', text: 'a subnet mask' },
+    ])
+  })
+
+  it('refuses a resubmission instead of quietly regrading', async () => {
+    rpc.mockResolvedValue({
+      data: null,
+      error: { message: 'attempt already submitted at 2026-10-05 09:00:00+00' },
+    })
+    await expect(submitAttempt('a', [{ questionId: 'q1', optionId: 'o1' }])).rejects.toThrow(
+      /already submitted/,
+    )
+  })
+
+  it('refuses an unreadable result rather than rendering a blank score', async () => {
+    rpc.mockResolvedValue({ data: 'not an object', error: null })
+    // A results page showing 0/0 next to a real attempt is worse than an error,
+    // because it looks like a genuine fail.
+    await expect(submitAttempt('a', [])).rejects.toBeInstanceOf(QuizError)
+  })
+})
+
+describe('reads', () => {
+  it('returns an empty list rather than null when a course has no quizzes', async () => {
+    respondByTable({ quizzes: { data: [] } })
+    await expect(listQuizzesForCourse('course-1')).resolves.toEqual([])
+    // No question or option query should have been attempted.
+    expect(from).toHaveBeenCalledTimes(1)
+  })
+
+  it('groups options onto the right question and leaves others bare', async () => {
+    respondByTable({
+      quizzes: { data: [quizRow] },
+      quiz_questions: {
+        data: [questionRow, { ...questionRow, id: 'q2', question_type: 'short_text' }],
+      },
+      quiz_options: { data: optionRows },
+    })
+
+    const [quiz] = await listQuizzesForCourse('course-1')
+
+    expect(quiz.questions).toHaveLength(2)
+    expect(quiz.questions[0].options).toHaveLength(2)
+    // A short-text question legitimately has no options, and must not inherit
+    // the previous question's.
+    expect(quiz.questions[1].options).toEqual([])
+  })
+
+  it('reports a load failure rather than showing an empty quiz list', async () => {
+    respondByTable({ quizzes: { error: { message: 'permission denied for table quizzes' } } })
+    await expect(listQuizzesForCourse('course-1')).rejects.toThrow(/permission denied/)
+  })
+
+  it('returns null for a quiz that does not exist', async () => {
+    respondByTable({ quizzes: { data: [] } })
+    await expect(getQuiz('missing')).resolves.toBeNull()
+  })
+
+  it('turns attempt rows into the shape the results screen uses', async () => {
+    respondByTable({
+      quiz_attempts: {
+        data: [
+          {
+            id: 'a1',
+            quiz_id: 'quiz-1',
+            course_id: 'course-1',
+            attempt_number: 1,
+            status: 'submitted',
+            score: '3',
+            max_score: '4',
+            percentage: '75',
+            passed: true,
+            started_at: '2026-10-05T09:00:00Z',
+            submitted_at: '2026-10-05T09:10:00Z',
+          },
+        ],
+      },
+    })
+
+    const [attempt] = await listMyAttempts('quiz-1')
+
+    expect(attempt.percentage).toBe(75)
+    expect(attempt.passed).toBe(true)
+    // Postgres numerics arrive as strings. Left unconverted, `75` would render as
+    // a decimal point and a trailing zero.
+    expect(typeof attempt.percentage).toBe('number')
+    expect(typeof attempt.score).toBe('number')
+  })
+
+  it('keeps an unsubmitted attempt null rather than showing it as zero', async () => {
+    respondByTable({
+      quiz_attempts: {
+        data: [
+          {
+            id: 'a1',
+            quiz_id: 'quiz-1',
+            course_id: 'course-1',
+            attempt_number: 1,
+            status: 'in_progress',
+            score: null,
+            max_score: null,
+            percentage: null,
+            passed: null,
+            started_at: '2026-10-05T09:00:00Z',
+            submitted_at: null,
+          },
+        ],
+      },
+    })
+
+    const [attempt] = await listMyAttempts('quiz-1')
+
+    expect(attempt.score).toBeNull()
+    expect(attempt.percentage).toBeNull()
+    expect(attempt.passed).toBeNull()
+  })
+})

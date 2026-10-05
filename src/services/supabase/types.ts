@@ -1,11 +1,14 @@
 import type {
   AccountStatus,
+  AttemptStatus,
   CourseLevel,
   CourseStatus,
   EnrollmentStatus,
   LessonType,
   PaymentStatus,
   ProgressStatus,
+  QuestionType,
+  QuizStatus,
   Role,
 } from '@/types/enums'
 
@@ -192,7 +195,12 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
-        Update: { title?: string; description?: string | null; position?: number; updated_at?: string }
+        Update: {
+          title?: string
+          description?: string | null
+          position?: number
+          updated_at?: string
+        }
         Relationships: [
           {
             foreignKeyName: 'modules_course_id_fkey'
@@ -271,7 +279,13 @@ export type Database = {
           position?: number
           created_at?: string
         }
-        Update: { title?: string; file_path?: string; file_type?: string | null; file_size?: number | null; position?: number }
+        Update: {
+          title?: string
+          file_path?: string
+          file_type?: string | null
+          file_size?: number | null
+          position?: number
+        }
         Relationships: [
           {
             foreignKeyName: 'lesson_materials_lesson_id_fkey'
@@ -299,7 +313,10 @@ export type Database = {
           enrolled_at?: string
           completed_at?: string | null
         }
-        Update: { status?: Database['public']['Enums']['enrollment_status']; completed_at?: string | null }
+        Update: {
+          status?: Database['public']['Enums']['enrollment_status']
+          completed_at?: string | null
+        }
         Relationships: [
           {
             foreignKeyName: 'enrollments_course_id_fkey'
@@ -413,15 +430,314 @@ export type Database = {
           },
         ]
       }
+
+      quizzes: {
+        Row: {
+          id: string
+          course_id: string
+          module_id: string | null
+          lesson_id: string | null
+          title: string
+          description: string | null
+          passing_score: number
+          attempts_allowed: number
+          time_limit_minutes: number | null
+          shuffle_questions: boolean
+          reveal_answers: boolean
+          status: Database['public']['Enums']['quiz_status']
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          course_id: string
+          module_id?: string | null
+          lesson_id?: string | null
+          title: string
+          description?: string | null
+          passing_score?: number
+          attempts_allowed?: number
+          time_limit_minutes?: number | null
+          shuffle_questions?: boolean
+          reveal_answers?: boolean
+          status?: Database['public']['Enums']['quiz_status']
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          module_id?: string | null
+          lesson_id?: string | null
+          title?: string
+          description?: string | null
+          passing_score?: number
+          attempts_allowed?: number
+          time_limit_minutes?: number | null
+          shuffle_questions?: boolean
+          reveal_answers?: boolean
+          status?: Database['public']['Enums']['quiz_status']
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'quizzes_course_id_fkey'
+            columns: ['course_id']
+            referencedRelation: 'courses'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'quizzes_module_id_fkey'
+            columns: ['module_id']
+            referencedRelation: 'modules'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'quizzes_lesson_id_fkey'
+            columns: ['lesson_id']
+            referencedRelation: 'lessons'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'quizzes_created_by_fkey'
+            columns: ['created_by']
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+
+      quiz_questions: {
+        Row: {
+          id: string
+          quiz_id: string
+          question_type: Database['public']['Enums']['question_type']
+          prompt: string
+          points: number
+          position: number
+          /**
+           * Withheld from students at the GRANT layer. A student has no SELECT on
+           * this column, so `select *` on quiz_questions fails rather than quietly
+           * including the answer written out in words.
+           */
+          explanation: string | null
+          case_sensitive: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          quiz_id: string
+          question_type: Database['public']['Enums']['question_type']
+          prompt: string
+          points?: number
+          position?: number
+          explanation?: string | null
+          case_sensitive?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          prompt?: string
+          points?: number
+          position?: number
+          explanation?: string | null
+          case_sensitive?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'quiz_questions_quiz_id_fkey'
+            columns: ['quiz_id']
+            referencedRelation: 'quizzes'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+
+      quiz_options: {
+        Row: {
+          id: string
+          question_id: string
+          option_text: string
+          /**
+           * The answer key. No SELECT grant for `authenticated`; reachable only
+           * through the `quiz_with_answers` RPC, which checks the caller teaches
+           * the course.
+           */
+          is_correct: boolean
+          position: number
+        }
+        Insert: {
+          id?: string
+          question_id: string
+          option_text: string
+          is_correct?: boolean
+          position?: number
+        }
+        Update: {
+          option_text?: string
+          is_correct?: boolean
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'quiz_options_question_id_fkey'
+            columns: ['question_id']
+            referencedRelation: 'quiz_questions'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+
+      quiz_text_answers: {
+        Row: {
+          id: string
+          question_id: string
+          accepted_answer: string
+          position: number
+        }
+        Insert: {
+          id?: string
+          question_id: string
+          accepted_answer: string
+          position?: number
+        }
+        Update: {
+          accepted_answer?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'quiz_text_answers_question_id_fkey'
+            columns: ['question_id']
+            referencedRelation: 'quiz_questions'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+
+      quiz_attempts: {
+        Row: {
+          id: string
+          quiz_id: string
+          course_id: string
+          enrollment_id: string | null
+          student_id: string
+          attempt_number: number
+          status: Database['public']['Enums']['attempt_status']
+          score: number | null
+          max_score: number | null
+          percentage: number | null
+          passed: boolean | null
+          started_at: string
+          submitted_at: string | null
+        }
+        Insert: {
+          id?: string
+          quiz_id: string
+          course_id: string
+          enrollment_id?: string | null
+          student_id: string
+          attempt_number: number
+          status?: Database['public']['Enums']['attempt_status']
+          score?: number | null
+          max_score?: number | null
+          percentage?: number | null
+          passed?: boolean | null
+          started_at?: string
+          submitted_at?: string | null
+        }
+        /**
+         * UPDATE and DELETE are deliberately absent: a student must not be able to
+         * mark their own attempt passed. `submit_quiz_attempt` writes as its owner.
+         */
+        Update: Record<never, never>
+        Relationships: [
+          {
+            foreignKeyName: 'quiz_attempts_quiz_id_fkey'
+            columns: ['quiz_id']
+            referencedRelation: 'quizzes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'quiz_attempts_course_id_fkey'
+            columns: ['course_id']
+            referencedRelation: 'courses'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'quiz_attempts_enrollment_id_fkey'
+            columns: ['enrollment_id']
+            referencedRelation: 'enrollments'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'quiz_attempts_student_id_fkey'
+            columns: ['student_id']
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+
+      quiz_answers: {
+        Row: {
+          id: string
+          attempt_id: string
+          question_id: string
+          selected_option_id: string | null
+          text_answer: string | null
+          is_correct: boolean | null
+          points_awarded: number | null
+        }
+        Insert: {
+          id?: string
+          attempt_id: string
+          question_id: string
+          selected_option_id?: string | null
+          text_answer?: string | null
+          is_correct?: boolean | null
+          points_awarded?: number | null
+        }
+        Update: Record<never, never>
+        Relationships: [
+          {
+            foreignKeyName: 'quiz_answers_attempt_id_fkey'
+            columns: ['attempt_id']
+            referencedRelation: 'quiz_attempts'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'quiz_answers_question_id_fkey'
+            columns: ['question_id']
+            referencedRelation: 'quiz_questions'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'quiz_answers_selected_option_id_fkey'
+            columns: ['selected_option_id']
+            referencedRelation: 'quiz_options'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
 
     Views: Record<never, never>
 
     Functions: {
-      current_role: { Args: Record<never, never>; Returns: Database['public']['Enums']['user_role'] }
+      current_role: {
+        Args: Record<never, never>
+        Returns: Database['public']['Enums']['user_role']
+      }
       is_admin: { Args: Record<never, never>; Returns: boolean }
       is_instructor_of: { Args: { course_id: string }; Returns: boolean }
       is_enrolled_in: { Args: { course_id: string }; Returns: boolean }
+      start_quiz_attempt: { Args: { p_quiz_id: string }; Returns: string }
+      submit_quiz_attempt: { Args: { p_attempt_id: string; p_answers: unknown }; Returns: unknown }
+      quiz_with_answers: { Args: { p_quiz_id: string }; Returns: unknown }
+      quiz_is_publishable: { Args: { p_quiz_id: string }; Returns: boolean }
     }
 
     Enums: {
@@ -433,6 +749,9 @@ export type Database = {
       lesson_type: LessonType
       progress_status: ProgressStatus
       payment_status: PaymentStatus
+      quiz_status: QuizStatus
+      question_type: QuestionType
+      attempt_status: AttemptStatus
     }
 
     CompositeTypes: Record<never, never>
