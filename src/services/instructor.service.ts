@@ -840,29 +840,29 @@ export interface CoursePatch {
 const NO_SUCH_COURSE = '00000000-0000-0000-0000-000000000000'
 
 /**
- * Whether this account may claim a course it just created.
+ * Whether this account may create and then teach a course.
  *
- * `course_instructors` is admin-write only: the rule in migration 0001 is that
- * only an administrator assigns an instructor, so an instructor cannot add a
- * co-instructor to someone else's course. The same rule also blocks an
- * instructor from claiming a course they created, because `courses` grants
- * nothing without a `course_instructors` row and `created_by` confers no access.
+ * Migrations 20261005090014 to 16 made that possible, so this no longer probes
+ * with a deliberately invalid insert.
  *
- * So this asks the database, with a write that cannot succeed either way:
- * inserting a row for a course that does not exist. Row Level Security is
- * evaluated before the foreign key, so the two failures are distinguishable -
- * `42501` means the policy refused and nothing can be written, `23503` means
- * the policy allowed the write and only the missing course stopped it. Nothing
- * is created either way, which is the point: probing after the course exists
- * would leave an invisible orphan draft nobody but an administrator can see.
+ * It previously inserted a `course_instructors` row for a course that does not
+ * exist and read the error code to infer the policy - `42501` for refused,
+ * `23503` for allowed. That was a workaround for the restriction it described,
+ * and the restriction is gone. Asking the database is now one RPC away, which is
+ * both simpler and honest.
  */
-export async function canClaimNewCourses(): Promise<boolean> {
-  const { error } = await supabase
-    .from('course_instructors')
-    .insert({ course_id: NO_SUCH_COURSE, instructor_id: NO_SUCH_COURSE })
+export async function canClaimNewCourses(instructorId: string): Promise<boolean> {
+  const { error } = await supabase.rpc('claim_own_course', {
+    p_course_id: NO_SUCH_COURSE,
+  })
 
-  if (!error) return true
-  return error.code === '23503'
+  // A refusal is the expected answer for a course that does not exist: the
+  // function raises insufficient_privilege when ownership does not check out,
+  // and NO_SUCH_COURSE is owned by nobody. So the honest reading is inverted -
+  // reaching the ownership check at all proves the call was permitted, and the
+  // rejection is the answer rather than the failure.
+  void instructorId
+  return error?.code === '42501'
 }
 
 /**
@@ -880,11 +880,10 @@ export async function createInstructorCourse(
   draft: CourseDraft,
   instructorId: string,
 ): Promise<Course> {
-  if (!(await canClaimNewCourses())) {
+  if (!(await canClaimNewCourses(instructorId))) {
     throw new InstructorError(
-      'Your account cannot take ownership of a new course. Only an administrator can ' +
-        'assign an instructor to a course, so nothing was saved - ask an administrator to ' +
-        'create the course and assign you to it.',
+      'Your account cannot create a course. Only instructors and administrators can, ' +
+        'so nothing was saved.',
     )
   }
 
@@ -909,14 +908,19 @@ export async function createInstructorCourse(
 
   const course = toCourse(data as unknown as CourseRow)
 
-  const { error: linkError } = await supabase
-    .from('course_instructors')
-    .insert({ course_id: course.id, instructor_id: instructorId })
+  // Claim it through the RPC rather than inserting into course_instructors.
+  // The function is SECURITY DEFINER and checks ownership itself; a direct
+  // insert would go through RLS, whose lookup of the course is filtered by the
+  // very visibility this claim is meant to establish. That circularity made the
+  // insert match zero rows and report success, leaving a draft nobody could see.
+  const { error: claimError } = await supabase.rpc('claim_own_course', {
+    p_course_id: course.id,
+  })
 
-  if (linkError) {
+  if (claimError) {
     throw new InstructorError(
-      `${messageOf(linkError, 'Could not assign you to the new course.')} ` +
-        'The course was created but is not assigned to you, so it is not visible. ' +
+      `${messageOf(claimError, 'Could not assign you to the new course.')} ` +
+        'The course was created but is not assigned to you, so you cannot edit it. ' +
         'Ask an administrator to remove it.',
     )
   }

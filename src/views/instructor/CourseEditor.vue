@@ -1053,7 +1053,7 @@ async function load(): Promise<void> {
       // Asked on the create route only. It answers whether the submit button will
       // work at all, and saying so before the first keystroke is more useful than
       // a refusal after the form is filled in.
-      canClaim.value = await canClaimNewCourses()
+      canClaim.value = await canClaimNewCourses(auth.profile?.id ?? '')
       isLoading.value = false
       return
     }

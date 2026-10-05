@@ -738,6 +738,15 @@ export type Database = {
       submit_quiz_attempt: { Args: { p_attempt_id: string; p_answers: unknown }; Returns: unknown }
       quiz_with_answers: { Args: { p_quiz_id: string }; Returns: unknown }
       quiz_is_publishable: { Args: { p_quiz_id: string }; Returns: boolean }
+      /**
+       * Adds the calling instructor to a course they created, so they can edit
+       * it. SECURITY DEFINER: ownership is checked as the function owner, because
+       * checking it in a policy would mean checking it through a SELECT that the
+       * courses policy had already filtered.
+       */
+      claim_own_course: { Args: { p_course_id: string }; Returns: boolean }
+      /** Courses with no instructor assigned. An operations query. */
+      unassigned_courses: { Args: Record<never, never>; Returns: unknown }
     }
 
     Enums: {
