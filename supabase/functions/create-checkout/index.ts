@@ -12,6 +12,7 @@
  */
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { handlePreflight, jsonWithCors } from '../_shared/cors.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -21,11 +22,16 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 })
 
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'content-type': 'application/json' },
-  })
+/**
+ * Every response carries CORS headers, and the preflight is answered before
+ * anything else.
+ *
+ * Without this the browser blocks the request at the preflight and the page shows
+ * "Failed to fetch" - which is what happened, and which reads like a network fault
+ * rather than a missing header. See `_shared/cors.ts`.
+ */
+function json(body: unknown, status = 200, request?: Request): Response {
+  return jsonWithCors(body, status, request)
 }
 
 interface CheckoutRequest {
@@ -38,48 +44,53 @@ interface CheckoutRequest {
 }
 
 Deno.serve(async (request) => {
-  if (request.method !== 'POST') return json({ error: 'method not allowed' }, 405)
+  // Answered first, and before the method check: a preflight is an OPTIONS, and
+  // letting it fall through to the 405 below is what made the browser give up.
+  const preflight = handlePreflight(request)
+  if (preflight) return preflight
+
+  if (request.method !== 'POST') return json({ error: 'method not allowed' }, 405, request)
 
   // The caller's identity comes from the verified JWT, not from the body. A body
   // carrying a student id would let anyone enrol anyone.
   const user = await authenticate(request)
-  if (!user) return json({ error: 'not authenticated' }, 401)
+  if (!user) return json({ error: 'not authenticated' }, 401, request)
 
   let body: CheckoutRequest
   try {
     body = await request.json()
   } catch {
-    return json({ error: 'body must be JSON' }, 400)
+    return json({ error: 'body must be JSON' }, 400, request)
   }
 
   const courseId = String(body.courseId ?? '')
-  if (!courseId) return json({ error: 'courseId is required' }, 400)
+  if (!courseId) return json({ error: 'courseId is required' }, 400, request)
 
   const course = await loadPublishedCourse(courseId)
-  if (!course) return json({ error: 'no such published course' }, 404)
+  if (!course) return json({ error: 'no such published course' }, 404, request)
 
   const amountCentavos = course.price_centavos
   if (amountCentavos <= 0) {
     // A free course is enrolled directly, not paid for. Sending it to a checkout
     // would create a payment of zero and a learner waiting on a payment provider
     // for something that costs nothing.
-    return json({ requiresPayment: false, amountCentavos: 0 })
+    return json({ requiresPayment: false, amountCentavos: 0 }, 200, request)
   }
 
   if (!SECRET_KEY) {
     console.error('PAYMONGO_SECRET_KEY is not set')
-    return json({ error: 'payments are not configured' }, 503)
+    return json({ error: 'payments are not configured' }, 503, request)
   }
 
   // Idempotency. A double-tapped button must not create two payments, or the
   // learner is charged twice for one enrolment.
   const existing = await findPendingPayment(user.id, courseId)
   if (existing) {
-    return json({ requiresPayment: true, paymentId: existing.id, reused: true })
+    return json({ requiresPayment: true, paymentId: existing.id, reused: true }, 200, request)
   }
 
   const enrollmentId = await findOrCreatePendingEnrollment(user.id, courseId)
-  if (!enrollmentId) return json({ error: 'enrolment could not be prepared' }, 409)
+  if (!enrollmentId) return json({ error: 'enrolment could not be prepared' }, 409, request)
 
   // Our own correlation key. Short, unique, and not guessable enough to let one
   // learner read another's payment by changing it.
@@ -92,7 +103,7 @@ Deno.serve(async (request) => {
     reference,
     enrollmentId,
   })
-  if (!paymentId) return json({ error: 'payment could not be recorded' }, 500)
+  if (!paymentId) return json({ error: 'payment could not be recorded' }, 500, request)
 
   const checkout = await createPayMongoSession({
     reference,
@@ -111,7 +122,17 @@ Deno.serve(async (request) => {
       .from('payments')
       .update({ status: 'cancelled', updated_at: new Date().toISOString() })
       .eq('id', paymentId)
-    return json({ error: 'checkout could not be created' }, 502)
+    return json(
+      {
+        error: 'checkout could not be created',
+        // Passed through from createPayMongoSession so the page can say whether
+        // this is a credential problem or a malformed request.
+        providerStatus: checkout.error ? checkout.providerStatus : undefined,
+        providerCode: checkout.error ? checkout.providerCode : undefined,
+      },
+      502,
+      request,
+    )
   }
 
   await supabase
@@ -119,7 +140,7 @@ Deno.serve(async (request) => {
     .update({ provider_checkout_id: checkout.id, updated_at: new Date().toISOString() })
     .eq('id', paymentId)
 
-  return json({ requiresPayment: true, paymentId, checkoutUrl: checkout.checkout_url })
+  return json({ requiresPayment: true, paymentId, checkoutUrl: checkout.checkout_url }, 200, request)
 })
 
 /**
@@ -241,7 +262,13 @@ async function createPayMongoSession(input: {
   description: string
   successUrl: string
   cancelUrl: string
-}): Promise<{ id?: string; checkout_url?: string }> {
+}): Promise<{
+  id?: string
+  checkout_url?: string
+  error?: true
+  providerStatus?: number
+  providerCode?: string
+}> {
   const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
     method: 'POST',
     headers: {
@@ -278,7 +305,16 @@ async function createPayMongoSession(input: {
       `create-checkout: PayMongo refused with ${response.status}:`,
       JSON.stringify(body?.errors ?? body)?.slice(0, 500),
     )
-    return {}
+    // The status and PayMongo's own code are returned to the caller so a wrong
+    // merchant key is distinguishable from a malformed amount. The detail string
+    // is not: it is the provider echoing the request, and it has no business
+    // reaching a browser.
+    const first = Array.isArray(body?.errors) ? body.errors[0] : undefined
+    return {
+      error: 'paymongo_refused',
+      providerStatus: response.status,
+      providerCode: typeof first?.code === 'string' ? first.code : undefined,
+    }
   }
 
   return {

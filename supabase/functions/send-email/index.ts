@@ -29,6 +29,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4'
 import { sendMail, SmtpError } from '../_shared/smtp.ts'
+import { handlePreflight, jsonWithCors } from '../_shared/cors.ts'
 import type { SmtpConfig, SmtpTransport } from '../_shared/smtp.ts'
 import type { MimeMessage } from '../_shared/mime.ts'
 
@@ -39,11 +40,15 @@ const MAIL_FROM = Deno.env.get('MAIL_FROM') ?? ''
 /** Where a password reset link should send the user back to. */
 const SITE_URL = Deno.env.get('SITE_URL') ?? 'http://localhost:5173'
 
-const json = (body: unknown, status = 200): Response =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
+/**
+ * Every response carries CORS headers, and the preflight is answered first.
+ *
+ * Without this the browser blocks the request before it reaches the function and
+ * the page shows "Failed to fetch" - which is what password reset showed, because
+ * auth.ts calls this function from the browser. See _shared/cors.ts.
+ */
+const json = (body: unknown, status = 200, request?: Request): Response =>
+  jsonWithCors(body, status, request)
 
 /**
  * Per-IP rate limit for the public action.
@@ -397,7 +402,12 @@ async function sendPasswordReset(email: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 serve(async (req: Request): Promise<Response> => {
-  if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405)
+  // Answered before the method check: a preflight is an OPTIONS, and letting it
+  // reach the 405 below is what made the browser give up before calling us.
+  const preflight = handlePreflight(req)
+  if (preflight) return preflight
+
+  if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405, req)
 
   const ip =
     req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
@@ -408,7 +418,7 @@ serve(async (req: Request): Promise<Response> => {
   try {
     body = await req.json()
   } catch {
-    return json({ error: 'invalid JSON body' }, 400)
+    return json({ error: 'invalid JSON body' }, 400, req)
   }
 
   try {
@@ -416,11 +426,11 @@ serve(async (req: Request): Promise<Response> => {
       if (rateLimited(ip)) {
         // 429 with the same shape as success would hide the limit; a distinct
         // status is more honest and lets a client back off.
-        return json({ error: 'too many requests, try again in a minute' }, 429)
+        return json({ error: 'too many requests, try again in a minute' }, 429, req)
       }
       const email = (body.email ?? '').trim().toLowerCase()
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-        return json({ error: 'a valid email address is required' }, 400)
+        return json({ error: 'a valid email address is required' }, 400, req)
       }
       await sendPasswordReset(email)
       // Always the same shape, always 200. The caller learns nothing about
@@ -433,19 +443,19 @@ serve(async (req: Request): Promise<Response> => {
       //
       // A real failure throws and is handled below with a 502, because a mailer
       // that is silently broken is worse than one that admits it.
-      return json({ sent: true })
+      return json({ sent: true }, 200, req)
     }
 
     if (body.action === 'welcome') {
       const auth = req.headers.get('Authorization') ?? ''
       const token = auth.replace(/^Bearer\s+/i, '')
-      if (!token) return json({ error: 'not authenticated' }, 401)
+      if (!token) return json({ error: 'not authenticated' }, 401, req)
 
       const userClient = createClient(SUPABASE_URL, token, {
         auth: { autoRefreshToken: false, persistSession: false },
       })
       const { data: userData, error: userError } = await userClient.auth.getUser()
-      if (userError || !userData.user?.email) return json({ error: 'not authenticated' }, 401)
+      if (userError || !userData.user?.email) return json({ error: 'not authenticated' }, 401, req)
 
       const name = escapeHtml((body.name ?? '').slice(0, 80) || userData.user.email.split('@')[0])
       const url = `${SITE_URL}/courses`
@@ -470,16 +480,16 @@ serve(async (req: Request): Promise<Response> => {
           ),
         ),
       )
-      return json({ sent: true })
+      return json({ sent: true }, 200, req)
     }
 
-    return json({ error: `unknown action: ${body.action ?? '(none)'}` }, 400)
+    return json({ error: `unknown action: ${body.action ?? '(none)'}` }, 400, req)
   } catch (error) {
     // A SmtpError carries the SMTP step and code, which is the difference between
     // "mail is broken" and "mail is fine and this address is bad".
     if (error instanceof SmtpError) {
       console.error(`smtp ${error.step} failed`, error.code, error.message)
-      return json({ error: `mail could not be sent (${error.step})` }, 502)
+      return json({ error: `mail could not be sent (${error.step})` }, 502, req)
     }
     console.error('send-email failed', error instanceof Error ? error.message : error)
 
@@ -490,6 +500,6 @@ serve(async (req: Request): Promise<Response> => {
     // unauthenticated endpoint, so nothing about the SMTP conversation itself is
     // disclosed - only why the attempt ended.
     const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error)
-    return json({ error: 'mail could not be sent', detail }, 502)
+    return json({ error: 'mail could not be sent', detail }, 502, req)
   }
 })

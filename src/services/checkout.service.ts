@@ -47,6 +47,39 @@ export interface CheckoutStart {
   reused?: boolean
 }
 
+/**
+ * Why the provider refused, when it said.
+ *
+ * `authentication_failed` is by far the most common and the least obvious: the
+ * function authenticates with PAYMONGO_SECRET_KEY, and that value is easily
+ * confused with the webhook secret, which signs payloads and cannot open a
+ * session. Naming it saves a long debugging session over a 502.
+ */
+function providerMessage(code: string | undefined, status: number | undefined): string | null {
+  if (code === 'authentication_failed' || status === 401) {
+    return (
+      'The payment provider rejected this deployment’s credentials, so checkout is unavailable. ' +
+      'Nothing has been charged. An administrator needs to check PAYMONGO_SECRET_KEY - it must ' +
+      'be the API secret key from PayMongo’s API Keys page, not the webhook secret.'
+    )
+  }
+  return null
+}
+
+/**
+ * Recognise a provider rejection inside a function error body.
+ *
+ * The function returns the provider's own code alongside its 502, because a bare
+ * 502 is undiagnosable: it looks equally like a bad key, a malformed amount, or
+ * PayMongo being down.
+ */
+function providerNamed(detail: string): string | null {
+  if (/authentication_failed|"providerStatus":\s*401/i.test(detail)) {
+    return providerMessage('authentication_failed', 401)
+  }
+  return null
+}
+
 const FAILURES: Record<number, CheckoutFailure> = {
   401: 'not_authenticated',
   404: 'no_such_course',
@@ -86,7 +119,12 @@ export async function startCheckout(courseId: string): Promise<CheckoutStart> {
     const detail = readFunctionError(error)
     const reason = (status && FAILURES[status]) || 'unknown'
 
-    throw new CheckoutError(messageFor(reason, detail), reason, status)
+    // A provider rejection arrives inside a 502 body, so it is recognised from
+    // the detail rather than the status. This is the one failure a learner cannot
+    // fix and an administrator can, so it has to name the credential.
+    const named = detail ? providerNamed(detail) : null
+
+    throw new CheckoutError(named ?? messageFor(reason, detail), reason, status)
   }
 
   const body = (data ?? {}) as Partial<CheckoutStart>
@@ -112,6 +150,11 @@ export async function startCheckout(courseId: string): Promise<CheckoutStart> {
 
 /** Messages that name the problem and the next step, per failure kind. */
 function messageFor(reason: CheckoutFailure, detail: string | null): string {
+  // A body that is empty, or just an empty JSON object, names nothing. Preferring
+  // it over real wording is how "Failed to fetch" reached a page as the entire
+  // explanation - truthy, useless, and more specific-looking than the fallback.
+  const useful = detail && detail !== '{}' && detail !== 'null' ? detail : null
+
   switch (reason) {
     case 'not_authenticated':
       return 'Your session has expired. Sign in again and retry - nothing has been charged.'
@@ -119,13 +162,13 @@ function messageFor(reason: CheckoutFailure, detail: string | null): string {
       return 'That course is no longer available for enrolment.'
     case 'not_configured':
       return (
-        detail ??
+        useful ??
         'Payments are not set up on this deployment yet, so nothing can be charged. Ask an administrator.'
       )
     case 'enrolment_unavailable':
       return 'Your place on this course could not be prepared, so nothing was charged. Please try again.'
     default:
-      return detail ?? 'Checkout could not be opened. Nothing has been charged - please try again.'
+      return useful ?? 'Checkout could not be opened. Nothing has been charged - please try again.'
   }
 }
 

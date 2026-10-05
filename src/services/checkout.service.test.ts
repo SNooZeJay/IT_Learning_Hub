@@ -18,11 +18,14 @@ const invoke = vi.fn()
 vi.mock('@/services/supabase/client', () => ({
   supabase: { functions: { invoke: (...a: unknown[]) => invoke(...a) } },
   readFunctionError: (e: unknown) => {
+    // Mirrors the real helper, which hands back the function's JSON body. The
+    // earlier version of this mock returned only `.error`, so a test asserting on
+    // providerStatus and providerCode could never match - a mock that understates
+    // what the code receives makes the test pass for the wrong reason.
     if (typeof e === 'object' && e !== null) {
       const c = (e as { context?: unknown }).context
       if (typeof c === 'object' && c !== null) {
-        const m = (c as { error?: unknown }).error
-        if (typeof m === 'string') return m
+        return JSON.stringify(c)
       }
     }
     return null
@@ -136,7 +139,34 @@ describe('startCheckout', () => {
   })
 
   it('falls back to its own wording when the body says nothing useful', async () => {
+    // An empty body. readFunctionError returns '{}' rather than null, so the
+    // fallback wording must still win over a detail that names nothing.
     invoke.mockResolvedValue(fail(500, {}))
+    await expect(startCheckout('course-1')).rejects.toThrow(/nothing has been charged/i)
+  })
+
+  it('falls back when the function could not be reached at all', async () => {
+    // A transport failure: no status, no body. This is what the CORS bug looked
+    // like from the browser, and the message must not blame the network.
+    invoke.mockResolvedValue({ data: null, error: { message: 'TypeError: Failed to fetch' } })
+    await expect(startCheckout('course-1')).rejects.toThrow(/could not be opened/i)
+  })
+
+  it('names the credential when the provider rejects the key', async () => {
+    // The failure that actually happened: a 502 whose body says PayMongo refused
+    // the merchant key. A generic "could not open checkout" would leave an
+    // administrator hunting for a network fault.
+    invoke.mockResolvedValue(
+      fail(502, {
+        error: 'checkout could not be created',
+        providerStatus: 401,
+        providerCode: 'authentication_failed',
+      }),
+    )
+    await expect(startCheckout('course-1')).rejects.toThrow(/PAYMONGO_SECRET_KEY/)
+    // Says the API key, not the webhook secret - they are different credentials
+    // and confusing them is the whole problem.
+    await expect(startCheckout('course-1')).rejects.toThrow(/not the webhook secret/i)
     await expect(startCheckout('course-1')).rejects.toThrow(/nothing has been charged/i)
   })
 
