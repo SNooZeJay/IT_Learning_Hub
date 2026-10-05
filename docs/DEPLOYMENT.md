@@ -9,12 +9,13 @@ Ordered by what blocks what. Nothing after step 3 works until step 2 is done.
 
 ## 0. What already exists
 
-| Piece               | Where                                     | State                       |
-| ------------------- | ----------------------------------------- | --------------------------- |
-| Vercel app          | https://it-learning-hub-three.vercel.app/ | deployed, Vite preset       |
-| Supabase project    | `rfqhekvtmegjjsofqlse`                    | live, 11 tables, RLS on all |
-| Database migrations | `supabase/migrations/`                    | 0001–0006 applied           |
-| Edge functions      | `supabase/functions/`                     | written, **not deployed**   |
+| Piece               | Where                                                | State                                   |
+| ------------------- | ---------------------------------------------------- | --------------------------------------- |
+| Vercel app          | https://it-learning-hub-three.vercel.app/            | deployed, env vars set, SPA fallback on |
+| Supabase project    | `rfqhekvtmegjjsofqlse`                               | live, 28 tables, RLS on every one       |
+| Database migrations | `supabase/migrations/`                               | 0001–0013 applied                       |
+| Edge functions      | `supabase/functions/`                                | **all three deployed**                  |
+| Vercel env vars     | `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | set, All Environments                   |
 
 The frontend on Vercel is a static SPA. It talks to Supabase directly for data and
 to Supabase Edge Functions for anything secret. **There is no separate Node
@@ -22,62 +23,81 @@ backend**, which is what makes the hosting free.
 
 ---
 
-## 1. One-time CLI login
+## 1. The CLI is already linked — no login needed
 
 ```bash
-npx supabase@latest login
-npx supabase@latest link --project-ref rfqhekvtmegjjsofqlse
+npx supabase@latest db push --dry-run
 ```
 
-`login` opens a browser. It is the only genuinely interactive step.
+This works today without an interactive login, because the project is already
+linked (`supabase/.temp/project-ref` holds `rfqhekvtmegjjsofqlse`) and the CLI has
+the database credentials from that link.
+
+This was discovered by running it, after weeks of assuming a login was the
+blocker. **`db push` and `functions deploy` both work.** If you ever hit an auth
+error, `npx supabase@latest login` is the fallback.
 
 ---
 
 ## 2. Secrets
 
-These three must exist as Supabase secrets before any function is deployed. They
-are **never** written to a repo file, a `.env`, or a commit.
+Two of these are still missing. Both are needed for the features they belong to;
+everything else already works.
 
 ```bash
-npx supabase@latest secrets set PAYMONGO_SECRET_KEY=sk_test_...   # from PayMongo dashboard > API keys
-npx supabase@latest secrets set PAYMONGO_WEBHOOK_SECRET=...       # the whsk_ value
-npx supabase@latest secrets set GMAIL_USER=...                    # the Gmail address
-npx supabase@latest secrets set GMAIL_APP_PASSWORD=...            # Google app password, spaces removed
-npx supabase@latest secrets set APP_URL=https://it-learning-hub-three.vercel.app
-npx supabase@latest secrets set APP_FROM_NAME="IT Learning Hub"
+# Needed by create-checkout. From PayMongo > Developers > API Keys. sk_test_...
+npx supabase@latest secrets set PAYMONGO_SECRET_KEY=sk_test_...
+
+# Needed by paymongo-webhook. The whsk_ value from the same page.
+npx supabase@latest secrets set PAYMONGO_WEBHOOK_SECRET=whsk_...
+
+# Needed by send-email. Your Gmail address...
+npx supabase@latest secrets set MAIL_FROM=you@gmail.com
+
+# ...and its app password, which Google prints with spaces in groups of four.
+npx supabase@latest secrets set GMAIL_APP_PASSWORD=xxxxxxxxxxxx
+
+# Where a password reset link should return the user to.
+npx supabase@latest secrets set SITE_URL=https://it-learning-hub-three.vercel.app
 ```
 
-Two of these values were pasted into a chat transcript during development. **Rotate
-both after the demo.** `whsk_...` and the Gmail app password are credentials, not
-configuration.
-
-Confirm without printing the values:
+Secrets are **never** written to a repo file, a `.env`, or a commit. Confirm they
+exist without printing them:
 
 ```bash
 npx supabase@latest secrets list
 ```
+
+> **Earlier versions of this runbook listed `GMAIL_USER`, `APP_URL` and
+> `APP_FROM_NAME`.** None of those are read by any function. They were listed
+> before `send-email` existed and were never corrected. The names above are the
+> ones the code actually reads.
+
+**Rotate after the demo.** The PayMongo webhook secret and the Gmail app password
+were both pasted into a chat transcript during development. They are credentials,
+not configuration.
 
 ---
 
 ## 3. Deploy the functions
 
 ```bash
+npx supabase@latest functions deploy create-checkout
+npx supabase@latest functions deploy send-email
 npx supabase@latest functions deploy paymongo-webhook --no-verify-jwt
-npx supabase@latest functions deploy create-checkout --no-verify-jwt
-npx supabase@latest functions deploy send-email --no-verify-jwt
 ```
 
-`--no-verify-jwt` on the webhook because PayMongo is the caller and has no Supabase
-JWT. That is correct, and safe **because** the handler verifies PayMongo's own HMAC
-signature before touching any state.
+`--no-verify-jwt` on the webhook **only**, because PayMongo is the caller and has no
+Supabase JWT. That is correct and safe **because** the handler verifies PayMongo's
+own HMAC signature before touching any state.
 
-`create-checkout` verifies the Supabase JWT itself and must therefore **not** be
-given `--no-verify-jwt`.
+`create-checkout` and `send-email` verify the Supabase JWT themselves, so they must
+**not** be given `--no-verify-jwt`.
 
-After deploying, the webhook URL is:
+The webhook URL is:
 
 ```
-https://<project-ref>.supabase.co/functions/v1/paymongo-webhook
+https://rfqhekvtmegjjsofqlse.supabase.co/functions/v1/paymongo-webhook
 ```
 
 ---
@@ -147,17 +167,59 @@ Then redeploy so the new variables are baked into the bundle.
 
 ## Verifying a deployment
 
-```bash
-# Functions respond
-curl -s -o /dev/null -w '%{http_code}\n' \
-  -X POST https://<ref>.supabase.co/functions/v1/paymongo-webhook
+**A green dashboard proves nothing.** Every check below reads the thing that
+actually matters: the compiled bundle, or a response from the live function.
 
-# Expect 405, not 404 or 502. 405 means it is deployed and the route is live.
+### The frontend is really connected
+
+```bash
+# Must print a 20-character project ref. "NOT FOUND" means VITE_SUPABASE_URL was
+# never set on Vercel, or set without a redeploy afterwards.
+curl -s https://it-learning-hub-three.vercel.app/ \
+  | grep -o '/assets/index-[A-Za-z0-9_-]*\.js' \
+  | head -1 \
+  | xargs -I{} curl -s https://it-learning-hub-three.vercel.app{} \
+  | grep -c 'supabase\.co'
 ```
 
-Then confirm the webhook actually settles a payment by completing a real ₱1 course
-checkout end to end and checking that the payment row reaches `paid` and the
-enrolment reaches `active`.
+### Deep links work
+
+```bash
+# 200, not 404. This is the SPA fallback in vercel.json. Without it only "/" works
+# and a page refresh mid-demo lands on a dead page.
+curl -s -o /dev/null -w '%{http_code}\n' https://it-learning-hub-three.vercel.app/courses
+```
+
+### Functions are live
+
+```bash
+# 401 means deployed AND enforcing auth. 404 means it was never deployed.
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+  -H "apikey: $VITE_SUPABASE_PUBLISHABLE_KEY" -H 'Content-Type: application/json' \
+  -d '{"courseId":"x"}' \
+  https://rfqhekvtmegjjsofqlse.supabase.co/functions/v1/create-checkout
+
+# 200 with verified:false means deployed AND rejecting a forged signature.
+curl -s -X POST -H 'Content-Type: application/json' \
+  -H 'paymongo-signature: te signature=forged' -d '{}' \
+  https://rfqhekvtmegjjsofqlse.supabase.co/functions/v1/paymongo-webhook
+```
+
+### Mail
+
+```bash
+# 200 with delivered:true means the whole path worked: link minted, SMTP accepted.
+# 502 means a secret is missing - check `secrets list`.
+curl -s -X POST -H "apikey: $VITE_SUPABASE_PUBLISHABLE_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"action":"password_reset","email":"a-real-address@example.com"}' \
+  https://rfqhekvtmegjjsofqlse.supabase.co/functions/v1/send-email
+```
+
+Finally, confirm the webhook actually settles a payment: complete a ₱1,500 GCash
+checkout end to end in test mode and check that `payments.status` reaches `paid`
+and `enrollments.status` reaches `active`. That is the one flow no status code can
+confirm for you.
 
 ---
 

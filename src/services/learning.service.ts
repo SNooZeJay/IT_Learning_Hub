@@ -720,7 +720,7 @@ export async function getCourseOutline(
 
   if (courseError) throw new LearningError(messageOf(courseError, 'Could not load this course.'))
   if (!courseRows?.length) return null
-  const course = toCourse(courseRows[0])
+  const course = toCourse(courseRows[0] as unknown as CourseRow)
 
   const { data: moduleRows, error: moduleError } = await supabase
     .from('modules')

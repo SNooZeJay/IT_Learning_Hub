@@ -72,11 +72,16 @@ const SUBMISSION_COLUMNS =
 //
 // `assignments` and `assignment_submissions` were added by the assessment
 // migration and the shared `Database` contract in `services/supabase/types.ts`
-// has not been regenerated for them yet, so they are declared here and the
-// client is typed against the intersection. The cast adds two table names and
-// nothing else: every other table, view, function and enum resolves to exactly
-// the same type it did before, so this file cannot quietly disagree with the
-// shared contract about a column that is already described there.
+// has not been regenerated for them yet, so they are declared here.
+//
+// The client is typed for these two tables ALONE, rather than as an intersection
+// with the shared contract. An intersection is the tidier-looking option and it
+// does not work: `from()` resolves its row type through the intersection, which
+// collapses to `never` for the newly added names and makes every `insert()` and
+// `update()` against them untyped in the worst way - it compiles, and writes
+// nothing. Keeping the shared contract authoritative for the tables it already
+// describes means all the course, module and lesson writes below are checked
+// against it as usual, and this local declaration covers only what it is missing.
 // ---------------------------------------------------------------------------
 
 export type AssignmentStatus = 'draft' | 'published'
@@ -127,17 +132,16 @@ type AssessmentTables = {
   }
 }
 
-type InstructorDatabase = {
+type AssessmentDatabase = {
   public: {
-    Tables: BaseDatabase['public']['Tables'] & AssessmentTables
-    Views: BaseDatabase['public']['Views']
-    Functions: BaseDatabase['public']['Functions']
-    Enums: BaseDatabase['public']['Enums']
-    CompositeTypes: BaseDatabase['public']['CompositeTypes']
+    Tables: AssessmentTables
+    Views: Record<never, never>
+    Functions: Record<never, never>
   }
 }
 
-const db = supabase as unknown as SupabaseClient<InstructorDatabase>
+/** Only ever `.from('assignments')` or `.from('assignment_submissions')`. */
+const assessment = supabase as unknown as SupabaseClient<AssessmentDatabase>
 
 /**
  * An error carrying the message the database chose.
@@ -456,9 +460,9 @@ async function countForCourses(courseIds: string[]): Promise<CourseCounts> {
   if (courseIds.length === 0) return empty
 
   const [moduleResult, quizResult, enrollmentResult] = await Promise.all([
-    db.from('modules').select('id, course_id').in('course_id', courseIds),
-    db.from('quizzes').select('id, course_id').in('course_id', courseIds),
-    db.from('enrollments').select('course_id, status').in('course_id', courseIds),
+    supabase.from('modules').select('id, course_id').in('course_id', courseIds),
+    supabase.from('quizzes').select('id, course_id').in('course_id', courseIds),
+    supabase.from('enrollments').select('course_id, status').in('course_id', courseIds),
   ])
 
   if (moduleResult.error)
@@ -476,7 +480,7 @@ async function countForCourses(courseIds: string[]): Promise<CourseCounts> {
   }
 
   if (moduleRows.length > 0) {
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from('lessons')
       .select('module_id')
       .in(
@@ -545,7 +549,7 @@ function toCourse(row: CourseRow, categoryName: string | null): Course {
 
 /** Categories, for the editor's category picker. Readable by every signed-in role. */
 export async function listCategories(): Promise<InstructorCategory[]> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('course_categories')
     .select(CATEGORY_COLUMNS)
     .order('name', { ascending: true })
@@ -556,7 +560,7 @@ export async function listCategories(): Promise<InstructorCategory[]> {
 
 /** The course ids this instructor teaches, straight from `course_instructors`. */
 export async function listInstructorCourseIds(instructorId: string): Promise<string[]> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('course_instructors')
     .select('course_id')
     .eq('instructor_id', instructorId)
@@ -582,7 +586,7 @@ export async function listInstructorCourses(instructorId: string): Promise<Instr
   if (courseIds.length === 0) return []
 
   const [{ data, error }, counts] = await Promise.all([
-    db
+    supabase
       .from('courses')
       .select(COURSE_SELECT_WITH_CATEGORY)
       .in('id', courseIds)
@@ -606,7 +610,7 @@ export async function listInstructorCourses(instructorId: string): Promise<Instr
 
 /** One course with its headline numbers, or null when there is no such course. */
 export async function getInstructorCourse(courseId: string): Promise<InstructorCourse | null> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('courses')
     .select(COURSE_SELECT_WITH_CATEGORY)
     .eq('id', courseId)
@@ -640,7 +644,7 @@ export async function getInstructorCourse(courseId: string): Promise<InstructorC
  * failure is a visible error.
  */
 export async function listCourseCurriculum(courseId: string): Promise<CourseModule[]> {
-  const { data: moduleRows, error: moduleError } = await db
+  const { data: moduleRows, error: moduleError } = await supabase
     .from('modules')
     .select(MODULE_COLUMNS)
     .eq('course_id', courseId)
@@ -652,7 +656,7 @@ export async function listCourseCurriculum(courseId: string): Promise<CourseModu
 
   const modules = (moduleRows as unknown as ModuleRow[]).map(toModule)
 
-  const { data: lessonRows, error: lessonError } = await db
+  const { data: lessonRows, error: lessonError } = await supabase
     .from('lessons')
     .select(LESSON_COLUMNS)
     .in(
@@ -674,7 +678,7 @@ export async function listCourseCurriculum(courseId: string): Promise<CourseModu
 
 /** Quizzes on a course, with their question and point totals. */
 export async function listCourseQuizzes(courseId: string): Promise<QuizSummary[]> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('quizzes')
     .select(QUIZ_COLUMNS)
     .eq('course_id', courseId)
@@ -698,7 +702,7 @@ export async function listCourseQuizzes(courseId: string): Promise<QuizSummary[]
 
   // No `is_correct` and no `explanation`: the student-safe column list. The
   // answer key is a separate, explicitly instructor-only call below.
-  const { data: questionRows, error: questionError } = await db
+  const { data: questionRows, error: questionError } = await supabase
     .from('quiz_questions')
     .select('id, quiz_id, points')
     .in(
@@ -747,7 +751,7 @@ export async function listCourseQuizzes(courseId: string): Promise<QuizSummary[]
  * payload would show every option as wrong.
  */
 export async function getQuizAnswerKey(quizId: string): Promise<QuizAnswerKey> {
-  const { data, error } = await db.rpc('quiz_with_answers', { p_quiz_id: quizId })
+  const { data, error } = await supabase.rpc('quiz_with_answers', { p_quiz_id: quizId })
   if (error) throw new InstructorError(messageOf(error, 'Could not load the answer key.'))
 
   if (typeof data !== 'object' || data === null) {
@@ -873,7 +877,7 @@ export async function createInstructorCourse(
     )
   }
 
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('courses')
     .insert({
       title: draft.title,
@@ -932,7 +936,7 @@ export async function updateInstructorCourse(
   if (patch.passingScore !== undefined) update.passing_score = patch.passingScore
   if (patch.publishedAt !== undefined) update.published_at = patch.publishedAt
 
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('courses')
     .update(update)
     .eq('id', courseId)
@@ -955,7 +959,7 @@ export async function updateInstructorCourse(
  * keeps "add" appending, which is what an instructor expects while building.
  */
 async function nextModulePosition(courseId: string): Promise<number> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('modules')
     .select('position')
     .eq('course_id', courseId)
@@ -968,7 +972,7 @@ async function nextModulePosition(courseId: string): Promise<number> {
 }
 
 async function nextLessonPosition(moduleId: string): Promise<number> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('lessons')
     .select('position')
     .eq('module_id', moduleId)
@@ -988,7 +992,7 @@ export interface ModuleDraft {
 export async function createModule(courseId: string, draft: ModuleDraft): Promise<Module> {
   const position = await nextModulePosition(courseId)
 
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('modules')
     .insert({
       course_id: courseId,
@@ -1013,7 +1017,7 @@ export async function updateModule(moduleId: string, patch: ModulePatch): Promis
   if (patch.title !== undefined) update.title = patch.title
   if (patch.description !== undefined) update.description = patch.description
 
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('modules')
     .update(update)
     .eq('id', moduleId)
@@ -1032,7 +1036,7 @@ export async function updateModule(moduleId: string, patch: ModulePatch): Promis
  * first and this says so plainly rather than leaving the caller to discover it.
  */
 export async function deleteModule(moduleId: string): Promise<void> {
-  const { error } = await db.from('modules').delete().eq('id', moduleId)
+  const { error } = await supabase.from('modules').delete().eq('id', moduleId)
   if (error) throw new InstructorError(messageOf(error, 'Could not delete the module.'))
 }
 
@@ -1048,7 +1052,7 @@ export interface LessonDraft {
 export async function createLesson(moduleId: string, draft: LessonDraft): Promise<Lesson> {
   const position = await nextLessonPosition(moduleId)
 
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('lessons')
     .insert({
       module_id: moduleId,
@@ -1085,7 +1089,7 @@ export async function updateLesson(lessonId: string, patch: LessonPatch): Promis
   if (patch.isPreview !== undefined) update.is_preview = patch.isPreview
   if (patch.videoUrl !== undefined) update.video_url = patch.videoUrl
 
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('lessons')
     .update(update)
     .eq('id', lessonId)
@@ -1097,7 +1101,7 @@ export async function updateLesson(lessonId: string, patch: LessonPatch): Promis
 }
 
 export async function deleteLesson(lessonId: string): Promise<void> {
-  const { error } = await db.from('lessons').delete().eq('id', lessonId)
+  const { error } = await supabase.from('lessons').delete().eq('id', lessonId)
   if (error) throw new InstructorError(messageOf(error, 'Could not delete the lesson.'))
 }
 
@@ -1117,10 +1121,10 @@ export async function listInstructorStudents(instructorId: string): Promise<Inst
   const courseIds = await listInstructorCourseIds(instructorId)
   if (courseIds.length === 0) return []
 
-  const [{ data: enrollmentRows, error: enrollmentError }, { data: moduleRows, error: moduleError }] =
+  const [{ data: enrollmentRows, error: enrollmentError }, { data: moduleData, error: moduleError }] =
     await Promise.all([
-      db.from('enrollments').select(ENROLLMENT_COLUMNS).in('course_id', courseIds),
-      db.from('modules').select('id, course_id').in('course_id', courseIds),
+      supabase.from('enrollments').select(ENROLLMENT_COLUMNS).in('course_id', courseIds),
+      supabase.from('modules').select('id, course_id').in('course_id', courseIds),
     ])
 
   if (enrollmentError)
@@ -1140,11 +1144,11 @@ export async function listInstructorStudents(instructorId: string): Promise<Inst
 
   const courseByModule = new Map<string, string>()
   const lessonsPerCourse = emptyCounter<string>()
-  const moduleRows = (moduleRows ?? []) as Array<{ id: string; course_id: string }>
+  const moduleRows = (moduleData ?? []) as Array<{ id: string; course_id: string }>
   for (const row of moduleRows) courseByModule.set(row.id, row.course_id)
 
   if (moduleRows.length > 0) {
-    const { data: lessonRows, error: lessonError } = await db
+    const { data: lessonRows, error: lessonError } = await supabase
       .from('lessons')
       .select('module_id')
       .in(
@@ -1161,14 +1165,14 @@ export async function listInstructorStudents(instructorId: string): Promise<Inst
 
   const [{ data: profileRows, error: profileError }, { data: courseRows, error: courseError }] =
     await Promise.all([
-      db
+      supabase
         .from('profiles')
         .select(PROFILE_COLUMNS)
         .in(
           'id',
           [...new Set(enrollments.map((row) => row.student_id))],
         ),
-      db.from('courses').select('id, title').in('id', courseIds),
+      supabase.from('courses').select('id, title').in('id', courseIds),
     ])
 
   if (profileError)
@@ -1184,7 +1188,7 @@ export async function listInstructorStudents(instructorId: string): Promise<Inst
     courseTitles.set(row.id, row.title)
   }
 
-  const { data: progressRows, error: progressError } = await db
+  const { data: progressRows, error: progressError } = await supabase
     .from('lesson_progress')
     .select('enrollment_id, status')
     .in(
@@ -1249,7 +1253,7 @@ export async function listGradingQueue(
   const courseIds = await listInstructorCourseIds(instructorId)
   if (courseIds.length === 0) return []
 
-  let assignmentQuery = db
+  let assignmentQuery = supabase
     .from('assignments')
     .select(ASSIGNMENT_COLUMNS)
     .in('course_id', courseIds)
@@ -1262,7 +1266,7 @@ export async function listGradingQueue(
   const assignments = (assignmentRows ?? []) as unknown as AssignmentRow[]
   if (assignments.length === 0) return []
 
-  let submissionQuery = db
+  let submissionQuery = supabase
     .from('assignment_submissions')
     .select(SUBMISSION_COLUMNS)
     .in(
@@ -1280,8 +1284,8 @@ export async function listGradingQueue(
 
   const [{ data: courseRows, error: courseError }, { data: profileRows, error: profileError }] =
     await Promise.all([
-      db.from('courses').select('id, title').in('id', courseIds),
-      db
+      supabase.from('courses').select('id, title').in('id', courseIds),
+      supabase
         .from('profiles')
         .select(PROFILE_COLUMNS)
         .in(
@@ -1343,7 +1347,7 @@ export async function gradeSubmission(
   feedback: string,
   graderId: string,
 ): Promise<AssignmentSubmission> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('assignment_submissions')
     .update({
       grade,
@@ -1390,9 +1394,9 @@ export async function getInstructorInsights(instructorId: string): Promise<Instr
 
   const [{ data: courseRows, error: courseError }, { data: enrollmentRows, error: enrollmentError }, { data: attemptRows, error: attemptError }] =
     await Promise.all([
-      db.from('courses').select('id, title, status').in('id', courseIds),
-      db.from('enrollments').select('course_id, student_id, status').in('course_id', courseIds),
-      db
+      supabase.from('courses').select('id, title, status').in('id', courseIds),
+      supabase.from('enrollments').select('course_id, student_id, status').in('course_id', courseIds),
+      supabase
         .from('quiz_attempts')
         .select('course_id, percentage, status')
         .in('course_id', courseIds)
@@ -1499,7 +1503,7 @@ export async function listUpcomingDeadlines(
   const courseIds = await listInstructorCourseIds(instructorId)
   if (courseIds.length === 0) return []
 
-  const { data: assignmentRows, error: assignmentError } = await db
+  const { data: assignmentRows, error: assignmentError } = await supabase
     .from('assignments')
     .select(ASSIGNMENT_COLUMNS)
     .in('course_id', courseIds)
@@ -1519,14 +1523,14 @@ export async function listUpcomingDeadlines(
 
   const [{ data: submissionRows, error: submissionError }, { data: courseRows, error: courseError }] =
     await Promise.all([
-      db
+      supabase
         .from('assignment_submissions')
         .select('assignment_id, status')
         .in(
           'assignment_id',
           assignments.map((row) => row.id),
         ),
-      db.from('courses').select('id, title').in('id', courseIds),
+      supabase.from('courses').select('id, title').in('id', courseIds),
     ])
 
   if (submissionError)
