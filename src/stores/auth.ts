@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { Session, User } from '@supabase/supabase-js'
-import { supabase, isSupabaseConfigured } from '@/services/supabase/client'
+import { supabase, isSupabaseConfigured, readFunctionError } from '@/services/supabase/client'
 import { fetchProfileByUserId } from '@/services/profile.service'
 import type { Profile, Role } from '@/types'
 
@@ -145,12 +145,38 @@ export const useAuthStore = defineStore('auth', () => {
     return { needsEmailConfirmation: !data.session }
   }
 
+  /**
+   * Sends the reset link through this project's own Gmail SMTP.
+   *
+   * This used to call `supabase.auth.resetPasswordForEmail`, which sends from
+   * Supabase's mailer instead. That works, but it meant the Gmail SMTP client in
+   * `supabase/functions/_shared/smtp.ts` was called by nothing at all - 38 passing
+   * tests on dead code.
+   *
+   * The function mints the recovery link with the admin API and emails it, so the
+   * user-visible flow is unchanged: the caller cannot tell which path ran, and
+   * cannot tell whether the account exists.
+   */
   async function sendPasswordReset(email: string): Promise<void> {
     clearError()
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
+    const { data, error } = await supabase.functions.invoke('send-email', {
+      body: { action: 'password_reset', email: email.trim().toLowerCase() },
     })
-    if (error) throw new Error(error.message)
+
+    if (error) {
+      throw new Error(
+        // Supabase wraps a non-2xx function response in a FunctionsHttpError
+        // whose `context` is the JSON body the function actually sent. Reading
+        // `error.message` alone would show "Edge Function returned a non-2xx
+        // status code", which names nothing.
+        readFunctionError(error) ?? 'Could not send the reset link. Try again in a moment.',
+      )
+    }
+
+    // The function answers 200 with `delivered:false` when the address has no
+    // account. That is deliberate - it must not be distinguishable from success -
+    // so there is nothing to act on and nothing to report.
+    void data
   }
 
   async function updatePassword(password: string): Promise<void> {

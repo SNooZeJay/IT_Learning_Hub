@@ -67,6 +67,34 @@ export function describeSupabaseError(error: unknown): string {
 }
 
 /**
+ * Pulls the real message out of a failed Edge Function call.
+ *
+ * `supabase.functions.invoke` wraps any non-2xx response in a FunctionsHttpError
+ * whose message is "Edge Function returned a non-2xx status code". The actual
+ * message the function wrote is in `error.context`, already parsed when the
+ * response was JSON. Reading `error.message` alone throws away the only useful
+ * sentence - which on this project is usually the exact reason the mail or the
+ * payment could not be processed.
+ *
+ * Returns null when there is nothing better to say, so the caller can fall back
+ * to its own wording.
+ */
+export function readFunctionError(error: unknown): string | null {
+  if (typeof error !== 'object' || error === null) return null
+
+  const context = (error as { context?: unknown }).context
+  if (typeof context === 'string' && context.trim()) return context.trim()
+
+  if (typeof context === 'object' && context !== null) {
+    const body = context as { error?: unknown; message?: unknown }
+    if (typeof body.error === 'string' && body.error.trim()) return body.error.trim()
+    if (typeof body.message === 'string' && body.message.trim()) return body.message.trim()
+  }
+
+  return null
+}
+
+/**
  * The client is still constructed when unconfigured, because throwing at import
  * time takes down the whole app including the page that would explain the problem.
  *
