@@ -131,7 +131,12 @@ async function load(): Promise<void> {
   }
 
   briefing.value = data
-  alreadyPassed.value = data.attemptsUsed > 0
+  // The graded verdict, not the attempt count. `attemptsUsed > 0` means "has an
+  // attempt", which is true the moment one is started - so reloading mid-quiz
+  // resolved the four-way branch to 'passed' and rendered a message with no
+  // Start button and no Resume button. The student was stuck on a quiz they had
+  // already begun, with an attempt still counting against their three.
+  alreadyPassed.value = data.hasPassed
 
   // Recover an open attempt before deciding what to show. Without this a reload
   // mid-quiz presented the briefing screen and every click started a new attempt.

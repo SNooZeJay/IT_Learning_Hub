@@ -25,6 +25,7 @@ import {
   Monitor,
   RefreshCw,
   ShieldAlert,
+  TrendingUp,
 } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import type { QuizBriefing } from '@/services/quiz.service'
@@ -52,6 +53,18 @@ const remainingAttempts = computed(() =>
 )
 
 const exhausted = computed(() => !props.alreadyPassed && remainingAttempts.value === 0)
+
+/**
+ * The best graded result so far.
+ *
+ * Shown to a student who has failed and is deciding whether to spend another
+ * attempt. The old screen carried an attempt history for the same reason, and
+ * "you are not doing worse than 40%" is what makes that decision an informed one.
+ */
+const bestSoFar = computed(() => {
+  const value = props.briefing.bestPercentage
+  return typeof value === 'number' ? Math.round(value * 100) / 100 : null
+})
 
 /**
  * The four ways this screen can end, named.
@@ -219,6 +232,14 @@ const state = computed<'passed' | 'resume' | 'exhausted' | 'ready'>(() => {
         After you submit
       </h2>
       <ul class="mt-3 flex flex-col gap-2 text-sm leading-6 text-gray-600 dark:text-gray-300">
+        <li v-if="bestSoFar !== null" class="flex gap-2.5">
+          <TrendingUp class="mt-0.5 size-4 shrink-0 text-gray-400" aria-hidden="true" />
+          <span>
+            Your best result so far is
+            <strong class="font-semibold text-gray-800 dark:text-gray-200">{{ bestSoFar }}%</strong
+            >, against a pass mark of {{ briefing.passingScore }}%.
+          </span>
+        </li>
         <li class="flex gap-2.5">
           <ListChecks class="mt-0.5 size-4 shrink-0 text-gray-400" aria-hidden="true" />
           <span>You get your score, the pass mark, and how many attempts you have left.</span>
@@ -310,10 +331,11 @@ const state = computed<'passed' | 'resume' | 'exhausted' | 'ready'>(() => {
       <div v-else-if="state === 'resume'" class="flex flex-wrap items-center gap-3">
         <Button variant="primary" :disabled="starting" @click="emit('resume', openAttemptId!)">
           <RefreshCw v-if="starting" class="size-4 animate-spin" aria-hidden="true" />
-          Resume attempt {{ briefing.attemptsUsed + 1 }}
+          Resume attempt {{ briefing.attemptsUsed }}
         </Button>
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          You have an unfinished attempt. Resuming keeps your place and your time limit.
+          You have an unfinished attempt. Resuming keeps your answers, your place and your time
+          limit.
         </p>
       </div>
 

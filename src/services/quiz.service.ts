@@ -371,6 +371,16 @@ export interface QuizBriefing {
   passingScore: number
   attemptsAllowed: number
   attemptsUsed: number
+  /**
+   * Whether a graded attempt passed.
+   *
+   * Not derivable from `attemptsUsed`. Using that as a proxy meant a student who
+   * started an attempt and reloaded was told they had already passed, and the
+   * pre-quiz screen offered neither Start nor Resume.
+   */
+  hasPassed: boolean
+  /** Best graded percentage so far, or null if nothing has been graded. */
+  bestPercentage: number | null
   timeLimitMinutes: number | null
   maxWarnings: number
   shuffleQuestions: boolean
