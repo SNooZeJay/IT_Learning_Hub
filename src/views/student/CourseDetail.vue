@@ -71,9 +71,15 @@
                 Before this there was no link from a course page to its quiz at
                 all. The only route was a past-attempt link on the grades screen,
                 so a student who had never sat the quiz could not find it.
+
+                Gated on enrolment, like the curriculum above it. Row Level Security
+                would have refused the content anyway - quiz_briefing and the
+                question policies both require an enrolment - but showing the link
+                next to "Enrol to see the lessons" contradicts what the page says
+                two inches above it.
               -->
               <section
-                v-if="quizzes.length > 0"
+                v-if="isEnrolledHere && quizzes.length > 0"
                 class="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800"
                 aria-labelledby="course-quizzes-heading"
               >
