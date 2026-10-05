@@ -5,6 +5,20 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
 
+    /**
+     * `node` is here for test files, not for application code.
+     *
+     * `src/router/internal-links.test.ts` reads the source tree off disk to check
+     * every internal link against the route table, which needs `node:fs` and
+     * `process`. Vitest runs in node even though the app is a browser bundle, and
+     * `@vue/tsconfig/tsconfig.dom.json` types the project for the browser only, so
+     * without this the test fails `tsc` on three counts while passing at runtime.
+     *
+     * Nothing under `src/components`, `src/views` or `src/services` should import
+     * from `node:` - Vite would fail the browser build loudly, which is the point.
+     */
+    "types": ["node", "vite/client"],
+
     "paths": {
       "@/*": ["./src/*"]
     }
