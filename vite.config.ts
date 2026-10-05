@@ -1,6 +1,5 @@
 import { copyFileSync, existsSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
-import { resolve } from 'node:path'
 
 import { defineConfig, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -41,21 +40,33 @@ import vueDevTools from 'vite-plugin-vue-devtools'
  * `vercel.json` is deliberately left in place. If the Root Directory is corrected
  * the rewrite will start applying, and having both is harmless - the rewrite simply
  * wins, and this file is never reached.
+ *
+ * The output directory is taken from Vite's resolved config rather than from
+ * `__dirname` or `import.meta.url`. A first attempt used `__dirname`, which worked
+ * on this machine and then failed the Vercel build outright, so no deployment
+ * happened at all - Vite loads a TypeScript config as CJS or ESM depending on the
+ * host, and only one of those two identifiers exists. `configResolved` is the API
+ * for this and has neither problem.
  */
 function spaFallback(): Plugin {
+  let outDir = ''
+
   return {
     name: 'spa-fallback-404',
     apply: 'build',
+    configResolved(config) {
+      // Vite reports this absolute, so no cwd assumption is needed.
+      outDir = config.build.outDir
+    },
     closeBundle() {
-      const outDir = resolve(__dirname, 'dist')
-      const index = resolve(outDir, 'index.html')
-      const notFound = resolve(outDir, '404.html')
+      const index = `${outDir}/index.html`
+      const notFound = `${outDir}/404.html`
 
       if (!existsSync(index)) {
         // A build that produced no index.html is a failed build. Emitting an empty
         // 404.html here would replace a loud failure with a silent one that only
         // shows up on a deployed deep link.
-        this.error('spa-fallback-404: dist/index.html does not exist, so 404.html cannot be built.')
+        this.error(`spa-fallback-404: ${index} does not exist, so 404.html cannot be built.`)
         return
       }
 
