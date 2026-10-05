@@ -901,16 +901,6 @@ watch(
             </div>
           </section>
 
-          <QuizSettingsForm
-            v-if="settingsForm.open"
-            :course-id="courseId"
-            :quiz="settingsForm.quiz"
-            :saving="settingsForm.saving"
-            :error="settingsForm.error"
-            @cancel="closeForms"
-            @submit="saveQuiz"
-          />
-
           <LoadingState v-if="isLoadingSelectedAttempts" label="Loading results" />
 
           <ErrorState
@@ -938,6 +928,26 @@ watch(
             <QuizAttemptsPanel :quiz-id="quiz.id" :attempts="selectedAttempts" />
           </section>
         </template>
+
+        <!--
+          The create/edit form, deliberately outside the `v-else-if="quiz"` branch
+          above.
+
+          It was inside it, which meant it only rendered when a quiz was already
+          selected - so "New quiz" set `settingsForm.open = true` and nothing
+          appeared. Found by clicking the button on a course with no quizzes yet,
+          which is the exact state a new course is in.
+        -->
+        <QuizSettingsForm
+          v-if="settingsForm.open"
+          class="mt-5"
+          :course-id="courseId"
+          :quiz="settingsForm.quiz"
+          :saving="settingsForm.saving"
+          :error="settingsForm.error"
+          @cancel="closeForms"
+          @submit="saveQuiz"
+        />
       </div>
     </div>
   </div>
