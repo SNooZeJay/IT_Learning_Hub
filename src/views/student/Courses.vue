@@ -57,7 +57,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { BookOpen, Search } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -73,7 +74,41 @@ const auth = useAuthStore()
 
 const courses = ref<Course[]>([])
 const enrolledIds = ref<Set<string>>(new Set())
-const search = ref('')
+
+/**
+ * Seeded from `?q=`, and written back as it changes.
+ *
+ * The header's search box navigates here with the term in the query rather than
+ * filtering in place, because a search that only works from one screen is not a
+ * search. It arrived correctly and this page ignored the parameter, so the box
+ * appeared to do nothing.
+ *
+ * Written back with `router.replace` so the term is shareable and survives a reload,
+ * and so typing does not push a history entry per keystroke - Back should leave the
+ * page, not walk through every letter of the word that was typed.
+ */
+const route = useRoute()
+const router = useRouter()
+const search = ref(typeof route.query.q === 'string' ? route.query.q : '')
+
+// In: arriving from the header, or from a Back that changed the query.
+watch(
+  () => route.query.q,
+  (value) => {
+    const next = typeof value === 'string' ? value : ''
+    if (next !== search.value) search.value = next
+  },
+)
+
+// Out: typing, so the field and the URL never disagree.
+watch(search, (value) => {
+  const current = typeof route.query.q === 'string' ? route.query.q : ''
+  if (value === current) return
+  void router.replace({
+    query: value ? { ...route.query, q: value } : { ...route.query, q: undefined },
+  })
+})
+
 const isLoading = ref(true)
 const errorMessage = ref('')
 
@@ -108,9 +143,7 @@ async function load(): Promise<void> {
       auth.profile ? listMyEnrollments(auth.profile.id) : Promise.resolve([]),
     ])
     courses.value = all.filter((course) => course.status === 'published')
-    enrolledIds.value = new Set(
-      mine.filter((e) => e.status === 'active').map((e) => e.courseId),
-    )
+    enrolledIds.value = new Set(mine.filter((e) => e.status === 'active').map((e) => e.courseId))
   } catch (error) {
     errorMessage.value =
       error instanceof Error ? error.message : 'Could not load the course catalogue.'

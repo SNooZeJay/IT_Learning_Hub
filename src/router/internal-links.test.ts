@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { join, relative, sep } from 'node:path'
 
 /**
  * `createWebHistory` reads `window` when `router/index.ts` is imported, and jsdom is
@@ -60,20 +60,46 @@ function* sourceFiles(dir: string): Generator<string> {
 }
 
 /**
- * Internal link targets written as literals.
+ * Internal link targets.
  *
- * Deliberately conservative: only strings that look like one of this app's route
- * prefixes, so a URL fragment in a comment or an unrelated string is not treated as
- * a link. Templates and interpolations are skipped - a link built with
- * `` `/student/lessons/${id}` `` is covered by its static prefix, which is enough
- * to catch a missing route, and guessing at the runtime value would be theatre.
+ * Deliberately conservative about which strings count: only paths that begin with
+ * one of this app's route prefixes, so a URL fragment in a comment or an unrelated
+ * string is not mistaken for a link.
+ *
+ * Interpolated paths are included, and this is a correction rather than an addition.
+ * The previous pattern required a closing quote straight after the path, so anything
+ * containing `${...}` failed to match *at all* - not "covered by its static prefix"
+ * as the comment then claimed, but skipped completely. Verified by injecting
+ * `/instructor/courses/${course.id}/quizzes` (a route that does not exist) and
+ * watching the suite still report 159 passed.
+ *
+ * That matters because interpolated links are where the routing mistakes live.
+ * `services/calendar.service.ts` builds every one of its links that way, so the file
+ * with the most route references in the project was the one file the checker could
+ * not see.
  */
 const LINK_PATTERN =
-  /["'`](\/(?:student|instructor|admin|profile|auth|courses)(?:\/[A-Za-z0-9_:$-]+)*)["'`]/g
+  /["'`](\/(?:student|instructor|admin|profile|auth|courses)(?:\/(?:[A-Za-z0-9_:$-]+|\$\{[^}]*\}))*)["'`]/g
+
+/**
+ * A stand-in for an interpolated value.
+ *
+ * Vue Router matches a `:param` segment against any run of non-slash characters, so
+ * the value is irrelevant to whether the route exists - only the surrounding literal
+ * segments decide that. A slash-free token is used so it cannot invent an extra path
+ * segment and resolve a route the real link would have missed.
+ */
+const PARAM_STUB = 'x'
+
+/** The path to hand to the router: interpolations replaced by a stub. */
+function resolvable(target: string): string {
+  return target.replace(/\$\{[^}]*\}/g, PARAM_STUB)
+}
 
 interface FoundLink {
   file: string
   line: number
+  /** The link as written, used in the test title and the failure message. */
   target: string
 }
 
@@ -122,6 +148,7 @@ function collectLinks(): FoundLink[] {
 }
 
 const links = collectLinks()
+const interpolatedLinks = links.filter((l) => l.target.includes('${'))
 
 describe('internal links resolve', () => {
   it('found links to check', () => {
@@ -130,10 +157,31 @@ describe('internal links resolve', () => {
     expect(links.length).toBeGreaterThan(10)
   })
 
+  it('found interpolated links, which the previous pattern skipped entirely', () => {
+    // The gap this file previously had was not that it checked the wrong links, it
+    // was that it could not see a whole category of them. A bare count assertion
+    // would be too weak to notice if the set emptied out, so this also pins the
+    // specific file that was invisible.
+    //
+    // `path.relative` returns backslashes on Windows, so the paths are normalised
+    // before comparing rather than assuming a separator.
+    const files = new Set(interpolatedLinks.map((l) => l.file.split(sep).join('/')))
+    expect(files.has('src/services/calendar.service.ts')).toBe(true)
+    expect(interpolatedLinks.length).toBeGreaterThan(5)
+  })
+
+  it('substituting an interpolated value does not change which route matches', () => {
+    // If the stub ever stopped being a valid `:param` value the suite would start
+    // reporting every interpolated link as broken, which would be noticed - but the
+    // opposite failure, silently resolving to something real, would not.
+    const resolved = router.resolve(resolvable('/student/lessons/abc123'))
+    expect(resolved.name).toBe('student-lesson')
+  })
+
   it.each(links.map((l) => [l.target, l] as const))(
     '%s resolves to a real route',
     (_target, link) => {
-      const { matched, name } = router.resolve(link.target)
+      const { matched, name } = router.resolve(resolvable(link.target))
 
       // An unmatched path resolves to nothing at all; a path that only matches the
       // catch-all resolves to the 404 redirect, which is the silent failure this

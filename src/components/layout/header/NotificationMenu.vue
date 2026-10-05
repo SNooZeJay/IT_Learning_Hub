@@ -1,166 +1,514 @@
 <template>
-  <div class="relative" ref="dropdownRef">
+  <div ref="dropdownRef" class="relative">
     <button
-      class="relative flex items-center justify-center text-gray-500 transition-colors bg-white border border-gray-200 rounded-full hover:text-dark-900 h-11 w-11 hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+      type="button"
+      class="relative flex size-11 items-center justify-center rounded-full border border-hairline bg-canvas text-slate transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:bg-white/[0.03] dark:text-gray-400 dark:hover:bg-white/[0.08] dark:hover:text-gray-200"
+      aria-haspopup="true"
+      :aria-expanded="dropdownOpen"
+      aria-controls="notification-menu-dropdown"
       @click="toggleDropdown"
     >
+      <!--
+        The unread dot used to be `const notifying = ref(true)` — a red pulse
+        from first paint, on an account with no notifications at all. It is now
+        the real count from the `notifications` table, and it is absent at zero.
+      -->
       <span
-        :class="{ hidden: !notifying, flex: notifying }"
-        class="absolute right-0 top-0.5 z-1 h-2 w-2 rounded-full bg-error-500"
+        v-if="unreadCount > 0"
+        class="absolute end-1.5 top-1.5 z-1 size-2 rounded-full bg-error-500"
       >
         <span
-          class="absolute inline-flex w-full h-full bg-error-500 rounded-full opacity-75 -z-1 animate-ping"
+          class="absolute -z-1 inline-flex size-full animate-ping rounded-full bg-error-500 opacity-75"
         ></span>
       </span>
-      <svg
-        class="fill-current"
-        width="20"
-        height="20"
-        viewBox="0 0 20 20"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          fill-rule="evenodd"
-          clip-rule="evenodd"
-          d="M10.75 2.29248C10.75 1.87827 10.4143 1.54248 10 1.54248C9.58583 1.54248 9.25004 1.87827 9.25004 2.29248V2.83613C6.08266 3.20733 3.62504 5.9004 3.62504 9.16748V14.4591H3.33337C2.91916 14.4591 2.58337 14.7949 2.58337 15.2091C2.58337 15.6234 2.91916 15.9591 3.33337 15.9591H4.37504H15.625H16.6667C17.0809 15.9591 17.4167 15.6234 17.4167 15.2091C17.4167 14.7949 17.0809 14.4591 16.6667 14.4591H16.375V9.16748C16.375 5.9004 13.9174 3.20733 10.75 2.83613V2.29248ZM14.875 14.4591V9.16748C14.875 6.47509 12.6924 4.29248 10 4.29248C7.30765 4.29248 5.12504 6.47509 5.12504 9.16748V14.4591H14.875ZM8.00004 17.7085C8.00004 18.1228 8.33583 18.4585 8.75004 18.4585H11.25C11.6643 18.4585 12 18.1228 12 17.7085C12 17.2943 11.6643 16.9585 11.25 16.9585H8.75004C8.33583 16.9585 8.00004 17.2943 8.00004 17.7085Z"
-          fill=""
-        />
-      </svg>
+
+      <!-- The dot carries no text, so the state is named here for a screen
+           reader. "Loading" is distinguished from "nothing" on purpose. -->
+      <span class="sr-only">{{ buttonLabel }}</span>
+
+      <Bell class="size-5" aria-hidden="true" />
     </button>
 
     <!-- Dropdown Start -->
+    <!--
+      Width below `xl`.
+
+      The header's second row is `flex justify-between`, so the group holding the
+      theme toggle and this bell is shrink-to-fit and the bell's own box is one
+      button wide. A panel sized against that box collapses to 44px — which is
+      exactly what `w-full` on the root produced when this was measured at 375px.
+      So below `xl` the width is taken from the viewport instead.
+
+      `6rem` is that group's start offset: the row's `px-5` inset (1.25rem) plus
+      the 44px theme toggle plus the 12px gap, so the bell begins 96px in. From
+      1280px the row is no longer justified apart and a fixed width anchored to
+      the button's own end takes over.
+
+      This couples to AppHeader's spacing, which another component owns. If that
+      inset changes, this has to change with it.
+    -->
     <div
       v-if="dropdownOpen"
-      class="absolute ltr:-left-15 ltr:md:-left-13 rtl:-right-15 rtl:md:-right-13 mt-4.25 flex h-120 w-87.5 flex-col rounded-2xl border border-gray-200 bg-white p-3 shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark sm:w-90.25 ltr:xl:left-auto ltr:xl:right-0 rtl:xl:right-auto rtl:xl:left-0 z-50 animate-fadeIn"
+      id="notification-menu-dropdown"
+      class="absolute start-0 top-full z-50 mt-4 flex w-[min(22rem,calc(100vw-6rem))] flex-col rounded-lg border border-hairline bg-canvas p-3 shadow-theme-lg animate-fadeIn xl:w-[22rem] xl:start-auto xl:end-0 dark:bg-surface"
     >
-      <div
-        class="flex items-center justify-between pb-3 mb-3 border-b border-gray-100 dark:border-gray-800"
-      >
-        <h5 class="text-lg font-semibold text-gray-800 dark:text-white/90">Notification</h5>
-
-        <button @click="closeDropdown" class="text-gray-500 dark:text-gray-400">
-          <svg
-            class="fill-current"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+      <div class="flex items-center justify-between gap-2 border-b border-hairline-soft pb-3">
+        <h5 class="text-theme-xl text-ink dark:text-gray-100">
+          Notifications
+          <span
+            v-if="unreadCount > 0"
+            class="ms-1.5 rounded-full bg-brand-50 px-2 py-0.5 align-middle text-theme-xs font-medium text-brand-700 dark:bg-brand-500/15 dark:text-brand-400"
           >
-            <path
-              fill-rule="evenodd"
-              clip-rule="evenodd"
-              d="M6.21967 7.28131C5.92678 6.98841 5.92678 6.51354 6.21967 6.22065C6.51256 5.92775 6.98744 5.92775 7.28033 6.22065L11.999 10.9393L16.7176 6.22078C17.0105 5.92789 17.4854 5.92788 17.7782 6.22078C18.0711 6.51367 18.0711 6.98855 17.7782 7.28144L13.0597 12L17.7782 16.7186C18.0711 17.0115 18.0711 17.4863 17.7782 17.7792C17.4854 18.0721 17.0105 18.0721 16.7176 17.7792L11.999 13.0607L7.28033 17.7794C6.98744 18.0722 6.51256 18.0722 6.21967 17.7794C5.92678 17.4865 5.92678 17.0116 6.21967 16.7187L10.9384 12L6.21967 7.28131Z"
-              fill=""
-            />
-          </svg>
+            {{ unreadCount }} unread
+          </span>
+        </h5>
+
+        <button
+          type="button"
+          class="shrink-0 rounded-md p-1 text-slate transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-gray-200"
+          aria-label="Close notifications"
+          @click="closeDropdown"
+        >
+          <X class="size-5" aria-hidden="true" />
         </button>
       </div>
 
-      <ul class="flex flex-col h-auto overflow-y-auto custom-scrollbar">
-        <li v-for="notification in notifications" :key="notification.id" @click="handleItemClick">
-          <a
-            class="flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
-            href="#"
-          >
-            <span class="relative block w-full h-10 rounded-full z-1 max-w-10">
-              <img :src="notification.userImage" alt="User" class="overflow-hidden rounded-full" />
-              <span
-                :class="notification.status === 'online' ? 'bg-success-500' : 'bg-error-500'"
-                class="absolute bottom-0 right-0 z-10 h-2.5 w-full max-w-2.5 rounded-full border-[1.5px] border-white dark:border-gray-900"
-              ></span>
-            </span>
+      <!--
+        Mark all read gets its own row rather than sharing the footer with the
+        view-all link: at 390px this panel is ~280px wide, and two labelled
+        buttons side by side inside that is how one of them ends up truncated.
+      -->
+      <div v-if="unreadCount > 0" class="flex justify-end pt-2">
+        <button
+          type="button"
+          class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1.5 text-theme-xs font-medium text-slate transition-colors hover:bg-surface-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 disabled:opacity-60 dark:text-gray-300 dark:hover:bg-white/[0.06]"
+          :disabled="markingAll"
+          @click="markAllRead"
+        >
+          <LoaderCircle v-if="markingAll" class="size-3.5 animate-spin" aria-hidden="true" />
+          <CheckCheck v-else class="size-3.5" aria-hidden="true" />
+          Mark all read
+        </button>
+      </div>
 
-            <span class="block">
-              <span class="mb-1.5 block text-theme-sm text-gray-500 dark:text-gray-400">
-                <span class="font-medium text-gray-800 dark:text-white/90">
-                  {{ notification.userName }}
-                </span>
-                {{ notification.action }}
-                <span class="font-medium text-gray-800 dark:text-white/90">
-                  {{ notification.project }}
-                </span>
-              </span>
-
-              <span class="flex items-center gap-2 text-gray-500 text-theme-xs dark:text-gray-400">
-                <span>{{ notification.type }}</span>
-                <span class="w-1 h-1 bg-gray-400 rounded-full"></span>
-                <span>{{ notification.time }}</span>
-              </span>
-            </span>
-          </a>
-        </li>
-      </ul>
-
-      <router-link
-        to="#"
-        class="mt-3 flex justify-center rounded-lg border border-gray-300 bg-white p-3 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/3 dark:hover:text-gray-200"
-        @click="handleViewAllClick"
+      <!-- Action error sits above the list rather than replacing it: a failed
+           "mark all read" has not lost the notifications. -->
+      <p
+        v-if="actionError"
+        class="mt-3 rounded-md bg-error-50 px-3 py-2 text-xs text-error-700 dark:bg-error-500/10 dark:text-error-400"
+        role="alert"
       >
-        View All Notifications
-      </router-link>
+        {{ actionError }}
+      </p>
+
+      <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
+        <!-- Loading -->
+        <div v-if="isLoading" class="flex items-center gap-3 py-6" role="status">
+          <LoaderCircle
+            class="size-5 shrink-0 animate-spin text-brand-600 dark:text-brand-400"
+            aria-hidden="true"
+          />
+          <p class="text-theme-sm text-slate">Loading your notifications</p>
+        </div>
+
+        <!-- Read failure. Retry is offered because the button that got here is a
+             real control and the only honest thing to do with a failure. -->
+        <div v-else-if="errorMessage" class="py-6 text-center">
+          <p class="text-theme-sm text-slate">{{ errorMessage }}</p>
+          <button
+            type="button"
+            class="mt-3 inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-theme-xs font-medium text-slate transition-colors hover:bg-surface-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:text-gray-300 dark:hover:bg-white/[0.06]"
+            @click="load"
+          >
+            <RefreshCw class="size-3.5" aria-hidden="true" />
+            Try again
+          </button>
+        </div>
+
+        <!-- Empty. An empty bell says so, rather than rendering a broken card. -->
+        <div v-else-if="notifications.length === 0" class="py-6 text-center">
+          <span
+            class="mx-auto mb-3 inline-flex size-10 items-center justify-center rounded-full bg-surface text-slate dark:bg-white/[0.06]"
+          >
+            <BellOff class="size-5" aria-hidden="true" />
+          </span>
+          <p class="text-theme-sm font-medium text-ink dark:text-gray-200">Nothing new</p>
+          <p class="mt-1 text-xs text-slate">
+            Enrolments, quiz results, graded work and certificates arrive here.
+          </p>
+        </div>
+
+        <ul v-else class="flex flex-col">
+          <li v-for="notification in preview" :key="notification.id">
+            <button
+              type="button"
+              class="flex w-full gap-3 rounded-md border-b border-hairline-soft px-2 py-3 text-start transition-colors hover:bg-surface-soft focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-500 disabled:opacity-60 last:border-b-0 dark:hover:bg-white/[0.06]"
+              :disabled="markingId === notification.id"
+              @click="open(notification)"
+            >
+              <!-- Type is shown as an icon and, for assistive tech, as a word.
+                   A coloured circle alone tells a screen reader nothing. -->
+              <span
+                class="inline-flex size-8 shrink-0 items-center justify-center rounded-full"
+                :class="iconWrapClass(notification.type)"
+              >
+                <component :is="iconFor(notification.type)" class="size-4" aria-hidden="true" />
+                <span class="sr-only">{{ typeLabel(notification.type) }}:</span>
+              </span>
+
+              <span class="min-w-0 flex-1">
+                <span class="flex items-baseline gap-2">
+                  <span
+                    class="min-w-0 flex-1 truncate text-theme-sm dark:text-gray-200"
+                    :class="notification.isRead ? 'font-medium text-ink' : 'font-semibold text-ink'"
+                  >
+                    {{ notification.title }}
+                  </span>
+                  <LoaderCircle
+                    v-if="markingId === notification.id"
+                    class="size-3.5 shrink-0 animate-spin text-slate"
+                    aria-hidden="true"
+                  />
+                </span>
+
+                <span v-if="notification.body" class="mt-0.5 line-clamp-2 text-xs text-slate">
+                  {{ notification.body }}
+                </span>
+
+                <!--
+                  The label truncates and the timestamp does not. On a 294px-wide
+                  phone panel the two together wrapped onto two lines and left
+                  the separator dot hanging at the end of the first, which reads
+                  as a broken list rather than a metadata line.
+                -->
+                <span class="mt-1 flex items-center gap-2 text-xs text-slate">
+                  <span class="truncate">{{ typeLabel(notification.type) }}</span>
+                  <span
+                    class="size-1 shrink-0 rounded-full bg-hairline-strong"
+                    aria-hidden="true"
+                  ></span>
+                  <span class="shrink-0">{{ formatDateTime(notification.createdAt) }}</span>
+                </span>
+
+                <span v-if="!notification.isRead" class="sr-only"
+                  >Unread. Activate to mark as read.</span
+                >
+              </span>
+            </button>
+          </li>
+        </ul>
+
+        <!--
+          The panel shows five rows. Without this, a user with twelve
+          notifications has no way to know the other seven exist — and only a
+          student has a page to find them on, so the wording stays count-only.
+        -->
+        <p v-if="notifications.length > PREVIEW_LIMIT" class="py-3 text-center text-xs text-slate">
+          Showing {{ preview.length }} of {{ notifications.length }}
+        </p>
+      </div>
+
+      <!--
+        The footer link used to be `to="#"`, which resolves to the page you are
+        already on and looks like navigation. Students have a real
+        notifications screen; instructors and admins do not, so theirs points at
+        the dashboard rather than a page that was invented to fill the gap.
+      -->
+      <div class="mt-3 border-t border-hairline-soft pt-3">
+        <RouterLink
+          v-if="hasNotificationsPage"
+          to="/student/notifications"
+          class="flex w-full items-center justify-center rounded-md border border-hairline bg-canvas px-3 py-2 text-theme-sm font-medium text-slate shadow-theme-xs transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06] dark:hover:text-gray-100"
+          @click="closeDropdown"
+        >
+          View all notifications
+          <ChevronRight class="ms-1.5 size-4 rtl:rotate-180" aria-hidden="true" />
+        </RouterLink>
+        <RouterLink
+          v-else
+          :to="homePath"
+          class="flex w-full items-center justify-center rounded-md border border-hairline bg-canvas px-3 py-2 text-theme-sm font-medium text-slate shadow-theme-xs transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06] dark:hover:text-gray-100"
+          @click="closeDropdown"
+        >
+          Go to your dashboard
+          <ChevronRight class="ms-1.5 size-4 rtl:rotate-180" aria-hidden="true" />
+        </RouterLink>
+      </div>
     </div>
     <!-- Dropdown End -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+import { useUnreadNotifications } from '@/composables/useUnreadNotifications'
+import {
+  Award,
+  BadgeCheck,
+  Bell,
+  BellOff,
+  CheckCheck,
+  ChevronRight,
+  CircleDollarSign,
+  CircleX,
+  ClipboardCheck,
+  GraduationCap,
+  LoaderCircle,
+  Megaphone,
+  MessageSquare,
+  RefreshCw,
+  School,
+  X,
+} from 'lucide-vue-next'
+import {
+  listNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from '@/services/learning.service'
+import { useAuthStore } from '@/stores/auth'
+import { formatDateTime } from '@/types'
+import type { NotificationType, StudentNotification } from '@/services/learning.service'
+
+/**
+ * How many rows the panel shows before deferring to the full page.
+ *
+ * Five is what fits a panel this height without scrolling, so the dropdown
+ * stays a glance rather than becoming a second, worse copy of the list.
+ */
+const PREVIEW_LIMIT = 5
+
+const auth = useAuthStore()
+const router = useRouter()
 
 const dropdownOpen = ref(false)
-const notifying = ref(true)
 const dropdownRef = ref<HTMLElement | null>(null)
 
-// Empty by design. The notifications table is not built yet, and inventing
-// eight named people with fake project names is indistinguishable from real
-// data at a glance. The bell renders a zero state until it is wired.
-interface NotificationItem {
-  id: number
-  userName: string
-  userImage: string
-  action: string
-  project: string
-  type: string
-  time: string
-  status: string
+const notifications = ref<StudentNotification[]>([])
+const unreadCount = ref(0)
+/** Shared with the sidebar so the two surfaces cannot show different numbers. */
+const unread = useUnreadNotifications()
+const isLoading = ref(true)
+/** False until the first read resolves, so "nothing new" is never guessed. */
+const hasLoaded = ref(false)
+const errorMessage = ref('')
+const actionError = ref('')
+/** Id of the row being written, or `'all'`. Null when nothing is in flight. */
+const markingId = ref<string | null>(null)
+
+const markingAll = computed(() => markingId.value === 'all')
+
+const preview = computed(() => notifications.value.slice(0, PREVIEW_LIMIT))
+
+/** What the bell announces, since a coloured dot is silent. */
+const buttonLabel = computed(() => {
+  if (!hasLoaded.value) return 'Notifications, still loading'
+  if (unreadCount.value === 0) return 'Notifications, none unread'
+  return `${unreadCount.value} unread notification${unreadCount.value === 1 ? '' : 's'}`
+})
+
+/** Only students have a notifications screen. Inventing one for the others
+ *  would be a link to nowhere dressed as a feature. An unresolved role is
+ *  treated as a student, which is also what `auth.homePath` does. */
+const hasNotificationsPage = computed(() => auth.role !== 'instructor' && auth.role !== 'admin')
+
+const homePath = computed(() => auth.homePath)
+
+/**
+ * Icon and wording per notification type.
+ *
+ * The same vocabulary as `views/student/Notifications.vue`, so a "Certificate
+ * revoked" is called the same thing in the dropdown as on the page. Duplicated
+ * rather than shared: `<script setup>` cannot export, and the mapping is small
+ * enough that a wrong copy is cheaper to spot than a wrong abstraction. It
+ * should be lifted into a shared module the next time the list is touched.
+ */
+const TYPE_META: Record<NotificationType, { icon: typeof Award; label: string; wrap: string }> = {
+  enrolment_confirmed: {
+    icon: School,
+    label: 'Enrolment',
+    wrap: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400',
+  },
+  payment_received: {
+    icon: CircleDollarSign,
+    label: 'Payment',
+    wrap: 'bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-400',
+  },
+  quiz_graded: {
+    icon: ClipboardCheck,
+    label: 'Quiz result',
+    wrap: 'bg-warning-50 text-warning-600 dark:bg-warning-500/10 dark:text-warning-400',
+  },
+  assignment_graded: {
+    icon: Award,
+    label: 'Assignment marked',
+    wrap: 'bg-warning-50 text-warning-600 dark:bg-warning-500/10 dark:text-warning-400',
+  },
+  course_completed: {
+    icon: GraduationCap,
+    label: 'Course completed',
+    wrap: 'bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-400',
+  },
+  certificate_issued: {
+    icon: BadgeCheck,
+    label: 'Certificate issued',
+    wrap: 'bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-400',
+  },
+  certificate_revoked: {
+    icon: CircleX,
+    label: 'Certificate revoked',
+    wrap: 'bg-error-50 text-error-600 dark:bg-error-500/10 dark:text-error-400',
+  },
+  announcement: {
+    icon: Megaphone,
+    label: 'Announcement',
+    wrap: 'bg-surface text-slate dark:bg-white/[0.06]',
+  },
+  new_message: {
+    icon: MessageSquare,
+    label: 'Message',
+    wrap: 'bg-surface text-slate dark:bg-white/[0.06]',
+  },
 }
 
-const notifications = ref<NotificationItem[]>([])
+/** Unknown types fall back rather than rendering nothing: the enum in Postgres
+ *  can gain a value before this map does. */
+function metaFor(type: NotificationType) {
+  return TYPE_META[type] ?? { icon: BellOff, label: 'Update', wrap: 'bg-surface text-slate' }
+}
 
-const toggleDropdown = () => {
+function iconFor(type: NotificationType) {
+  return metaFor(type).icon
+}
+
+function typeLabel(type: NotificationType): string {
+  return metaFor(type).label
+}
+
+function iconWrapClass(type: NotificationType): string {
+  return metaFor(type).wrap
+}
+
+async function load(): Promise<void> {
+  isLoading.value = true
+  errorMessage.value = ''
+  try {
+    // The feed is keyed on the profile id, which the store may still be
+    // resolving on a cold load.
+    await auth.ensureReady()
+    const userId = auth.profile?.id
+    if (!userId) {
+      errorMessage.value = 'Your profile has not loaded yet. Give it a moment and try again.'
+      return
+    }
+    const feed = await listNotifications(userId)
+    notifications.value = feed.notifications
+    unreadCount.value = feed.unreadCount
+    // Published so the sidebar's Notifications badge reads the same number. Both
+    // surfaces showing a different count from the same rows is the exact failure
+    // this singleton exists to prevent.
+    unread.set(userId, feed.unreadCount)
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : 'Could not load your notifications.'
+  } finally {
+    isLoading.value = false
+    hasLoaded.value = true
+  }
+}
+
+/**
+ * Re-read the feed after a write rather than patching the row in place.
+ *
+ * The unread count is derived from the rows, so editing one row by hand and
+ * decrementing a number is how a count and the list beneath it drift apart.
+ */
+async function refresh(userId: string): Promise<void> {
+  const feed = await listNotifications(userId)
+  notifications.value = feed.notifications
+  unreadCount.value = feed.unreadCount
+  unread.set(userId, feed.unreadCount)
+}
+
+async function markRead(id: string): Promise<void> {
+  const userId = auth.profile?.id
+  if (!userId) return
+  actionError.value = ''
+  markingId.value = id
+  try {
+    await markNotificationRead(id, userId)
+    await refresh(userId)
+  } catch (error) {
+    actionError.value =
+      error instanceof Error ? error.message : 'Could not mark that as read. Try again.'
+  } finally {
+    markingId.value = null
+  }
+}
+
+async function markAllRead(): Promise<void> {
+  const userId = auth.profile?.id
+  if (!userId) return
+  actionError.value = ''
+  markingId.value = 'all'
+  try {
+    await markAllNotificationsRead(userId)
+    await refresh(userId)
+  } catch (error) {
+    actionError.value =
+      error instanceof Error ? error.message : 'Could not mark them as read. Try again.'
+  } finally {
+    markingId.value = null
+  }
+}
+
+/**
+ * Mark as read, then follow the notification's link.
+ *
+ * `link` is written by a server-side `notify` call and the service already
+ * discards anything that is not a slash-prefixed path, so it stays inside the
+ * router rather than reloading the app.
+ */
+async function open(notification: StudentNotification): Promise<void> {
+  closeDropdown()
+  if (!notification.isRead) {
+    await markRead(notification.id)
+  }
+  if (notification.link) {
+    await router.push(notification.link)
+  }
+}
+
+function toggleDropdown(): void {
   dropdownOpen.value = !dropdownOpen.value
-  notifying.value = false
 }
 
-const closeDropdown = () => {
+function closeDropdown(): void {
   dropdownOpen.value = false
 }
 
-const handleClickOutside = (event: MouseEvent) => {
+function handleClickOutside(event: MouseEvent): void {
   if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
     closeDropdown()
   }
 }
 
-const handleItemClick = (event: Event) => {
-  event.preventDefault()
-  console.log('Notification item clicked')
+function handleKeydown(event: KeyboardEvent): void {
+  if (event.key !== 'Escape' || !dropdownOpen.value) return
+  event.stopPropagation()
   closeDropdown()
 }
 
-const handleViewAllClick = (event: Event) => {
-  event.preventDefault()
-  console.log('View All Notifications clicked')
-  closeDropdown()
-}
-
+// Loaded on mount rather than on first open: the unread dot sits on the button
+// and has to be true before anyone clicks it.
 onMounted(() => {
+  void load()
   document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleKeydown)
 })
 </script>

@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase, isSupabaseConfigured, readFunctionError } from '@/services/supabase/client'
 import { fetchProfileByUserId } from '@/services/profile.service'
+import { useUnreadNotifications } from '@/composables/useUnreadNotifications'
 import type { Profile, Role } from '@/types'
 
 /**
@@ -214,6 +215,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function signOut(): Promise<void> {
     clearError()
+    // Module-level state, so it survives this store being torn down. Cleared here
+    // rather than left to the next reader's account check, because the next person
+    // to sign in on a shared machine should never see this one's unread count on
+    // the sidebar for even a moment.
+    useUnreadNotifications().reset()
     await supabase.auth.signOut()
     session.value = null
     profile.value = null

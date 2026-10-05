@@ -1413,10 +1413,17 @@ async function outstandingMaterials(
   studentId: string,
   titles: Map<string, string>,
 ): Promise<OutstandingMaterial[]> {
-  const { data: moduleRows } = await supabase
+  const { data: moduleRows, error: moduleError } = await supabase
     .from('modules')
     .select(MODULE_COLUMNS)
     .in('course_id', courseIds)
+
+  // Thrown like the lessons and materials reads below it. This one used to discard
+  // its error and carry on with `moduleRows ?? []`, so a failed query became "no
+  // modules" and the dashboard reported no outstanding materials - a false
+  // all-clear about work the student still owed, produced by a query that never
+  // succeeded.
+  if (moduleError) throw new LearningError(messageOf(moduleError, 'Could not load the modules.'))
 
   const modules = ((moduleRows ?? []) as unknown as ModuleRow[]).map(toModule)
   if (modules.length === 0) return []

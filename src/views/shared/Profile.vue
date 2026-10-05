@@ -2,196 +2,340 @@
   <div>
     <PageHeader
       title="My profile"
-      subtitle="Your name, contact details and account."
+      subtitle="Your photo, your details, your password, and the settings this account can actually hold."
       :crumbs="[{ label: 'Profile' }]"
     />
 
-    <div class="grid gap-6 lg:grid-cols-3">
-      <div class="lg:col-span-2">
-        <form
-          class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          novalidate
-          @submit.prevent="handleSubmit"
-        >
-          <h2 class="text-title-sm text-gray-900 dark:text-white/90">Details</h2>
+    <!--
+      Everything below needs a profile row. The route guard has already proved
+      there is a session, so a missing row means the `handle_new_user` trigger
+      never ran for this account, and saying so is more useful than rendering
+      five empty cards.
+    -->
+    <ErrorState
+      v-if="!profile"
+      title="Your profile could not be loaded"
+      :message="profileLoadMessage"
+      @retry="reloadProfile"
+    />
 
-          <Alert
-            v-if="savedMessage"
-            variant="success"
-            title="Profile saved"
-            :message="savedMessage"
-            class="mt-4"
+    <template v-else>
+      <div class="grid gap-6 lg:grid-cols-3">
+        <div class="space-y-6 lg:col-span-2">
+          <ProfileAvatarCard :profile="profile" @updated="applyProfile" />
+
+          <ProfileDetailsCard
+            :profile="profile"
+            :saving="isSavingDetails"
+            :saved-message="detailsSaved"
+            :error-message="detailsError"
+            @submit="saveDetails"
+            @truncated="detailsTruncated = true"
           />
-          <Alert
-            v-if="errorMessage"
-            variant="error"
-            title="Could not save your profile"
-            :message="errorMessage"
-            class="mt-4"
-          />
+        </div>
 
-          <div class="mt-5 grid gap-5 sm:grid-cols-2">
-            <div>
-              <label for="fullName" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Full name
-              </label>
-              <input id="fullName" v-model.trim="fullName" type="text" :class="inputClass" />
-            </div>
-
-            <div>
-              <label for="email" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Email address
-              </label>
-              <!--
-                Read only on purpose. The email is the Supabase auth identity;
-                changing it needs a separate verification flow. Letting it look
-                editable here would promise something the form cannot deliver.
-              -->
-              <input
-                id="email"
-                :value="auth.profile?.email ?? ''"
-                type="email"
-                :class="[inputClass, 'cursor-not-allowed bg-gray-50 dark:bg-gray-800/60']"
-                disabled
-              />
-              <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                Your sign-in email cannot be changed here.
-              </p>
-            </div>
-
-            <div>
-              <label for="phone" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Phone
-              </label>
-              <input
-                id="phone"
-                v-model.trim="phone"
-                type="tel"
-                placeholder="+63 900 000 0000"
-                :class="inputClass"
-              />
-            </div>
-
-            <div>
-              <label for="role" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Role
-              </label>
-              <input
-                id="role"
-                :value="roleLabel"
-                type="text"
-                :class="[inputClass, 'cursor-not-allowed bg-gray-50 dark:bg-gray-800/60']"
-                disabled
-              />
-              <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                Only an administrator can change your role.
-              </p>
-            </div>
-
-            <div class="sm:col-span-2">
-              <label for="bio" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                About you
-              </label>
-              <textarea
-                id="bio"
-                v-model.trim="bio"
-                rows="4"
-                :class="[inputClass, 'resize-y']"
-                placeholder="A short introduction shown to your instructors."
-              ></textarea>
-            </div>
-          </div>
-
-          <div class="mt-6">
-            <Button type="submit" :disabled="isSaving || !auth.profile">
-              <LoaderCircle v-if="isSaving" class="size-4 animate-spin" />
-              {{ isSaving ? 'Saving...' : 'Save changes' }}
-            </Button>
-          </div>
-        </form>
-      </div>
-
-      <div>
-        <div class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-          <h2 class="text-title-sm text-gray-900 dark:text-white/90">Security</h2>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Your password is managed by Supabase Auth.
-          </p>
-          <router-link
-            to="/auth/forgot-password"
-            class="mt-4 inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-          >
-            Send a password reset link
-          </router-link>
+        <div class="space-y-6 lg:col-span-1">
+          <ProfileSecurityCard :profile="profile" />
+          <ProfilePreferencesCard />
         </div>
       </div>
-    </div>
+
+      <section class="mt-8" aria-labelledby="activity-heading">
+        <h2 id="activity-heading" class="text-theme-xl text-ink">{{ activityTitle }}</h2>
+        <p class="mt-1 text-sm text-slate">{{ activitySubtitle }}</p>
+
+        <LoadingState v-if="isLoadingActivity" class="mt-4" label="Loading your figures" />
+
+        <ErrorState
+          v-else-if="activityError"
+          class="mt-4"
+          :message="activityError"
+          @retry="reloadActivity"
+        />
+
+        <div
+          v-else-if="activityCards.length > 0"
+          class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        >
+          <StatCard
+            v-for="card in activityCards"
+            :key="card.label"
+            :label="card.label"
+            :value="card.value"
+            :icon="card.icon"
+            :hint="card.hint"
+          />
+        </div>
+
+        <EmptyState
+          v-else
+          class="mt-4"
+          :icon="ChartColumn"
+          title="No figures to show yet"
+          description="Once your account has a role and some activity in it, the numbers appear here."
+        />
+      </section>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { LoaderCircle } from 'lucide-vue-next'
+import type { Component } from 'vue'
+import {
+  BookOpen,
+  ChartColumn,
+  GraduationCap,
+  Library,
+  Target,
+  Trophy,
+  Users,
+  Wallet,
+} from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
-import Alert from '@/components/ui/Alert.vue'
-import Button from '@/components/ui/Button.vue'
+import StatCard from '@/components/common/StatCard.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
+import ErrorState from '@/components/common/ErrorState.vue'
+import LoadingState from '@/components/common/LoadingState.vue'
+import ProfileAvatarCard from '@/components/profile/ProfileAvatarCard.vue'
+import ProfileDetailsCard from '@/components/profile/ProfileDetailsCard.vue'
+import ProfilePreferencesCard from '@/components/profile/ProfilePreferencesCard.vue'
+import ProfileSecurityCard from '@/components/profile/ProfileSecurityCard.vue'
 import { useAuthStore } from '@/stores/auth'
 import { updateOwnProfile } from '@/services/profile.service'
+import { loadInstructorDashboard, loadStudentDashboard } from '@/services/dashboard.service'
+import { getAdminStats } from '@/services/stats.service'
+import { formatPeso } from '@/types'
+import type { AdminStats } from '@/services/stats.service'
+import type { InstructorDashboard, StudentDashboard } from '@/services/dashboard.service'
+import type { Profile } from '@/types'
+
+/**
+ * The account page, shared by all three roles.
+ *
+ * Everything it shows is read from somewhere that exists. There is no invented
+ * field on this page: `profiles` has nine columns and they are all on it, and
+ * every setting that is not one of them says where it is kept.
+ */
 
 const auth = useAuthStore()
 
-const fullName = ref('')
-const phone = ref('')
-const bio = ref('')
-const isSaving = ref(false)
-const savedMessage = ref('')
-const errorMessage = ref('')
+/** Narrowed once, so the cards below receive a `Profile` and not a `Profile | null`. */
+const profile = computed<Profile | null>(() => auth.profile)
 
-// Seed the form once the profile arrives; the guard can resolve the session after
-// this component mounts, so an initial ref() would capture empty values.
-watch(
-  () => auth.profile,
-  (profile) => {
-    if (!profile) return
-    fullName.value = profile.fullName
-    phone.value = profile.phone ?? ''
-    bio.value = profile.bio ?? ''
-  },
-  { immediate: true },
+// -- Details form ------------------------------------------------------------
+
+const isSavingDetails = ref(false)
+const detailsSaved = ref('')
+const detailsError = ref('')
+/** Set by the card when a longer introduction had to be cut to save it. */
+const detailsTruncated = ref(false)
+
+async function saveDetails(changes: {
+  fullName: string
+  phone: string | null
+  bio: string | null
+}): Promise<void> {
+  if (!profile.value) return
+  detailsSaved.value = ''
+  detailsError.value = ''
+  detailsTruncated.value = false
+  isSavingDetails.value = true
+  try {
+    const updated = await updateOwnProfile(profile.value.id, changes)
+    // Assigned straight into the store rather than re-read, because the write
+    // above returned the row the database now holds. A second round trip would
+    // only be able to disagree with it.
+    auth.profile = updated
+    detailsSaved.value = detailsTruncated.value
+      ? 'Your details have been updated. Your introduction was longer than this form shows, so it was trimmed to 500 characters.'
+      : 'Your details have been updated.'
+  } catch (error) {
+    detailsError.value =
+      error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+  } finally {
+    isSavingDetails.value = false
+  }
+}
+
+/** What the avatar card and the details form both do once their write lands. */
+function applyProfile(updated: Profile): void {
+  auth.profile = updated
+}
+
+const profileLoadMessage = computed(() =>
+  auth.user
+    ? 'There is a session for this browser, but no profile row for it. An administrator can fix the account.'
+    : 'Sign in again to load your profile.',
 )
 
-const roleLabel = computed(() => {
+async function reloadProfile(): Promise<void> {
+  if (!auth.user) return
+  await auth.loadProfile(auth.user.id)
+}
+
+// -- Role-appropriate figures -----------------------------------------------
+
+interface Figure {
+  label: string
+  value: string
+  icon: Component
+  hint: string
+}
+
+const activityCards = ref<Figure[]>([])
+const isLoadingActivity = ref(true)
+const activityError = ref('')
+
+const activityTitle = computed(() => {
   switch (auth.role) {
     case 'admin':
-      return 'Administrator'
+      return 'Platform at a glance'
     case 'instructor':
-      return 'Instructor'
+      return 'Your teaching at a glance'
     default:
-      return 'Student'
+      return 'Your learning at a glance'
   }
 })
 
-const inputClass =
-  'w-full rounded border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden disabled:opacity-70 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500'
+const activitySubtitle = computed(() => {
+  switch (auth.role) {
+    case 'admin':
+      return 'Whole-school counts, read from the same queries the admin dashboard uses.'
+    case 'instructor':
+      return 'Scoped to the courses you own, by Row Level Security rather than by a filter here.'
+    case 'student':
+      return 'Your own enrolments, lessons and graded quizzes.'
+    default:
+      return 'These appear once your account has a role.'
+  }
+})
 
-async function handleSubmit(): Promise<void> {
-  if (!auth.profile) return
-  savedMessage.value = ''
-  errorMessage.value = ''
-  isSaving.value = true
-  try {
-    const updated = await updateOwnProfile(auth.profile.id, {
-      fullName: fullName.value,
-      phone: phone.value || null,
-      bio: bio.value || null,
-    })
-    auth.profile = updated
-    savedMessage.value = 'Your details have been updated.'
-  } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : 'Something went wrong. Please try again.'
-  } finally {
-    isSaving.value = false
+/**
+ * A figure nobody could read is not a zero.
+ *
+ * The dashboard loaders answer null for a count that failed and 0 for a count
+ * that is genuinely nothing, and the difference matters: a broken query shown
+ * as "0 enrolments" is how a student with three enrolments gets told they have
+ * none. So null renders as a dash, and the hint says which of the two it is.
+ */
+function count(value: number | null, label: string, icon: Component, readable: string): Figure {
+  return {
+    label,
+    value: value === null ? '—' : String(value),
+    icon,
+    hint: value === null ? 'This figure could not be read just now.' : readable,
   }
 }
+
+function percent(value: number | null, label: string, icon: Component, readable: string): Figure {
+  return {
+    label,
+    value: value === null ? '—' : `${value}%`,
+    icon,
+    hint: value === null ? 'This figure could not be read just now.' : readable,
+  }
+}
+
+function studentFigures(data: StudentDashboard): Figure[] {
+  return [
+    count(
+      data.enrolledCourses,
+      'Active enrolments',
+      GraduationCap,
+      data.completedCourses === null
+        ? 'Courses currently running'
+        : `${data.completedCourses} finished as well`,
+    ),
+    count(data.lessonsCompleted, 'Lessons completed', BookOpen, 'Across every enrolled course'),
+    percent(
+      data.averageQuizScore,
+      'Average quiz score',
+      Trophy,
+      data.averageQuizScore === null
+        ? 'No quiz has been graded yet'
+        : 'Across every graded attempt',
+    ),
+  ]
+}
+
+function instructorFigures(data: InstructorDashboard): Figure[] {
+  return [
+    count(data.courses, 'Courses taught', Library, 'Every course you own, published or draft'),
+    count(
+      data.students,
+      'Students',
+      GraduationCap,
+      'Distinct people across your courses, counted once each',
+    ),
+    // Labelled "Quizzes", not "Published quizzes". This count is every quiz in
+    // the instructor's courses, drafts included, because that is what the loader
+    // counts. Naming it after a subset would be a label the number does not
+    // match.
+    count(data.quizzes, 'Quizzes', Target, 'Drafts and published, in your courses'),
+  ]
+}
+
+function adminFigures(stats: AdminStats): Figure[] {
+  return [
+    count(
+      stats.students + stats.instructors + stats.admins,
+      'Accounts',
+      Users,
+      `${stats.students} students, ${stats.instructors} instructors, ${stats.admins} admins`,
+    ),
+    count(
+      stats.publishedCourses + stats.draftCourses,
+      'Courses',
+      Library,
+      `${stats.publishedCourses} published, ${stats.draftCourses} draft, ${stats.paidCourses} priced`,
+    ),
+    {
+      label: 'Revenue',
+      value: formatPeso(stats.revenueCentavos),
+      icon: Wallet,
+      hint: 'PayMongo receipts marked paid',
+    },
+  ]
+}
+
+async function reloadActivity(): Promise<void> {
+  const role = auth.role
+  if (!role) return
+
+  isLoadingActivity.value = true
+  activityError.value = ''
+  try {
+    if (role === 'admin') {
+      activityCards.value = adminFigures(await getAdminStats())
+    } else if (role === 'instructor') {
+      activityCards.value = instructorFigures(await loadInstructorDashboard())
+    } else {
+      activityCards.value = studentFigures(await loadStudentDashboard())
+    }
+  } catch (error) {
+    activityCards.value = []
+    activityError.value =
+      error instanceof Error ? error.message : 'Could not load your figures. Try again.'
+  } finally {
+    isLoadingActivity.value = false
+  }
+}
+
+/**
+ * Wait for a role rather than reporting "no figures" against none.
+ *
+ * `loadProfile` resolves after this view mounts, so `auth.role` is null on the
+ * first tick for every signed-in user. Returning early here leaves the panel in
+ * its loading state, which is honest; treating the null as an answer would flash
+ * an empty state at each account on each page load.
+ */
+watch(
+  () => auth.role,
+  (role) => {
+    if (!role) return
+    void reloadActivity()
+  },
+  { immediate: true },
+)
 </script>

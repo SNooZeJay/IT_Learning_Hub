@@ -777,7 +777,7 @@
       </form>
 
       <!-- Delete confirmation -->
-      <Modal v-if="confirmDelete" @close="confirmDelete = false">
+      <Modal v-if="confirmDelete" full-screen-backdrop @close="confirmDelete = false">
         <template #body>
           <div
             class="relative w-full max-w-lg overflow-y-auto rounded-lg bg-white p-6 shadow-theme-lg dark:bg-gray-900"

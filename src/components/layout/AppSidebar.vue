@@ -14,24 +14,15 @@
     @mouseleave="isHovered = false"
   >
     <div
-      :class="[
-        'pt-8 pb-7 flex',
-        !isExpanded && !isHovered ? 'xl:justify-center' : 'justify-start',
-      ]"
+      :class="['pt-8 pb-7 flex', !isExpanded && !isHovered ? 'xl:justify-center' : 'justify-start']"
     >
       <router-link to="/">
         <!--
-          Icon plus the brand name rather than the upstream wordmark image.
-          The shipped logo.svg and logo-dark.svg are TailAdmin's trademark, and
-          this is no longer TailAdmin.
+          The product's own mark rather than the upstream logo.svg and
+          logo-dark.svg, which are TailAdmin's trademark. Sized here, as on the
+          marketing pages, because BrandMark hands sizing to its caller.
         -->
-        <img
-          src="/images/logo/logo-icon.svg"
-          alt=""
-          class="size-8 shrink-0"
-          width="32"
-          height="32"
-        />
+        <BrandMark class="size-8 shrink-0" />
         <span
           v-if="isExpanded || isHovered || isMobileOpen"
           class="ms-3 truncate text-theme-sm font-medium text-gray-900 dark:text-white/90"
@@ -68,9 +59,7 @@
               ]"
             >
               <span
-                :class="[
-                  isActive(item.to) ? 'menu-item-icon-active' : 'menu-item-icon-inactive',
-                ]"
+                :class="[isActive(item.to) ? 'menu-item-icon-active' : 'menu-item-icon-inactive']"
               >
                 <component :is="item.icon" />
               </span>
@@ -79,11 +68,31 @@
                 class="menu-item-text truncate"
                 >{{ item.label }}</span
               >
+
+              <!--
+                The count, when the item asks for one and there is something to count.
+
+                `isKnown` rather than `unreadCount > 0` on its own: the shared count is
+                `null` until the header has read the feed, and treating that as zero
+                would be right by accident while treating it as "no badge" is right by
+                design - the alternative is a badge that flashes before anything has
+                been fetched.
+
+                Read from the shared count rather than fetched, so marking a
+                notification read in the bell moves this badge too.
+              -->
+              <span
+                v-if="item.badge === 'notifications' && isKnown && (unreadCount ?? 0) > 0"
+                class="ms-auto shrink-0 rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] leading-none font-semibold text-white tabular-nums"
+                :class="!isExpanded && !isHovered ? 'hidden' : ''"
+              >
+                {{ unreadCount }}
+                <span class="sr-only"> unread notification{{ unreadCount === 1 ? '' : 's' }} </span>
+              </span>
             </router-link>
           </li>
         </ul>
       </nav>
-
     </div>
   </aside>
 </template>
@@ -92,9 +101,13 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { MoreHorizontal } from 'lucide-vue-next'
+import BrandMark from '@/components/common/BrandMark.vue'
 import { useSidebar } from '@/composables/useSidebar'
 import { useAuthStore } from '@/stores/auth'
 import { BRAND, navigationFor } from '@/layouts/navigation'
+import { useUnreadNotifications } from '@/composables/useUnreadNotifications'
+
+const { unreadCount, isKnown } = useUnreadNotifications()
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -123,6 +136,5 @@ const sectionLabel = computed(() => {
  * Exact match for top-level items, prefix match for detail pages, so
  * `/student/courses/abc` keeps "My Courses" highlighted.
  */
-const isActive = (path: string) =>
-  route.path === path || route.path.startsWith(`${path}/`)
+const isActive = (path: string) => route.path === path || route.path.startsWith(`${path}/`)
 </script>

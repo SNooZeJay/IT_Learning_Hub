@@ -47,7 +47,7 @@
             to="/"
             class="rounded-lg focus:outline-hidden focus:ring-2 focus:ring-brand-500/20"
           >
-            <img src="/images/logo/logo-icon.svg" alt="" class="size-12" />
+            <BrandMark class="size-12" />
             <span class="sr-only">IT Learning Hub home</span>
           </RouterLink>
 
@@ -74,6 +74,7 @@
  */
 import { RouterLink } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
+import BrandMark from '@/components/common/BrandMark.vue'
 import CommonGridShape from '@/components/common/CommonGridShape.vue'
 import ThemeToggleButton from '@/components/common/ThemeToggleButton.vue'
 

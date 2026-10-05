@@ -1,21 +1,121 @@
+<template>
+  <!--
+    Hidden below xl because the header row has no room for it at phone widths:
+    the hamburger, the logo and the application-menu button already fill 390px.
+    The keyboard shortcut below is a no-op down here for the same reason, and
+    the badge that used to advertise `⌘ K` is gone rather than left lying.
+  -->
+  <div class="hidden xl:block">
+    <form role="search" :aria-label="`Search ${scopeLabel}`" @submit.prevent="submit">
+      <div class="relative">
+        <label for="course-search" class="sr-only">Search {{ scopeLabel }}</label>
+        <Search
+          class="pointer-events-none absolute start-4 top-1/2 size-4 -translate-y-1/2 text-slate"
+          aria-hidden="true"
+        />
+        <input
+          id="course-search"
+          ref="inputRef"
+          v-model="term"
+          type="search"
+          name="q"
+          autocomplete="off"
+          :placeholder="placeholder"
+          class="h-11 w-full rounded-md border border-hairline bg-surface-soft py-2.5 ps-11 text-sm text-ink shadow-theme-xs placeholder:text-slate focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 [&::-webkit-search-cancel-button]:appearance-none dark:bg-white/[0.03] dark:text-gray-100 dark:placeholder:text-gray-400 dark:focus:border-brand-400 xl:w-[430px]"
+          @keydown.esc="clear"
+        />
+
+        <button
+          v-if="term !== ''"
+          type="button"
+          class="absolute end-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 rounded-md border border-hairline bg-canvas p-1.5 text-slate transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:bg-white/[0.06] dark:text-gray-400 dark:hover:text-gray-200"
+          aria-label="Clear search"
+          @click="clear"
+        >
+          <X class="size-3.5" aria-hidden="true" />
+        </button>
+      </div>
+    </form>
+  </div>
+</template>
+
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Search, X } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
 
-const searchInput = ref('')
+/**
+ * A course filter, not a site search.
+ *
+ * There is no search index and no search API in this project, so the honest
+ * version of this control is one that does something real: it takes you to the
+ * course list for your role with the term in the URL. It used to bind a string,
+ * submit nothing, and sit there looking like TailAdmin's command palette.
+ */
+const auth = useAuthStore()
+const router = useRouter()
+const route = useRoute()
 
-const focusSearchInput = () => {
-  const inputElement = document.getElementById('search-input')
-  inputElement?.focus()
+const term = ref('')
+const inputRef = ref<HTMLInputElement | null>(null)
+
+/** Where each role's course list lives. Every path is a real route. */
+const TARGETS: Record<'admin' | 'instructor' | 'student', { path: string; placeholder: string }> = {
+  student: { path: '/student/courses', placeholder: 'Search the course catalogue…' },
+  instructor: { path: '/instructor/courses', placeholder: 'Search your courses…' },
+  admin: { path: '/admin/courses', placeholder: 'Search all courses…' },
 }
 
-const handleKeydown = (event: KeyboardEvent) => {
-  if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-    event.preventDefault()
-    focusSearchInput()
+const target = computed(() => TARGETS[auth.role ?? 'student'])
+
+const placeholder = computed(() => target.value.placeholder)
+
+/** Used by the accessible name, so it reads as "Search the course catalogue". */
+const scopeLabel = computed(() => target.value.placeholder.replace('Search ', '').replace('…', ''))
+
+function submit(): void {
+  const query = term.value.trim()
+  // An empty term navigates without `?q=` rather than with `?q=`, so the
+  // destination is not left holding a filter that matches everything.
+  if (query === '') {
+    void router.push({ path: target.value.path })
+    return
   }
+  void router.push({ path: target.value.path, query: { q: query } })
+}
+
+function clear(): void {
+  term.value = ''
+  inputRef.value?.focus()
+}
+
+function focusSearchInput(): void {
+  inputRef.value?.focus()
+  inputRef.value?.select()
+}
+
+/**
+ * ⌘K / Ctrl+K focuses the field.
+ *
+ * Wired to the component's own ref rather than to `document.getElementById`, so
+ * it cannot focus a same-id element elsewhere, and it only registers once the
+ * `xl` breakpoint makes the field visible — otherwise it would silently
+ * "work" on an element that is `display: none`.
+ */
+function handleKeydown(event: KeyboardEvent): void {
+  if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k') return
+  if (window.matchMedia('(min-width: 1280px)').matches !== true) return
+  event.preventDefault()
+  focusSearchInput()
 }
 
 onMounted(() => {
+  // Refilled from the URL, so going back to a filtered list shows the term that
+  // produced it instead of an empty box.
+  const q = route.query.q
+  if (typeof q === 'string') term.value = q
+
   window.addEventListener('keydown', handleKeydown)
 })
 
@@ -23,48 +123,3 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 </script>
-
-<template>
-  <div class="hidden xl:block">
-    <form @submit.prevent>
-      <div class="relative">
-        <label for="search-input" class="sr-only">Search or type command</label>
-        <span class="absolute -translate-y-1/2 start-4 top-1/2 pointer-events-none">
-          <svg
-            class="fill-gray-500 dark:fill-gray-400"
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <path
-              fill-rule="evenodd"
-              clip-rule="evenodd"
-              d="M3.04175 9.37363C3.04175 5.87693 5.87711 3.04199 9.37508 3.04199C12.8731 3.04199 15.7084 5.87693 15.7084 9.37363C15.7084 12.8703 12.8731 15.7053 9.37508 15.7053C5.87711 15.7053 3.04175 12.8703 3.04175 9.37363ZM9.37508 1.54199C5.04902 1.54199 1.54175 5.04817 1.54175 9.37363C1.54175 13.6991 5.04902 17.2053 9.37508 17.2053C11.2674 17.2053 13.003 16.5344 14.357 15.4176L17.177 18.238C17.4699 18.5309 17.9448 18.5309 18.2377 18.238C18.5306 17.9451 18.5306 17.4703 18.2377 17.1774L15.418 14.3573C16.5365 13.0033 17.2084 11.2669 17.2084 9.37363C17.2084 5.04817 13.7011 1.54199 9.37508 1.54199Z"
-            />
-          </svg>
-        </span>
-        <input
-          id="search-input"
-          type="text"
-          v-model="searchInput"
-          placeholder="Search or type command..."
-          class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 ps-12 pe-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-white/3 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 xl:w-[430px]"
-        />
-
-        <button
-          type="button"
-          tabindex="-1"
-          @click="focusSearchInput"
-          class="absolute end-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] text-xs -tracking-[0.2px] text-gray-500 dark:border-gray-800 dark:bg-white/3 dark:text-gray-400"
-          aria-label="Focus search input (Cmd+K)"
-        >
-          <span aria-hidden="true"> ⌘ </span>
-          <span aria-hidden="true"> K </span>
-        </button>
-      </div>
-    </form>
-  </div>
-</template>

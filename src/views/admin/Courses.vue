@@ -332,7 +332,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   Archive,
   BookOpen,
@@ -373,7 +374,36 @@ const courses = ref<AdminCourse[]>([])
 const instructors = ref<AdminInstructor[]>([])
 const categories = ref<AdminCategory[]>([])
 
-const search = ref('')
+/**
+ * Seeded from `?q=`, and written back as it changes.
+ *
+ * The header's search box navigates here with the term in the query. It arrived
+ * correctly and this page ignored the parameter, so the box appeared to do nothing.
+ *
+ * Written back with `router.replace` rather than `push`, so typing does not push a
+ * history entry per keystroke - Back should leave the page, not walk through every
+ * letter of the word that was typed.
+ */
+const route = useRoute()
+const router = useRouter()
+const search = ref(typeof route.query.q === 'string' ? route.query.q : '')
+
+watch(
+  () => route.query.q,
+  (value) => {
+    const next = typeof value === 'string' ? value : ''
+    if (next !== search.value) search.value = next
+  },
+)
+
+watch(search, (value) => {
+  const current = typeof route.query.q === 'string' ? route.query.q : ''
+  if (value === current) return
+  void router.replace({
+    query: value ? { ...route.query, q: value } : { ...route.query, q: undefined },
+  })
+})
+
 const statusFilter = ref<CourseStatus | 'all'>('all')
 const categoryFilter = ref<string>('all')
 

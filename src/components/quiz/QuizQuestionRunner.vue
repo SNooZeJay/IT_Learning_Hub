@@ -224,7 +224,7 @@ function typeLabel(type: QuestionType): string {
     <!-- Navigation. Stacked on a phone so neither control is squeezed, and the
          primary action is last where a thumb reaches it. -->
     <div
-      class="sticky bottom-0 flex flex-col-reverse gap-3 border-t border-gray-200 bg-white pt-4 pb-2 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-[#151f2e] sm:bg-transparent"
+      class="sticky bottom-0 flex flex-col-reverse gap-3 border-t border-gray-200 bg-white pt-4 pb-2 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-canvas sm:bg-transparent"
     >
       <button
         type="button"

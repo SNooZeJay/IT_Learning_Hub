@@ -39,11 +39,24 @@ import LoadingState from '@/components/common/LoadingState.vue'
 import Button from '@/components/ui/Button.vue'
 import { useAuthStore } from '@/stores/auth'
 import { loadStudentDashboard, type StudentDashboard } from '@/services/dashboard.service'
+import { loadUpcomingDeadlines, type CalendarEvent } from '@/services/calendar.service'
+import { EVENT_PRESENTATION } from '@/services/calendar.service'
 import { formatDateTime } from '@/types'
+import { formatShortDate } from '@/components/calendar/format'
 
 const auth = useAuthStore()
 
 const dashboard = ref<StudentDashboard | null>(null)
+/**
+ * The nearest dated, unfinished work.
+ *
+ * Deliberately narrower than the calendar. A deadline is something still owed: a
+ * passed quiz and a submitted assignment are not deadlines, and listing them as
+ * though they were is how a dashboard ends up telling somebody they are behind when
+ * they are not. The Calendar page shows the same events on their dates; this is the
+ * short version of it, and neither replaces the other.
+ */
+const deadlines = ref<CalendarEvent[]>([])
 const isLoading = ref(true)
 const loadFailed = ref(false)
 
@@ -64,7 +77,17 @@ async function load(): Promise<void> {
   try {
     // loadStudentDashboard absorbs per-figure failures internally and returns null
     // for each one, so this only rejects if the whole thing is unreachable.
-    dashboard.value = await loadStudentDashboard()
+    // Two independent reads. A failure in the deadline summary must not cost the
+    // whole dashboard, and vice versa.
+    const [stats, due] = await Promise.allSettled([
+      loadStudentDashboard(),
+      loadUpcomingDeadlines(4),
+    ])
+
+    if (stats.status === 'fulfilled') dashboard.value = stats.value
+    else loadFailed.value = true
+
+    deadlines.value = due.status === 'fulfilled' ? due.value : []
   } catch {
     loadFailed.value = true
   } finally {
@@ -416,6 +439,74 @@ const hasAnyActivity = computed(() => {
             </router-link>
           </div>
 
+          <!--
+            Upcoming deadlines. The compact summary; the Calendar page is where
+            these appear on their actual dates. Rendered only when there is
+            something due - a permanent panel reading "nothing" is a dead component
+            most weeks of term.
+          -->
+          <div
+            v-if="deadlines.length > 0"
+            class="mt-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+          >
+            <div class="flex items-baseline justify-between gap-3">
+              <h2 class="text-title-sm text-gray-900 dark:text-white/90">Upcoming deadlines</h2>
+              <router-link
+                to="/student/calendar"
+                class="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+              >
+                Calendar
+                <ArrowRight class="size-3.5 rtl:rotate-180" aria-hidden="true" />
+              </router-link>
+            </div>
+
+            <ul role="list" class="mt-4 divide-y divide-gray-200 dark:divide-gray-800">
+              <li v-for="item in deadlines" :key="item.id">
+                <component
+                  :is="item.link ? 'router-link' : 'div'"
+                  :to="item.link ?? undefined"
+                  class="flex items-center gap-3 py-3.5 transition-colors"
+                  :class="item.link ? 'hover:bg-gray-50 dark:hover:bg-white/[0.02]' : ''"
+                >
+                  <!-- A date block rather than a sentence: reading when something is
+                       due is a date-reading task, and the day number is what the eye
+                       goes to. -->
+                  <span
+                    class="flex size-11 shrink-0 flex-col items-center justify-center rounded-md bg-gray-100 text-center dark:bg-white/[0.06]"
+                  >
+                    <span
+                      class="text-[10px] leading-none font-medium text-gray-500 uppercase dark:text-gray-400"
+                    >
+                      {{ formatShortDate(item.at).split(' ')[1] }}
+                    </span>
+                    <span
+                      class="text-sm leading-tight font-semibold text-gray-900 tabular-nums dark:text-white/90"
+                    >
+                      {{ formatShortDate(item.at).split(' ')[0] }}
+                    </span>
+                  </span>
+
+                  <span class="min-w-0 flex-1">
+                    <span
+                      class="block truncate text-sm font-medium text-gray-900 dark:text-white/90"
+                    >
+                      {{ item.title }}
+                    </span>
+                    <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
+                      {{ EVENT_PRESENTATION[item.kind].label }}
+                      <template v-if="item.courseTitle"> · {{ item.courseTitle }}</template>
+                    </span>
+                  </span>
+
+                  <ArrowRight
+                    v-if="item.link"
+                    class="size-4 shrink-0 text-gray-400 rtl:rotate-180"
+                    aria-hidden="true"
+                  />
+                </component>
+              </li>
+            </ul>
+          </div>
           <!--
             Certificates appear only once earned. `listMyCertificates` already exists
             in `learning.service`; this is a plain link rather than a second query,

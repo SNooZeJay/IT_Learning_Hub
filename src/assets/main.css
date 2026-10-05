@@ -520,12 +520,6 @@ input[type='time']::-webkit-calendar-picker-indicator {
 .sidebar:hover {
   width: 290px;
 }
-.sidebar:hover .logo {
-  display: block;
-}
-.sidebar:hover .logo-icon {
-  display: none;
-}
 .sidebar:hover .sidebar-header {
   justify-content: space-between;
 }

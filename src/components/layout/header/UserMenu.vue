@@ -1,176 +1,178 @@
 <template>
-  <div class="relative" ref="dropdownRef">
-    <!-- User Button -->
+  <div ref="dropdownRef" class="relative">
+    <!-- User button -->
     <button
-      class="flex items-center text-gray-700 dark:text-gray-400 cursor-pointer"
-      @click.prevent="toggleDropdown"
       type="button"
+      class="flex w-full items-center gap-2 rounded-md px-1 py-1 text-start transition-colors hover:bg-surface-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:hover:bg-white/[0.06] xl:w-auto"
+      aria-haspopup="true"
+      :aria-expanded="dropdownOpen"
+      aria-controls="user-menu-dropdown"
+      @click="toggleDropdown"
     >
-      <span class="h-11 w-11 shrink-0 overflow-hidden rounded-full ltr:mr-3 rtl:ml-3">
-        <img :src="avatarUrl" alt="" class="h-full w-full object-cover" @error="onAvatarError" />
+      <!--
+        The avatar is the profile's own `avatar_url`, or two initials derived
+        from the real `full_name`. It used to fall back to
+        `/images/user/owner.png`, TailAdmin's bundled photograph of an actual
+        person, so every account in the system wore the same stranger's face.
+      -->
+      <span
+        class="relative inline-flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold"
+        :class="avatarFallbackClass"
+      >
+        <img
+          v-if="showAvatarImage"
+          :src="avatarUrl"
+          alt=""
+          class="size-full object-cover"
+          @error="avatarFailed = true"
+        />
+        <span v-else aria-hidden="true">{{ initials }}</span>
       </span>
 
-      <span class="block font-medium text-theme-sm ltr:mr-1 rtl:ml-1">{{ firstName }}</span>
+      <!-- `max-w-40` so a long name truncates instead of pushing the header wider
+           than a 390px viewport. -->
+      <span class="min-w-0 max-w-40 truncate text-theme-sm font-medium text-ink dark:text-gray-200">
+        {{ firstName }}
+      </span>
 
-      <!-- Chevron Icon -->
       <ChevronDown
-        class="size-5 transition-transform duration-200 text-gray-500 dark:text-gray-400"
+        class="size-4 shrink-0 text-slate transition-transform duration-200"
         :class="{ 'rotate-180': dropdownOpen }"
+        aria-hidden="true"
       />
     </button>
 
     <!-- Dropdown Start -->
     <div
       v-if="dropdownOpen"
-      class="absolute ltr:right-0 rtl:left-0 z-50 mt-[17px] flex w-[260px] flex-col rounded-2xl border border-gray-200 bg-white p-3 shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark animate-fadeIn"
+      id="user-menu-dropdown"
+      class="absolute end-0 top-full z-50 mt-2 w-[min(17rem,calc(100vw-2.5rem))] rounded-lg border border-hairline bg-canvas p-2 shadow-theme-lg animate-fadeIn dark:bg-surface"
     >
       <!-- User Info -->
-      <div>
-        <span class="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
+      <div class="px-3 py-2">
+        <span class="block truncate text-theme-sm font-medium text-ink dark:text-gray-200">
           {{ auth.profile?.fullName ?? 'Signed in' }}
         </span>
-        <span class="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
+        <span class="mt-0.5 block truncate text-theme-xs text-slate">
           {{ auth.profile?.email ?? '' }}
         </span>
       </div>
 
       <!-- Menu Items -->
-      <ul class="flex flex-col gap-1 pt-4 pb-3 border-b border-gray-200 dark:border-gray-800">
+      <ul class="flex flex-col gap-0.5 border-t border-hairline-soft pt-2" aria-label="Account">
         <li>
-          <router-link
+          <RouterLink
             to="/profile"
+            class="group flex items-center gap-3 rounded-md px-3 py-2 text-theme-sm font-medium text-slate transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-500 dark:text-gray-300 dark:hover:bg-white/[0.06] dark:hover:text-gray-100"
             @click="closeDropdown"
-            class="group flex items-center gap-3 rounded-lg px-3 py-2 text-theme-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
           >
-            <CircleUser
-              class="fill-gray-500 group-hover:fill-gray-700 dark:fill-gray-400 dark:group-hover:fill-gray-300"
-            />
-            Edit profile
-          </router-link>
+            <UserRound class="size-4 shrink-0 text-slate dark:text-gray-400" aria-hidden="true" />
+            Profile
+          </RouterLink>
         </li>
         <li>
-          <router-link
-            to="/profile"
+          <!--
+            Not a second copy of "Profile". The profile screen owns its own
+            security section, so the deep link lands on the password form rather
+            than making the user hunt for it. The two used to point at the same
+            bare `/profile`.
+          -->
+          <RouterLink
+            to="/profile#security"
+            class="group flex items-center gap-3 rounded-md px-3 py-2 text-theme-sm font-medium text-slate transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-500 dark:text-gray-300 dark:hover:bg-white/[0.06] dark:hover:text-gray-100"
             @click="closeDropdown"
-            class="group flex items-center gap-3 rounded-lg px-3 py-2 text-theme-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
           >
-            <Settings
-              class="fill-gray-500 group-hover:fill-gray-700 dark:fill-gray-400 dark:group-hover:fill-gray-300"
-            />
+            <ShieldCheck class="size-4 shrink-0 text-slate dark:text-gray-400" aria-hidden="true" />
             Account settings
-          </router-link>
-        </li>
-        <li>
-          <router-link
-            to="/profile"
-            @click="closeDropdown"
-            class="group flex items-center gap-3 rounded-lg px-3 py-2 text-theme-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-          >
-            <Info
-              class="fill-gray-500 group-hover:fill-gray-700 dark:fill-gray-400 dark:group-hover:fill-gray-300"
-            />
-            Support
-          </router-link>
-        </li>
-
-        <!-- Language Submenu Item -->
-        <li class="relative">
-          <button
-            type="button"
-            @click.stop="toggleSubDropdown"
-            class="group flex max-h-10 w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-theme-sm font-medium transition-colors cursor-pointer"
-            :class="
-              subDropdownOpen
-                ? 'bg-gray-100 text-gray-900 dark:bg-white/5 dark:text-white'
-                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300'
-            "
-          >
-            <span class="flex items-center gap-3 text-theme-sm">
-              <svg
-                class="stroke-gray-500 group-hover:stroke-gray-700 dark:stroke-gray-400 dark:group-hover:stroke-gray-300"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12.001 2.75C17.1091 2.75 21.2501 6.89178 21.2501 11.9999C21.2501 17.108 17.1091 21.2498 12.001 21.2498M12.001 2.75C6.89289 2.75 2.75195 6.89178 2.75195 11.9999C2.75195 17.108 6.8929 21.2498 12.001 21.2498M12.001 2.75C14.2097 2.75 16.0005 6.8914 16.0005 11.9993C16.0005 17.1073 14.2098 21.2498 12.001 21.2498M12.001 2.75C9.79226 2.75 8.00195 6.89141 8.00195 11.9994C8.00195 17.1073 9.79226 21.2498 12.001 21.2498M3.24561 8.99976H20.7544M3.24561 14.9998H20.7544"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-
-              <span>Language</span>
-            </span>
-
-            <span
-              class="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-theme-xs font-medium text-gray-700 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300"
-            >
-              <span>{{ currentLang.shortName }}</span>
-              <img
-                :src="'/images/icons/' + currentLang.flag"
-                :alt="currentLang.shortName"
-                class="size-3.5 shrink-0 overflow-hidden rounded-full object-cover"
-              />
-            </span>
-          </button>
-
-          <!-- Submenu Flyout -->
-          <div
-            v-if="subDropdownOpen"
-            class="absolute top-11 ltr:-left-2 rtl:-right-2 z-50 w-[250px] rounded-2xl border border-gray-200 bg-white p-2 shadow-theme-lg md:top-0 ltr:md:right-[calc(100%+14px)] ltr:md:left-auto rtl:md:left-[calc(100%+14px)] rtl:md:right-auto dark:border-gray-800 dark:bg-gray-dark animate-fadeIn"
-          >
-            <ul class="flex flex-col gap-1">
-              <li v-for="language in languages" :key="language.id">
-                <button
-                  type="button"
-                  @click.stop="selectLanguage(language.id)"
-                  class="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-theme-sm font-medium transition-colors cursor-pointer ltr:text-left rtl:text-right"
-                  :class="
-                    currentLocale === language.id
-                      ? 'bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400'
-                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white'
-                  "
-                >
-                  <span class="flex items-center gap-2">
-                    <span
-                      class="size-1.5 shrink-0 rounded-full transition-opacity"
-                      :class="
-                        currentLocale === language.id
-                          ? 'bg-brand-500 opacity-100 dark:bg-brand-400'
-                          : 'opacity-0'
-                      "
-                    ></span>
-                    <img
-                      :src="'/images/icons/' + language.flag"
-                      :alt="language.name"
-                      class="size-5 shrink-0 overflow-hidden rounded-full object-cover"
-                    />
-                    <span class="truncate">{{ language.name }}</span>
-                  </span>
-
-                  <span
-                    v-if="language.badge"
-                    class="rounded bg-warning-50 px-1.5 py-0.5 text-theme-xs font-semibold text-warning-600 dark:bg-warning-500/15 dark:text-warning-400"
-                  >
-                    {{ language.badge }}
-                  </span>
-                </button>
-              </li>
-            </ul>
-          </div>
+          </RouterLink>
         </li>
       </ul>
+
+      <!--
+        Language preference.
+
+        This is a preference, not a translation control. There is no i18n library
+        and no string table in this project, so picking "Filipino" does not — and
+        cannot — change a single word on screen. The control says so rather than
+        implying otherwise, and it never renders a flag: a flag names a country,
+        not a language, which is why "Arabic" is being dropped rather than kept
+        with a Saudi flag next to it.
+      -->
+      <div class="mt-2 border-t border-hairline-soft px-3 pt-3">
+        <div class="flex items-center justify-between gap-2">
+          <span class="inline-flex items-center gap-2 text-theme-xs font-medium text-slate">
+            <Languages class="size-4 shrink-0" aria-hidden="true" />
+            Language preference
+          </span>
+          <span
+            class="shrink-0 rounded-full border border-hairline bg-surface-soft px-2 py-0.5 text-theme-xs font-medium text-slate dark:bg-white/[0.06]"
+          >
+            {{ currentLanguage.name }}
+          </span>
+        </div>
+
+        <fieldset class="mt-2">
+          <legend class="sr-only">Language preference</legend>
+          <div class="grid grid-cols-2 gap-1.5">
+            <label v-for="language in languages" :key="language.id" class="relative block">
+              <input
+                v-model="languageId"
+                type="radio"
+                name="user-language"
+                :value="language.id"
+                class="peer sr-only"
+              />
+              <span
+                class="flex cursor-pointer items-center justify-center rounded-md border border-hairline bg-canvas px-2 py-1.5 text-theme-xs font-medium text-slate transition-colors peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-500 dark:bg-white/[0.03] dark:text-gray-300 dark:peer-checked:bg-brand-500/15 dark:peer-checked:text-brand-400"
+              >
+                {{ language.name }}
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+        <p class="mt-2 text-xs leading-relaxed text-slate">
+          Saved on this device. Interface translation is not available yet, so the app still reads
+          in English.
+        </p>
+      </div>
+
+      <!--
+        Text direction. Kept, because it is real: `setRTL` flips the `dir`
+        attribute on <html> and <body> and the whole layout mirrors. Relabelled,
+        because "Arabic" implied a language switch that was never there.
+      -->
+      <div class="mt-2 border-t border-hairline-soft px-3 pt-3">
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-theme-xs font-medium text-slate transition-colors hover:bg-surface-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:text-gray-300 dark:hover:bg-white/[0.06]"
+          :aria-pressed="isRtl"
+          @click="setDirection(!isRtl)"
+        >
+          <component
+            :is="isRtl ? AlignRight : AlignLeft"
+            class="size-4 shrink-0"
+            aria-hidden="true"
+          />
+          <span class="flex-1 text-start">Text direction</span>
+          <span
+            class="shrink-0 rounded-full border border-hairline bg-surface-soft px-2 py-0.5 dark:bg-white/[0.06]"
+          >
+            {{ isRtl ? 'Right to left' : 'Left to right' }}
+          </span>
+        </button>
+        <p class="mt-1 ps-6 text-xs leading-relaxed text-slate">
+          Mirrors the layout. It does not translate any text.
+        </p>
+      </div>
 
       <!-- Sign Out -->
       <button
         type="button"
+        class="group mt-2 flex w-full items-center gap-3 rounded-md border border-hairline px-3 py-2 text-theme-sm font-medium text-slate transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-500 dark:text-gray-300 dark:hover:bg-white/[0.06] dark:hover:text-gray-100"
         @click="signOut"
-        class="group mt-3 flex w-full items-center justify-center gap-3 rounded-lg border border-gray-200 px-3 py-2 text-theme-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
       >
+        <LogOut class="size-4 shrink-0 text-slate dark:text-gray-400" aria-hidden="true" />
         Sign out
       </button>
     </div>
@@ -179,111 +181,136 @@
 </template>
 
 <script setup lang="ts">
-import { CircleUser, ChevronDown, Settings, Info } from 'lucide-vue-next'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import {
+  AlignLeft,
+  AlignRight,
+  ChevronDown,
+  Languages,
+  LogOut,
+  ShieldCheck,
+  UserRound,
+} from 'lucide-vue-next'
 import { useRTL } from '@/composables/useRTL'
 import { useAuthStore } from '@/stores/auth'
 
-interface Language {
-  id: string
+/**
+ * Where the language preference is kept.
+ *
+ * Documented here rather than inlined at the call site because this is the only
+ * thing that would need changing when the preference is promoted from a device
+ * setting to a column on `profiles`. `rtl_mode` is a separate key owned by
+ * `@/composables/useRTL` and is deliberately not reused.
+ */
+const LANGUAGE_STORAGE_KEY = 'lms.languagePreference'
+
+interface LanguageOption {
+  id: 'en' | 'fil'
   name: string
-  shortName: string
-  flag: string
-  dir: 'ltr' | 'rtl'
-  badge?: string
 }
 
-const languages: Language[] = [
-  {
-    id: 'en',
-    name: 'English',
-    shortName: 'English',
-    flag: 'flag-us.svg',
-    dir: 'ltr',
-  },
-  {
-    id: 'ar',
-    name: 'Arabic (Saudi)',
-    shortName: 'Arabic',
-    flag: 'flag-sa.svg',
-    dir: 'rtl',
-    badge: 'RTL',
-  },
-  {
-    id: 'es',
-    name: 'Español',
-    shortName: 'Español',
-    flag: 'flag-es.svg',
-    dir: 'ltr',
-  },
-  {
-    id: 'de',
-    name: 'Deutsch',
-    shortName: 'Deutsch',
-    flag: 'flag-de.svg',
-    dir: 'ltr',
-  },
+const languages: LanguageOption[] = [
+  { id: 'en', name: 'English' },
+  { id: 'fil', name: 'Filipino' },
 ]
 
-const { isRtl, setRTL } = useRTL()
-
-const currentLocale = ref<string>(isRtl.value ? 'ar' : 'en')
-const dropdownOpen = ref(false)
-const subDropdownOpen = ref(false)
-const dropdownRef = ref<HTMLElement | null>(null)
-/** The real signed-in identity, never the template's placeholder name. */
 const auth = useAuthStore()
 const router = useRouter()
+const { isRtl, setRTL } = useRTL()
 
-const firstName = computed(() => auth.profile?.fullName.split(' ')[0] ?? 'Account')
+const dropdownOpen = ref(false)
+const dropdownRef = ref<HTMLElement | null>(null)
 
-/** Falls back to a neutral avatar when the profile has none, or the file 404s. */
-const avatarUrl = computed(() => auth.profile?.avatarUrl ?? '/images/user/owner.png')
+/** Set once an `avatar_url` 404s, so the dead URL is not rendered again. */
+const avatarFailed = ref(false)
 
-function onAvatarError(event: Event): void {
-  ;(event.target as HTMLImageElement).src = '/images/user/owner.png'
-}
+const firstName = computed(() => auth.profile?.fullName?.split(' ')[0]?.trim() || 'Account')
 
-const currentLang = computed<Language>(() => {
-  return languages.find((l) => l.id === currentLocale.value) || languages[0]
+/** `undefined` rather than `null`, so `:src` accepts it directly. */
+const avatarUrl = computed<string | undefined>(() => auth.profile?.avatarUrl ?? undefined)
+
+const showAvatarImage = computed(() => avatarUrl.value !== undefined && !avatarFailed.value)
+
+/**
+ * Two letters, or one when the name only has one word.
+ *
+ * Mirrors the `initials()` helper in `views/admin/Users.vue` so the same person
+ * reads the same way in the header and in the users table.
+ */
+const initials = computed(() => {
+  const source = auth.profile?.fullName?.trim() || auth.profile?.email?.trim() || ''
+  const parts = source.split(/\s+/).filter(Boolean).slice(0, 2)
+  if (parts.length === 0) return '?'
+  return parts.map((part) => part.charAt(0).toUpperCase()).join('')
 })
 
-const toggleDropdown = () => {
+/**
+ * A stable colour per person.
+ *
+ * Six pairs, chosen by a hash of the name, so two different accounts do not
+ * land on the same swatch and the same account lands on the same one every
+ * visit. Every pair is a theme token rather than a literal colour, so the dark
+ * variants come from the same decision as the rest of the app.
+ */
+const AVATAR_SWATCHES = [
+  'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400',
+  'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',
+  'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-400',
+  'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400',
+  'bg-brand-100 text-brand-800 dark:bg-brand-500/25 dark:text-brand-200',
+  'bg-surface text-charcoal dark:bg-white/[0.08] dark:text-gray-200',
+] as const
+
+const avatarFallbackClass = computed(() => {
+  const source = auth.profile?.fullName ?? auth.profile?.email ?? ''
+  let hash = 0
+  for (let index = 0; index < source.length; index += 1) {
+    hash = (hash * 31 + source.charCodeAt(index)) >>> 0
+  }
+  return AVATAR_SWATCHES[hash % AVATAR_SWATCHES.length]
+})
+
+function readStoredLanguage(): LanguageOption['id'] {
+  if (typeof localStorage === 'undefined') return 'en'
+  const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY)
+  return languages.some((language) => language.id === saved)
+    ? (saved as LanguageOption['id'])
+    : 'en'
+}
+
+const languageId = ref<LanguageOption['id']>(readStoredLanguage())
+
+const currentLanguage = computed(
+  () => languages.find((language) => language.id === languageId.value) ?? languages[0],
+)
+
+// Writing on change rather than on every render keeps the store out of the
+// read path: opening the dropdown cannot write to storage.
+watch(languageId, (value) => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, value)
+  }
+})
+
+function setDirection(rtl: boolean): void {
+  setRTL(rtl)
+}
+
+function toggleDropdown(): void {
   dropdownOpen.value = !dropdownOpen.value
-  if (!dropdownOpen.value) {
-    subDropdownOpen.value = false
-  }
 }
 
-const closeDropdown = () => {
+function closeDropdown(): void {
   dropdownOpen.value = false
-  subDropdownOpen.value = false
-}
-
-const toggleSubDropdown = () => {
-  subDropdownOpen.value = !subDropdownOpen.value
-}
-
-const selectLanguage = (localeId: string) => {
-  currentLocale.value = localeId
-  const selected = languages.find((l) => l.id === localeId)
-  if (selected?.dir === 'rtl') {
-    setRTL(true)
-  } else {
-    setRTL(false)
-  }
-  closeDropdown()
 }
 
 /**
  * Sign out for real.
  *
- * This only wrote a console log and closed the dropdown. The session survived,
- * so the next navigation guard still saw a signed-in user and the "Sign out"
- * button changed nothing at all. It was also a `router-link` to `/signin`, a
- * route that does not exist - the catch-all sends it to the 404 page - so even
- * the navigation part of it was wrong.
+ * This used to only write a console log and close the dropdown. The session
+ * survived, so the next navigation guard still saw a signed-in user and the
+ * button changed nothing at all.
  */
 const signOut = async () => {
   closeDropdown()
@@ -291,20 +318,25 @@ const signOut = async () => {
   await router.push({ name: 'login' })
 }
 
-const handleClickOutside = (event: MouseEvent) => {
+function handleClickOutside(event: MouseEvent): void {
   if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
     closeDropdown()
   }
 }
 
+function handleKeydown(event: KeyboardEvent): void {
+  if (event.key !== 'Escape' || !dropdownOpen.value) return
+  event.stopPropagation()
+  closeDropdown()
+}
+
 onMounted(() => {
-  if (isRtl.value) {
-    currentLocale.value = 'ar'
-  }
   document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleKeydown)
 })
 </script>
