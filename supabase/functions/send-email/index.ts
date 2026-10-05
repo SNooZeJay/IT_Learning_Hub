@@ -451,18 +451,31 @@ serve(async (req: Request): Promise<Response> => {
       const token = auth.replace(/^Bearer\s+/i, '')
       if (!token) return json({ error: 'not authenticated' }, 401, req)
 
+      // `getUser(token)`, not `getUser()`.
+      //
+      // With no argument the client reads the session from its own storage. This
+      // client is built with `persistSession: false` and there is no session in a
+      // Deno isolate, so it returns AuthSessionMissingError before it makes any
+      // request - which means this line returned 401 for every caller, always.
+      // `create-checkout` already passes the token; this call was the odd one out.
+      //
+      // Verified against the deployed function before the fix: a valid session
+      // token still produced `{"error":"not authenticated"}`.
       const userClient = createClient(SUPABASE_URL, token, {
         auth: { autoRefreshToken: false, persistSession: false },
       })
-      const { data: userData, error: userError } = await userClient.auth.getUser()
-      if (userError || !userData.user?.email) return json({ error: 'not authenticated' }, 401, req)
+      const {
+        data: { user: userData },
+        error: userError,
+      } = await userClient.auth.getUser(token)
+      if (userError || !userData?.email) return json({ error: 'not authenticated' }, 401, req)
 
-      const name = escapeHtml((body.name ?? '').slice(0, 80) || userData.user.email.split('@')[0])
+      const name = escapeHtml((body.name ?? '').slice(0, 80) || userData.email.split('@')[0])
       const url = `${SITE_URL}/courses`
 
       await deliver(
         message(
-          userData.user.email,
+          userData.email,
           'Welcome to IT Learning Hub',
           [
             `Hello ${name},`,

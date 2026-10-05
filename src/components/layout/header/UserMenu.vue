@@ -7,12 +7,7 @@
       type="button"
     >
       <span class="h-11 w-11 shrink-0 overflow-hidden rounded-full ltr:mr-3 rtl:ml-3">
-        <img
-          :src="avatarUrl"
-          alt=""
-          class="h-full w-full object-cover"
-          @error="onAvatarError"
-        />
+        <img :src="avatarUrl" alt="" class="h-full w-full object-cover" @error="onAvatarError" />
       </span>
 
       <span class="block font-medium text-theme-sm ltr:mr-1 rtl:ml-1">{{ firstName }}</span>
@@ -171,13 +166,13 @@
       </ul>
 
       <!-- Sign Out -->
-      <router-link
-        to="/signin"
+      <button
+        type="button"
         @click="signOut"
         class="group mt-3 flex w-full items-center justify-center gap-3 rounded-lg border border-gray-200 px-3 py-2 text-theme-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
       >
         Sign out
-      </router-link>
+      </button>
     </div>
     <!-- Dropdown End -->
   </div>
@@ -185,7 +180,7 @@
 
 <script setup lang="ts">
 import { CircleUser, ChevronDown, Settings, Info } from 'lucide-vue-next'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRTL } from '@/composables/useRTL'
 import { useAuthStore } from '@/stores/auth'
@@ -239,6 +234,7 @@ const subDropdownOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 /** The real signed-in identity, never the template's placeholder name. */
 const auth = useAuthStore()
+const router = useRouter()
 
 const firstName = computed(() => auth.profile?.fullName.split(' ')[0] ?? 'Account')
 
@@ -280,9 +276,19 @@ const selectLanguage = (localeId: string) => {
   closeDropdown()
 }
 
-const signOut = () => {
-  console.log('Signing out...')
+/**
+ * Sign out for real.
+ *
+ * This only wrote a console log and closed the dropdown. The session survived,
+ * so the next navigation guard still saw a signed-in user and the "Sign out"
+ * button changed nothing at all. It was also a `router-link` to `/signin`, a
+ * route that does not exist - the catch-all sends it to the 404 page - so even
+ * the navigation part of it was wrong.
+ */
+const signOut = async () => {
   closeDropdown()
+  await auth.signOut()
+  await router.push({ name: 'login' })
 }
 
 const handleClickOutside = (event: MouseEvent) => {

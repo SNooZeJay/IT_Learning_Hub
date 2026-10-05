@@ -68,6 +68,58 @@ describe('startCheckout', () => {
     expect(body.cancelUrl).not.toMatch(/paymongo/i)
   })
 
+  it('builds the return URL from the slug, because the course page looks up by slug', async () => {
+    // The bug this catches: the return URL was built from the course UUID while
+    // `/student/courses/:id` is resolved with `.eq('slug', ...)` everywhere else -
+    // CourseCard, the lesson breadcrumb, the sidebar highlight. A learner who had
+    // just paid landed on a slug lookup for a UUID, got "That course does not
+    // exist", and never saw the payment-succeeded notice.
+    //
+    // The test above could not catch it because it passed one string as both the id
+    // and the slug. This one keeps them distinct, which is the only thing that
+    // makes the assertion mean anything.
+    invoke.mockResolvedValue(
+      ok({
+        requiresPayment: true,
+        amountCentavos: 150000,
+        checkoutUrl: 'https://paymongo.test/cs/1',
+      }),
+    )
+
+    const uuid = 'c517706a-987d-4fed-8b5a-b2e74d4feea8'
+    const slug = 'advanced-python-development'
+
+    await startCheckout(uuid, slug)
+
+    const body = invoke.mock.calls[0][1].body
+    // The API call still carries the id - that is what the function looks up.
+    expect(body.courseId).toBe(uuid)
+    // The return path carries the slug, because that is what the page resolves.
+    expect(body.successUrl).toContain(`/student/courses/${slug}?`)
+    expect(body.cancelUrl).toContain(`/student/courses/${slug}?`)
+    // And never the UUID, which is the whole defect.
+    expect(body.successUrl).not.toContain(uuid)
+    expect(body.cancelUrl).not.toContain(uuid)
+  })
+
+  it('falls back to the id when no slug is supplied, rather than producing undefined', async () => {
+    // A missing slug must not serialise into the path as the literal string
+    // "undefined", which would 404 the learner straight after paying.
+    invoke.mockResolvedValue(
+      ok({
+        requiresPayment: true,
+        amountCentavos: 150000,
+        checkoutUrl: 'https://paymongo.test/cs/1',
+      }),
+    )
+
+    await startCheckout('course-1')
+
+    const body = invoke.mock.calls[0][1].body
+    expect(body.successUrl).toMatch(/\/student\/courses\/course-1\?payment=success$/)
+    expect(body.successUrl).not.toContain('undefined')
+  })
+
   it('returns the checkout URL for a paid course', async () => {
     invoke.mockResolvedValue(
       ok({

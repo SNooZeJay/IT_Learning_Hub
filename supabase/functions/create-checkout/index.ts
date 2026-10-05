@@ -175,7 +175,11 @@ Deno.serve(async (request) => {
     })
     .eq('id', paymentId)
 
-  return json({ requiresPayment: true, paymentId, checkoutUrl: checkout.checkout_url }, 200, request)
+  return json(
+    { requiresPayment: true, paymentId, checkoutUrl: checkout.checkout_url },
+    200,
+    request,
+  )
 })
 
 /**
@@ -219,7 +223,11 @@ async function loadPublishedCourse(courseId: string): Promise<CourseRow | null> 
 async function findPendingPayment(
   studentId: string,
   courseId: string,
-): Promise<{ id: string; provider_checkout_id: string | null; provider_checkout_url: string | null } | null> {
+): Promise<{
+  id: string
+  provider_checkout_id: string | null
+  provider_checkout_url: string | null
+} | null> {
   const { data } = await supabase
     .from('payments')
     .select('id, provider_checkout_id, provider_checkout_url')
@@ -229,7 +237,13 @@ async function findPendingPayment(
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-  return (data as { id: string; provider_checkout_id: string | null; provider_checkout_url: string | null } | null) ?? null
+  return (
+    (data as {
+      id: string
+      provider_checkout_id: string | null
+      provider_checkout_url: string | null
+    } | null) ?? null
+  )
 }
 
 /**
@@ -242,12 +256,44 @@ async function findOrCreatePendingEnrollment(
 ): Promise<string | null> {
   const { data: existing } = await supabase
     .from('enrollments')
-    .select('id')
+    .select('id, status')
     .eq('student_id', studentId)
     .eq('course_id', courseId)
     .maybeSingle()
 
-  if (existing) return (existing as { id: string }).id
+  if (existing) {
+    const row = existing as { id: string; status: string }
+
+    // A dropped enrolment is reused as-is, which used to be a trap.
+    //
+    // `enrollments` has unique (course_id, student_id), so a retry cannot create
+    // a second row: it has to reuse this one. If a previous payment failed,
+    // `fail_payment` set the row to 'dropped', and the retry attached a new
+    // payment to a dropped enrolment. settle_payment then updated nothing while
+    // still reporting success, so the learner paid and got no course.
+    //
+    // The learner is paying again, so the withdrawal is over. Reviving it to
+    // 'pending' gives the retry somewhere valid to land. An already-active
+    // enrolment is left alone: a payment for a course they hold is an admin
+    // action, not something a stray click should quietly reopen.
+    if (row.status === 'dropped') {
+      const { data: revived, error: reviveError } = await supabase
+        .from('enrollments')
+        .update({ status: 'pending', cancelled_at: null, updated_at: new Date().toISOString() })
+        .eq('id', row.id)
+        .eq('status', 'dropped')
+        .select('id')
+        .maybeSingle()
+
+      if (reviveError) {
+        console.error('create-checkout: could not revive dropped enrolment:', reviveError.message)
+        return null
+      }
+      if (revived) return (revived as { id: string }).id
+    }
+
+    return row.id
+  }
 
   const { data, error } = await supabase
     .from('enrollments')

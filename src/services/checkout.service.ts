@@ -96,14 +96,25 @@ const FAILURES: Record<number, CheckoutFailure> = {
  * from the current origin rather than accepted from a caller, so this cannot be
  * used to bounce someone to a third-party page after a payment.
  */
-export async function startCheckout(courseId: string): Promise<CheckoutStart> {
+export async function startCheckout(courseId: string, returnSlug?: string): Promise<CheckoutStart> {
   const origin = typeof window === 'undefined' ? '' : window.location.origin
+
+  // The return path must carry the SLUG, not the id.
+  //
+  // `/student/courses/:id` is resolved by slug everywhere else - CourseCard, the
+  // lesson breadcrumb, the sidebar highlight - because CourseDetail looks the
+  // course up with `.eq('slug', ...)`. This function used to build the return URL
+  // from `courseId`, so a learner who had just paid landed on a lookup for a slug
+  // equal to a UUID: no match, "That course does not exist", and the
+  // `?payment=success` notice never rendered. The one link in the product built
+  // from the wrong identifier was the one after payment.
+  const slug = returnSlug ?? courseId
 
   const { data, error } = await supabase.functions.invoke('create-checkout', {
     body: {
       courseId,
-      successUrl: `${origin}/student/courses/${courseId}?payment=success`,
-      cancelUrl: `${origin}/student/courses/${courseId}?payment=cancelled`,
+      successUrl: `${origin}/student/courses/${slug}?payment=success`,
+      cancelUrl: `${origin}/student/courses/${slug}?payment=cancelled`,
     },
   })
 

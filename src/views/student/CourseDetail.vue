@@ -356,7 +356,10 @@ async function handleEnrol(): Promise<void> {
   isActing.value = true
   try {
     if (isPaidCourse.value) {
-      const result = await startCheckout(course.value.id)
+      // The slug, not the id: this page resolves `/student/courses/:id` by slug,
+      // so a return URL built from the UUID lands the learner - freshly paid - on
+      // "That course does not exist".
+      const result = await startCheckout(course.value.id, course.value.slug)
 
       if (!result.requiresPayment) {
         // The function says this course is free, which contradicts the price on
