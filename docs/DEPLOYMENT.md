@@ -23,6 +23,45 @@ backend**, which is what makes the hosting free.
 
 ---
 
+## 0a. Read this before trusting any deployment check
+
+**There are two Vercel projects called IT Learning Hub. Only one of them is this app.**
+
+| URL                                | What it is                                                             |
+| ---------------------------------- | ---------------------------------------------------------------------- |
+| `it-learning-hub-three.vercel.app` | **This application.** Serves deep links, 200 on every route.           |
+| `it-learning-hub.vercel.app`       | A different project that happens to share the name. Not this codebase. |
+
+How to tell them apart in one request, because the title is not enough — both are
+titled "IT Learning Hub":
+
+- **Ours** compiles CSS through Vite, so its HTML references
+  `/assets/index-<hash>.css` and nothing else for styling.
+- **The other one** loads `<script src="https://cdn.tailwindcss.com">` and renders a
+  "Configure your AI provider" screen. Neither of those strings occurs anywhere in
+  this application's source or in `dist/`.
+
+Everything the other project returns for a deep path is a bare Vercel 404, because it
+is not an SPA. **Do not read that as this app being broken.**
+
+This cost real time. Two commits (`f688611`, `e1926c1`) were written on the false
+conclusion that this app's deep links were dead, along with a run of investigation
+aimed at a deployment pipeline that was working the whole time. The conclusion was
+falsified by pushing a commit that could not possibly affect a build and watching the
+site serve exactly what it always had.
+
+Two lessons, both worth more than the commits were:
+
+1. **Check you are looking at the right artefact before diagnosing it.** The served
+   HTML was checked against `dist/index.html` — one line, one request — only after
+   three rounds of theorising about build failures and rewrite configuration.
+2. **A test built on the wrong premise reports confidently and endlessly.** The
+   deployment poll watched a JS bundle hash, which cannot change when only
+   `README.md` or `vite.config.ts` changes. It "proved" nothing for three pushes
+   running.
+
+---
+
 ## 1. The CLI is already linked — no login needed
 
 ```bash

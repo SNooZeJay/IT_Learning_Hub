@@ -12,11 +12,11 @@ permissions, roles or workflows. Those are described below and in `docs/`.
 An online learning platform where instructors publish courses and students enrol,
 work through modules and lessons, sit timed quizzes, and track their results.
 
-| Role | Can do |
-| --- | --- |
-| **Student** | Browse the catalogue, enrol, read lessons and materials, sit quizzes, submit assignments, see grades and certificates, message instructors and other students |
-| **Instructor** | Create and publish courses, author modules / lessons / materials, build quizzes, set assignment deadlines, grade submissions, message enrolled students |
-| **Admin** | Manage users, roles, categories, courses and payments; read platform-wide analytics |
+| Role           | Can do                                                                                                                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Student**    | Browse the catalogue, enrol, read lessons and materials, sit quizzes, submit assignments, see grades and certificates, message instructors and other students |
+| **Instructor** | Create and publish courses, author modules / lessons / materials, build quizzes, set assignment deadlines, grade submissions, message enrolled students       |
+| **Admin**      | Manage users, roles, categories, courses and payments; read platform-wide analytics                                                                           |
 
 Enrolment is the basis of access. A student sees a course once they are enrolled in
 it; an instructor sees only the courses assigned to them. Both are enforced by Row
@@ -99,12 +99,17 @@ change.
 
 ## Deployment
 
-`vercel.json` carries an SPA rewrite, and the build also emits `404.html` as a copy
-of `index.html`. The second is deliberate and load-bearing: the rewrite depends on
-the Vercel project's Root Directory being the repository root, and if it is not, the
-rewrite is silently ignored and every deep link 404s. `404.html` is served by the
-host for any unmatched path regardless of that setting, so deep links work either
-way. See the comment in `vite.config.ts`.
+The live site is **<https://it-learning-hub-three.vercel.app>**. Note the `-three`:
+`it-learning-hub.vercel.app` is a _different_ Vercel project that happens to share
+the name, it is not this application, and it will 404 on every route. See
+[`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md).
+
+Deep links work because `vercel.json` carries an SPA rewrite. The build also emits
+`404.html` as a copy of `index.html`, as a safety net: the rewrite depends on a
+Vercel project setting nobody can see from here, and if that setting is ever changed
+the rewrite is silently ignored — `/` keeps working and every other route becomes a
+bare 404, with no build, test or type-check failing to notice. The rationale and the
+evidence are in the comment in `vite.config.ts`.
 
 ## Documentation
 

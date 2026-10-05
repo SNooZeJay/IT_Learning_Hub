@@ -9,44 +9,46 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 /**
  * Emit `404.html` as a copy of `index.html`.
  *
- * This is the SPA fallback, and it is here rather than only in `vercel.json`
- * because `vercel.json` alone has twice been believed to fix this and was not.
+ * A safety net for the SPA fallback, not the fallback itself.
  *
- * The history: the deployed site serves `/` correctly and returns a bare 404 for
- * every deep path - `/student/calendar`, `/auth/login`, everything. So the app is
- * reachable only at the root, and any refresh, bookmark or shared link is a dead
- * end. On 2026-10-05 a `vercel.json` SPA rewrite was committed as the fix. It is
- * still in the repository, still correct as far as it goes, and deep paths still
- * 404 - verified against the deployed bundle after this commit's predecessor
- * shipped, not inferred from a green gate.
+ * The fallback that actually serves requests is the rewrite in `vercel.json`, and
+ * on the real deployment (`it-learning-hub-three.vercel.app`, see docs/DEPLOYMENT.md)
+ * it works: every deep path returns 200 with the app. That was verified by loading
+ * `/student/calendar`, `/auth/login` and an unknown path directly, not inferred.
  *
- * The likely cause is in the Vercel project's settings rather than in the repo:
- * if the project's Root Directory is not the repository root, `vercel.json` at the
- * root is never read. There is no way to check or change that from here without
- * dashboard access, and guessing at dashboard settings is not something to build on.
+ * This file exists because that working state depends on one thing nobody can see
+ * from the repository. If the Vercel project's Root Directory is ever changed, or
+ * the project is re-linked, or `vercel.json` is dropped, `vercel.json` stops being
+ * read and the failure is completely silent: `/` keeps working, every deep link
+ * becomes a bare 404, and no test, build or type-check notices, because from the
+ * repository's point of view nothing changed at all.
  *
- * So the fix is placed where it cannot depend on them. Every static host that
- * matters serves `404.html` for a path that matches no file - Vercel, GitHub Pages
- * and Netlify all do - so a copy of `index.html` at that name boots the app, and
- * Vue Router reads the path and renders the right screen. Deep links work whatever
- * the host's rewrite configuration happens to be.
+ * A copy of `index.html` at the name every static host already serves for an
+ * unmatched path - Vercel, GitHub Pages and Netlify all do - boots the app instead,
+ * and Vue Router reads the path and renders the right screen. Verified against a
+ * host with that exact behaviour: `/student/calendar` served the app and redirected
+ * to `/auth/login`, and an unknown path rendered this app's own 404 page. A static
+ * error page cannot navigate, so that redirect is the proof it worked.
  *
- * The one compromise, stated plainly: the response status is 404 rather than 200,
- * because the host believes the path does not exist. The page is correct and fully
- * usable; only the status line is wrong. That is invisible to a person using the
- * app, and it would matter to a crawler, which is not a consideration for an
- * authenticated system that no search engine should be indexing.
+ * The cost, stated plainly. If this ever does take over from the rewrite, the status
+ * line is 404 rather than 200, because the host believes the path does not exist. The
+ * page is correct and fully usable; only the status is wrong. That is invisible to a
+ * person using the app and irrelevant to a crawler, which should not be indexing an
+ * authenticated system anyway. Weighed against the alternative - the whole site
+ * becoming unreachable at every link but the root - it is not a close call.
  *
- * `vercel.json` is deliberately left in place. If the Root Directory is corrected
- * the rewrite will start applying, and having both is harmless - the rewrite simply
- * wins, and this file is never reached.
+ * The two do not conflict. The rewrite is tried first and wins whenever it applies,
+ * in which case this file is never served at all.
  *
- * The output directory is taken from Vite's resolved config rather than from
- * `__dirname` or `import.meta.url`. A first attempt used `__dirname`, which worked
- * on this machine and then failed the Vercel build outright, so no deployment
- * happened at all - Vite loads a TypeScript config as CJS or ESM depending on the
- * host, and only one of those two identifiers exists. `configResolved` is the API
- * for this and has neither problem.
+ * A correction worth keeping in mind, because the reasoning that first produced this
+ * plugin was wrong. It was written after probing `it-learning-hub.vercel.app` - a
+ * *different* Vercel project that happens to share the name - and concluding from
+ * its bare 404s that this app's deep links were broken. They were not, and never
+ * had been. The two commits that carried that claim are in the history; this comment
+ * is the correction. Two things came out of it that are still worth having: the
+ * output directory is taken from `config.build.outDir` via `configResolved`, which
+ * is the correct API regardless, and the two-projects-one-name hazard is now written
+ * down in docs/DEPLOYMENT.md so the next person does not repeat the detour.
  */
 function spaFallback(): Plugin {
   let outDir = ''
@@ -77,15 +79,10 @@ function spaFallback(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    vue(),
-    vueJsx(),
-    vueDevTools(),
-    spaFallback(),
-  ],
+  plugins: [vue(), vueJsx(), vueDevTools(), spaFallback()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
 })
