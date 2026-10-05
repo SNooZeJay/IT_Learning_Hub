@@ -6,13 +6,13 @@ import type {
   EnrollmentStatus,
   Lesson,
   LessonMaterial,
+  LessonProgress,
   MaterialType,
   LessonMaterialRow,
   LessonProgressRow,
   LessonRow,
   Module,
   ModuleRow,
-  ProgressStatus,
   QuizAttemptRow,
   QuizRow,
 } from '@/types'
@@ -79,7 +79,7 @@ const MATERIAL_COLUMNS =
   'id, lesson_id, title, file_path, file_type, file_size, position, created_at'
 
 const PROGRESS_COLUMNS =
-  'id, enrollment_id, lesson_id, status, progress_percent, last_position_seconds, started_at, completed_at'
+  'id, enrollment_id, lesson_id, student_id, status, progress_percent, last_position_seconds, started_at, completed_at'
 
 const QUIZ_COLUMNS = 'id, course_id, title, passing_score, attempts_allowed, status'
 
@@ -176,13 +176,14 @@ interface GapRow {
 // View models.
 // ---------------------------------------------------------------------------
 
-export interface LessonProgress {
-  status: ProgressStatus
-  progressPercent: number
-  lastPositionSeconds: number | null
-  startedAt: string | null
-  completedAt: string | null
-}
+/**
+ * Re-exported rather than redefined.
+ *
+ * The local version carried only the five fields a progress bar needs, which is
+ * why the `student_id` the write policy checks could be set on the row without
+ * appearing anywhere in the view model. The canonical shape is in `@/types`.
+ */
+export type { LessonProgress } from '@/types'
 
 export interface LessonWithProgress extends Lesson {
   progress: LessonProgress | null
@@ -466,12 +467,29 @@ function toMaterial(row: LessonMaterialRow): LessonMaterial {
  */
 function toProgress(row: LessonProgressRow): LessonProgress {
   return {
+    id: row.id,
+    enrollmentId: row.enrollment_id,
+    lessonId: row.lesson_id,
+    studentId: row.student_id,
     status: row.status,
     progressPercent: Number(row.progress_percent),
     lastPositionSeconds: row.last_position_seconds,
     startedAt: row.started_at,
     completedAt: row.completed_at,
   }
+}
+
+/**
+ * The signed-in user id.
+ *
+ * Read once per write rather than passed in, because it cannot be trusted from
+ * the caller: the `lesson_progress own write` policy compares it against
+ * `auth.uid()` on the server, so a value supplied by the browser could only ever
+ * make the write fail, never succeed for someone else.
+ */
+async function currentUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getUser()
+  return data.user?.id ?? null
 }
 
 function toQuizGrade(
@@ -829,6 +847,7 @@ export async function startLesson(enrollmentId: string, lessonId: string): Promi
       {
         enrollment_id: enrollmentId,
         lesson_id: lessonId,
+        student_id: await currentUserId(),
         status: 'in_progress',
         progress_percent: 0,
         started_at: now,
@@ -864,6 +883,7 @@ export async function recordLessonPosition(
       {
         enrollment_id: enrollmentId,
         lesson_id: lessonId,
+        student_id: await currentUserId(),
         status: 'in_progress',
         progress_percent: percent,
         last_position_seconds: lastPositionSeconds,
@@ -898,6 +918,7 @@ export async function completeLesson(
       {
         enrollment_id: enrollmentId,
         lesson_id: lessonId,
+        student_id: await currentUserId(),
         status: 'completed',
         progress_percent: 100,
         started_at: now,
@@ -931,6 +952,7 @@ export async function reopenLesson(
       {
         enrollment_id: enrollmentId,
         lesson_id: lessonId,
+        student_id: await currentUserId(),
         status: 'in_progress',
         progress_percent: 99,
         completed_at: null,

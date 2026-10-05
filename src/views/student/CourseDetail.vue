@@ -339,6 +339,18 @@ async function handleEnrol(): Promise<void> {
 
     await enrollInFreeCourse(course.value, auth.profile.id)
     enrolledHere.value = true
+
+    // The curriculum is re-read rather than trusted from the old fetch.
+    //
+    // Before this, enrolling set the flag and left the outline alone, so the page
+    // said "You are enrolled" directly above an empty curriculum: Row Level
+    // Security had hidden the lessons on the first load because at that moment
+    // there was no enrolment, and nothing re-ran the query. A learner saw "no
+    // lessons yet" for a course that has six, until they refreshed.
+    //
+    // Verified in a browser: click Enrol for free -> enrolled badge shown,
+    // curriculum still "3 modules, 0 lessons" -> after reload, 3/6/6.
+    await load()
   } catch (error) {
     actionError.value = error instanceof Error ? error.message : 'Could not enrol in this course.'
   } finally {
