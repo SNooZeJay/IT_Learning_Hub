@@ -397,6 +397,7 @@ import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import Alert from '@/components/ui/Alert.vue'
 import Button from '@/components/ui/Button.vue'
+import MaterialItem from '@/components/curriculum/MaterialItem.vue'
 import {
   claimCertificate,
   completeLesson,
