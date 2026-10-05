@@ -505,6 +505,9 @@ import {
 } from '@/services/curriculum.service'
 import { supabase } from '@/services/supabase/client'
 import { materialTypeLabel } from '@/services/curriculum.service'
+// The student dashboard caches module ids per course, so an instructor's
+// curriculum write has to drop it or a student sees the old module list.
+import { forgetModuleCache } from '@/services/dashboard.service'
 import { formatDate, formatDateTime, formatPeso } from '@/types'
 import type {
   ContentStatus,
@@ -552,6 +555,20 @@ const lessonIndex = computed(() => {
 const moduleIndex = computed(() => {
   const index = new Map<string, CurriculumModule>()
   for (const module of curriculumModules.value) index.set(module.id, module)
+  return index
+})
+
+/**
+ * Every material across every lesson, so a removal can name what it removes.
+ *
+ * Built from `lessonIndex` rather than by walking the tree again, so there is
+ * one source of truth for the curriculum shape on this page.
+ */
+const materialIndex = computed(() => {
+  const index = new Map<string, LessonMaterial>()
+  for (const lesson of lessonIndex.value.values()) {
+    for (const material of lesson.materials) index.set(material.id, material)
+  }
   return index
 })
 
@@ -706,9 +723,13 @@ async function saveModule(draft: {
   try {
     if (moduleForm.module) {
       await updateModule(moduleForm.module.id, draft)
+      // Invalidated after the write succeeds, not before and not on failure: a
+      // cache dropped by a failed write costs a re-read for nothing.
+      forgetModuleCache(course.value.id)
       actionMessage.value = `Saved "${draft.title}".`
     } else {
       await createModule(course.value.id, draft)
+      forgetModuleCache(course.value.id)
       actionMessage.value = `Added module "${draft.title}".`
     }
     await refreshCurriculum()
@@ -845,7 +866,13 @@ function confirmRemoveModule(moduleId: string): void {
       ? `Remove the module "${module.title}"?`
       : `Remove "${module.title}" and its ${lessonCount} lesson${lessonCount === 1 ? '' : 's'}? Every student's progress on ${lessonCount === 1 ? 'it' : 'them'} is deleted with it. Archiving keeps the record instead.`
   if (!window.confirm(message)) return
-  void runRemoval(() => deleteModule(moduleId), 'Module removed.')
+  // A removed module changes the module list a student's dashboard reads, and
+  // that list is cached per course. Without this the dashboard keeps serving the
+  // deleted module until a full reload.
+  void runRemoval(async () => {
+    await deleteModule(moduleId)
+    forgetModuleCache(course.value?.id)
+  }, 'Module removed.')
 }
 
 function confirmRemoveLesson(lessonId: string): void {
@@ -860,6 +887,16 @@ function confirmRemoveLesson(lessonId: string): void {
 }
 
 function confirmRemoveMaterial(materialId: string): void {
+  // Confirmed, like its two siblings above.
+  //
+  // This one had none, so a single stray click on Remove destroyed the material
+  // and there was no point at which an instructor could have stopped it. The
+  // message names the material because "Remove?" against a list of identically
+  // styled rows is a guess: the instructor is choosing between three rows that
+  // look alike, and the browser's dialog is the only place to say which one.
+  const material = materialIndex.value.get(materialId)
+  if (!material) return
+  if (!window.confirm(`Remove "${material.title}"?`)) return
   void runRemoval(() => deleteMaterial(materialId), 'Material removed.')
 }
 

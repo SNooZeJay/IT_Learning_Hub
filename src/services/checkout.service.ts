@@ -1,4 +1,4 @@
-import { supabase, readFunctionError } from './supabase/client'
+import { FunctionTimeoutError, invokeFunction, readFunctionError } from './supabase/client'
 import type { Course } from '@/types'
 
 /**
@@ -35,7 +35,23 @@ export class CheckoutError extends Error {
 export interface CheckoutStart {
   /** False for a free course, which needs no payment at all. */
   requiresPayment: boolean
-  amountCentavos: number
+  /**
+   * What the function said it would charge, or undefined when it said nothing.
+   *
+   * Optional because the function only sends it on the free branch
+   * (`{ requiresPayment: false, amountCentavos: 0 }`). Both paid branches - a
+   * fresh session and a reused pending payment - omit the field entirely, so a
+   * required `number` here was typed as a promise the server never kept: every
+   * paid checkout evaluated it to 0 and any caller reading it would show a paid
+   * course as costing nothing.
+   *
+   * The amount is not derived here. This file has the course id and could read
+   * the price, but a locally-read price is not what the learner is about to be
+   * charged - the function is the authority on that, and substituting a second
+   * source is how a page ends up quoting one number and charging another. A
+   * missing amount is reported as missing.
+   */
+  amountCentavos?: number
   /** Present only when `requiresPayment` is true. */
   checkoutUrl?: string
   paymentId?: string
@@ -110,7 +126,12 @@ export async function startCheckout(courseId: string, returnSlug?: string): Prom
   // from the wrong identifier was the one after payment.
   const slug = returnSlug ?? courseId
 
-  const { data, error } = await supabase.functions.invoke('create-checkout', {
+  // Through the timeout wrapper rather than `supabase.functions.invoke`
+  // directly. `create-checkout` makes up to four network calls of its own -
+  // PayMongo's session API among them - so a provider that accepts the
+  // connection and never answers leaves the Enrol button spinning with no
+  // message and no way to tell whether a payment was started.
+  const { data, error } = await invokeFunction<Partial<CheckoutStart>>('create-checkout', {
     body: {
       courseId,
       successUrl: `${origin}/student/courses/${slug}?payment=success`,
@@ -119,6 +140,14 @@ export async function startCheckout(courseId: string, returnSlug?: string): Prom
   })
 
   if (error) {
+    // Named before the status is read: a timeout has no status, and without
+    // this it falls through to `messageFor('unknown')` and the learner is told
+    // checkout "could not be opened" when in fact the provider simply did not
+    // answer in time. `details` is null because there is no response body.
+    if (error instanceof FunctionTimeoutError) {
+      throw new CheckoutError(error.message, 'unknown')
+    }
+
     const status =
       typeof error === 'object' && error !== null && 'status' in error
         ? Number((error as { status?: unknown }).status)
@@ -156,7 +185,15 @@ export async function startCheckout(courseId: string, returnSlug?: string): Prom
 
   return {
     requiresPayment: body.requiresPayment === true,
-    amountCentavos: Number(body.amountCentavos ?? 0),
+    // `undefined` when the function did not send it, rather than a `Number(... ?? 0)`
+    // that made a ₱1,500 course look free. `Number('')` is 0 and
+    // `Number('abc')` is NaN, so both of those are dropped too: a caller must
+    // have to handle "the server did not say" rather than be handed a zero it
+    // cannot distinguish from a genuinely free course.
+    amountCentavos:
+      typeof body.amountCentavos === 'number' && Number.isFinite(body.amountCentavos)
+        ? body.amountCentavos
+        : undefined,
     // Normalised to undefined rather than passed through. The function sends
     // `checkoutUrl: null` when it could not resurrect a session, and `null`
     // flowing into the view would read as falsy in the same branch but break

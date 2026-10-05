@@ -15,22 +15,69 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const invoke = vi.fn()
 
-vi.mock('@/services/supabase/client', () => ({
-  supabase: { functions: { invoke: (...a: unknown[]) => invoke(...a) } },
-  readFunctionError: (e: unknown) => {
-    // Mirrors the real helper, which hands back the function's JSON body. The
-    // earlier version of this mock returned only `.error`, so a test asserting on
-    // providerStatus and providerCode could never match - a mock that understates
-    // what the code receives makes the test pass for the wrong reason.
-    if (typeof e === 'object' && e !== null) {
-      const c = (e as { context?: unknown }).context
-      if (typeof c === 'object' && c !== null) {
-        return JSON.stringify(c)
-      }
+/**
+ * The service now calls `invokeFunction`, the timeout wrapper, rather than
+ * `supabase.functions.invoke` directly. The mock forwards to the same
+ * `invoke` stub, so every assertion below about the request body still reads
+ * the call the service really made.
+ *
+ * `FunctionTimeoutError` is defined inside the factory because `vi.mock` is
+ * hoisted above every top-level declaration, so a class declared out here would
+ * still be in its temporal dead zone when the factory runs. It is the real
+ * shape rather than a stand-in: the service branches on
+ * `error instanceof FunctionTimeoutError` to report a timed-out call
+ * differently from a refused one, and a mock class would make that
+ * `instanceof` false and send every timeout down the generic path.
+ *
+ * A test asks for a timeout by resolving `invoke` with `{ __timeout: true }`.
+ */
+vi.mock('@/services/supabase/client', () => {
+  class FunctionTimeoutError extends Error {
+    constructor(
+      readonly functionName: string,
+      readonly timeoutMs: number,
+    ) {
+      super(
+        `"${functionName}" did not answer within ${Math.round(timeoutMs / 1000)} seconds. Nothing was saved. Please try again in a moment.`,
+      )
+      this.name = 'FunctionTimeoutError'
     }
-    return null
-  },
-}))
+  }
+
+  return {
+    supabase: { functions: { invoke: (...a: unknown[]) => invoke(...a) } },
+    FunctionTimeoutError,
+    invokeFunction: async (
+      functionName: string,
+      options: { body?: unknown },
+      timeoutMs = 20000,
+    ) => {
+      // Mirrors the wrapper's own contract: resolve `{ data, error }`, never
+      // throw, and turn a deadline into a `FunctionTimeoutError`.
+      const result = (await invoke(functionName, options)) as {
+        data: unknown
+        error: unknown
+      }
+      if ((result.error as { __timeout?: boolean } | null)?.__timeout) {
+        return { data: null, error: new FunctionTimeoutError(functionName, timeoutMs) }
+      }
+      return { data: result.data ?? null, error: result.error }
+    },
+    readFunctionError: (e: unknown) => {
+      // Mirrors the real helper, which hands back the function's JSON body. The
+      // earlier version of this mock returned only `.error`, so a test asserting on
+      // providerStatus and providerCode could never match - a mock that understates
+      // what the code receives makes the test pass for the wrong reason.
+      if (typeof e === 'object' && e !== null) {
+        const c = (e as { context?: unknown }).context
+        if (typeof c === 'object' && c !== null) {
+          return JSON.stringify(c)
+        }
+      }
+      return null
+    },
+  }
+})
 
 import { CheckoutError, courseNeedsPayment, startCheckout } from '@/services/checkout.service'
 
@@ -254,6 +301,44 @@ describe('startCheckout', () => {
   it('is a CheckoutError, so a caller can branch on the reason', async () => {
     invoke.mockResolvedValue(fail(404, { error: 'gone' }))
     await expect(startCheckout('course-1')).rejects.toBeInstanceOf(CheckoutError)
+  })
+
+  it('reports a timed-out call as a timeout, not as a generic failure', async () => {
+    // The wrapper aborts its own request and hands back a FunctionTimeoutError.
+    // Without the `instanceof` branch in the service it would fall through to
+    // `messageFor('unknown', null)` and tell the learner checkout "could not be
+    // opened" - which names neither the cause nor that a retry is worth making.
+    invoke.mockResolvedValue({ data: null, error: { __timeout: true } })
+    await expect(startCheckout('course-1')).rejects.toThrow(/did not answer within/)
+    // Still says nothing was charged: a timeout after the request left the browser
+    // says nothing about whether the provider took it.
+    await expect(startCheckout('course-1')).rejects.toThrow(/Nothing was saved/)
+  })
+
+  it('leaves amountCentavos undefined when the function does not send it', async () => {
+    // The bug this catches: `amountCentavos` was typed `number` but the function
+    // only sends it on the free branch, so `Number(body.amountCentavos ?? 0)`
+    // turned "the server said nothing" into a confident 0 on every paid checkout.
+    // Any caller formatting it would quote a ₱1,500 course as free.
+    invoke.mockResolvedValue(
+      ok({ requiresPayment: true, checkoutUrl: 'https://paymongo.test/cs/1' }),
+    )
+
+    const result = await startCheckout('course-1')
+    expect(result.amountCentavos).toBeUndefined()
+    expect(result.requiresPayment).toBe(true)
+  })
+
+  it('passes through a real amount when the function does send one', async () => {
+    invoke.mockResolvedValue(
+      ok({
+        requiresPayment: true,
+        amountCentavos: 150000,
+        checkoutUrl: 'https://paymongo.test/cs/1',
+      }),
+    )
+    const result = await startCheckout('course-1')
+    expect(result.amountCentavos).toBe(150000)
   })
 })
 

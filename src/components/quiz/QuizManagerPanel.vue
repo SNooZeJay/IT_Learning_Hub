@@ -858,9 +858,23 @@ watch(
                     >
                       <ArrowDown class="size-4" aria-hidden="true" />
                     </button>
+                    <!--
+                      Both bound to `busy`, like the reorder arrows above and
+                      publish below.
+
+                      Delete was the damaging one: `deleteQuestion` was called
+                      with nothing to disable it, so a double-click issued two
+                      deletes. The second found nothing to delete and reported a
+                      failure for a question that had in fact been removed - an
+                      error message describing the opposite of what happened.
+                      `busy` is set synchronously at the top of every write
+                      handler, so the button is inert before the second click can
+                      land.
+                    -->
                     <button
                       type="button"
-                      class="inline-flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-lg px-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-white/[0.06] dark:hover:text-white/90"
+                      :disabled="busy"
+                      class="inline-flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-lg px-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:text-gray-300 dark:hover:bg-white/[0.06] dark:hover:text-white/90 dark:disabled:hover:bg-transparent"
                       @click="openEditQuestion(question)"
                     >
                       <Pencil class="size-4 shrink-0" aria-hidden="true" />
@@ -868,7 +882,8 @@ watch(
                     </button>
                     <button
                       type="button"
-                      class="inline-flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-lg px-2 text-sm text-gray-500 hover:bg-error-50 hover:text-error-600 dark:text-gray-400 dark:hover:bg-error-500/10 dark:hover:text-error-400"
+                      :disabled="busy"
+                      class="inline-flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-lg px-2 text-sm text-gray-500 hover:bg-error-50 hover:text-error-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:text-gray-400 dark:hover:bg-error-500/10 dark:hover:text-error-400 dark:disabled:hover:bg-transparent"
                       @click="confirmRemoveQuestion(question)"
                     >
                       <Trash2 class="size-4 shrink-0" aria-hidden="true" />

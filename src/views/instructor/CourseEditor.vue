@@ -859,6 +859,9 @@ import {
   updateModule,
 } from '@/services/instructor.service'
 import type { CourseModule } from '@/services/instructor.service'
+// Invalidated on module writes: the student dashboard caches module ids per
+// course, so a new or removed module is otherwise invisible until a reload.
+import { forgetModuleCache } from '@/services/dashboard.service'
 import type { CourseLevel, CourseStatus, Lesson, LessonType } from '@/types'
 import { formatPeso } from '@/types'
 import { useAuthStore } from '@/stores/auth'
@@ -924,6 +927,25 @@ const priceCentavos = computed(() => {
   // centavos, and truncating would quietly charge ₱199.90.
   return Math.round(parsed * 100)
 })
+/**
+ * An integer column, or null.
+ *
+ * `v-model.number` on a cleared number input yields `''`, not null, and `''`
+ * reaching an integer column is `22P02 invalid input syntax for type integer` -
+ * the save fails with a database message about syntax rather than anything the
+ * instructor can act on, for a field they deliberately left blank. NaN arrives
+ * the same way when the input holds something unparseable.
+ *
+ * `lessonDraft.durationMinutes` has the identical shape and the identical
+ * column, so this is used for both rather than leaving one of them to throw.
+ */
+function integerOrNull(value: number | string | null | undefined): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const parsed = typeof value === 'number' ? value : Number.parseFloat(value)
+  if (!Number.isFinite(parsed)) return null
+  return Math.round(parsed)
+}
+
 const pesoPreview = computed(() =>
   pesoInput.value.trim() === '' || priceCentavos.value === 0
     ? 'Free'
@@ -1125,8 +1147,14 @@ async function save(): Promise<void> {
       categoryId: form.value.categoryId === '' ? null : form.value.categoryId,
       level: form.value.level,
       priceCentavos: priceCentavos.value,
-      durationMinutes: form.value.durationMinutes,
-      passingScore: form.value.passingScore,
+      // Normalised here rather than at the input. `form.durationMinutes` and
+      // `form.passingScore` are typed `number | null`, which is what the field
+      // holds when it holds something - the `''` Vue's `.number` modifier
+      // produces for a cleared box does not fit that type, and neither does NaN.
+      // Both are integer columns, so both are converted at the one point where
+      // the write is assembled.
+      durationMinutes: integerOrNull(form.value.durationMinutes),
+      passingScore: integerOrNull(form.value.passingScore),
     }
 
     if (isNew.value || !courseId.value) {
@@ -1223,6 +1251,7 @@ async function createNewModule(): Promise<void> {
       description:
         moduleDraft.value.description.trim() === '' ? null : moduleDraft.value.description,
     })
+    forgetModuleCache(courseId.value)
     cancelModuleEdit()
     // Reloaded rather than pushed locally, so the position the database
     // assigned is what shows. Positions are unique per course, and a guess
@@ -1249,6 +1278,7 @@ async function saveModule(moduleId: string): Promise<void> {
       description:
         moduleDraft.value.description.trim() === '' ? null : moduleDraft.value.description,
     })
+    forgetModuleCache(courseId.value)
     cancelModuleEdit()
     await loadModules()
   } catch (error) {
@@ -1270,6 +1300,7 @@ async function removeModule(module: CourseModule): Promise<void> {
   moduleError.value = ''
   try {
     await deleteModule(module.id)
+    forgetModuleCache(courseId.value)
     await loadModules()
   } catch (error) {
     moduleError.value = messageOfUnknown(error, 'Could not delete the module.')
@@ -1331,7 +1362,8 @@ async function submitLesson(): Promise<void> {
     title: lessonDraft.value.title.trim(),
     lessonType: lessonDraft.value.lessonType,
     content: lessonDraft.value.content.trim() === '' ? null : lessonDraft.value.content,
-    durationMinutes: lessonDraft.value.durationMinutes,
+    // Same column, same `.number` behaviour, same reason. See integerOrNull.
+    durationMinutes: integerOrNull(lessonDraft.value.durationMinutes),
     isPreview: lessonDraft.value.isPreview,
     // Nulled rather than left behind when the type is an article: a stray URL on
     // an article is data that says a video exists when none does.

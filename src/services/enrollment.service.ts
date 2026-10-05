@@ -1,5 +1,5 @@
 import { supabase } from './supabase/client'
-import type { EnrollmentRow  } from '@/types'
+import type { EnrollmentRow } from '@/types'
 import type { Course, Enrollment } from '@/types'
 import { isPaid } from './course.service'
 
@@ -26,9 +26,9 @@ function toEnrollment(row: EnrollmentRow): Enrollment {
 }
 
 /** Everything this student is enrolled in, with the course joined in. */
-export async function listMyEnrollments(studentId: string): Promise<
-  Array<Enrollment & { course: Course }>
-> {
+export async function listMyEnrollments(
+  studentId: string,
+): Promise<Array<Enrollment & { course: Course }>> {
   const { data, error } = await supabase
     .from('enrollments')
     .select(

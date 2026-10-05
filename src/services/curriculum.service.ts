@@ -1,5 +1,7 @@
 import { supabase } from '@/services/supabase/client'
 import type { Database } from '@/services/supabase/types'
+// The dashboard caches module ids per course; a curriculum write invalidates it.
+import { forgetModuleCache } from '@/services/dashboard.service'
 import type {
   ContentStatus,
   CurriculumLesson,
@@ -577,6 +579,14 @@ export async function reorder(
   if (error) {
     throw new CurriculumError(messageOf(error, 'Could not save the new order.'), error)
   }
+
+  // The dashboard caches module ids per course, and nothing else observes a
+  // reorder. Invalidated here rather than at a call site because this function
+  // is the only thing that performs the write, and a caller that forgets is a
+  // stale dashboard that only a full reload clears.
+  if (table === 'modules') {
+    forgetModuleCache(parentId)
+  }
 }
 
 export interface ModuleDraft {
@@ -813,6 +823,61 @@ const MATERIAL_TYPE_LABELS: Record<MaterialType, string> = {
 export function materialTypeLabel(type: MaterialType): string {
   return MATERIAL_TYPE_LABELS[type] ?? 'Material'
 }
+
+/**
+ * The only URL schemes a material link may use.
+ *
+ * `javascript:` and `data:` are not links, they are script. Put in an `href` they
+ * execute in this origin, in the session of whoever clicks, which for a student
+ * means the attacker's script runs with their authenticated cookies and can call
+ * the API as them. That is stored XSS: the payload is written once by an
+ * instructor and fires for every student who opens the lesson.
+ *
+ * So the allow-list is a positive list of two schemes rather than a blocklist of
+ * the obvious ones. `vbscript:` and `file:` exist too, and a blocklist is a
+ * list of things nobody has thought of yet.
+ */
+const SAFE_URL_SCHEMES = new Set(['http:', 'https:'])
+
+/**
+ * A material link that is safe to put in an `href`, or null.
+ *
+ * Returns the parsed-and-normalised URL rather than the raw string, so what is
+ * compared against the allow-list is what the browser would actually navigate
+ * to. A hand-written regex on the raw string is the thing this replaces:
+ * `"  javascript:alert(1)"`, `"java\tscript:alert(1)"` and `"JaVaScRiPt:..."`
+ * all pass a `startsWith('http')`-shaped check and all execute. `new URL()`
+ * strips the leading whitespace and the tab the way a browser does before the
+ * scheme is read, so there is one parser instead of a second set of rules.
+ *
+ * Relative URLs return null. There is no origin-relative link in this data: a
+ * material link is a URL somewhere else, and a value with no scheme is more
+ * often a typo than an intent.
+ */
+export function safeExternalHref(raw: string | null | undefined): string | null {
+  const trimmed = (raw ?? '').trim()
+  if (trimmed === '') return null
+
+  let parsed: URL
+  try {
+    parsed = new URL(trimmed)
+  } catch {
+    return null
+  }
+
+  return SAFE_URL_SCHEMES.has(parsed.protocol.toLowerCase()) ? parsed.toString() : null
+}
+
+/**
+ * Why a link was refused, in a sentence an instructor can act on.
+ *
+ * Kept next to `safeExternalHref` so the form's message and the render path's
+ * message cannot describe different rules. The form says this on submit; the
+ * list shows it for a row that is already stored, which can only happen if it
+ * predates this check or was written by something other than this form.
+ */
+export const UNSAFE_URL_REASON =
+  'Only http and https links are allowed. Remove javascript:, data: or any other scheme.'
 
 /** Human file size. Null when the size was never recorded. */
 export function formatFileSize(bytes: number | null): string {

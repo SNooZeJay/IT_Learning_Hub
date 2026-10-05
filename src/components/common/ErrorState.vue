@@ -28,7 +28,7 @@ import Button from '@/components/ui/Button.vue'
 withDefaults(
   defineProps<{
     title?: string
-  /** A message from the service layer, already stripped of SQL and internals. */
+    /** A message from the service layer, already stripped of SQL and internals. */
     message: string
   }>(),
   { title: 'Something went wrong' },

@@ -462,7 +462,27 @@ export async function createQuestion(quizId: string, draft: QuestionDraft): Prom
       // is better than leaving a half-built question that fails at publish time
       // with an error about a different thing.
       if (acceptedError) {
-        await supabase.from('quiz_questions').delete().eq('id', questionId)
+        const { error: cleanupError } = await supabase
+          .from('quiz_questions')
+          .delete()
+          .eq('id', questionId)
+
+        // The cleanup's own error is included rather than discarded. If the
+        // compensating delete also fails, a question with no key survives, and
+        // the next thing that happens is a publish attempt refused with "no
+        // option is marked correct" - a message about a different question at a
+        // different moment, from which the real cause is not recoverable. The
+        // two messages are joined so the author is told both things.
+        if (cleanupError) {
+          throw new QuizAuthoringError(
+            `Could not save the accepted answers (${messageOf(acceptedError, 'unknown error')}), ` +
+              `and the incomplete question could not be removed either ` +
+              `(${messageOf(cleanupError, 'unknown error')}). ` +
+              'Delete that question by hand before adding it again.',
+            cleanupError,
+          )
+        }
+
         fail(acceptedError, 'Could not save the accepted answers, so the question was not kept.')
       }
     }
@@ -481,7 +501,24 @@ export async function createQuestion(quizId: string, draft: QuestionDraft): Prom
     )
 
     if (optionError) {
-      await supabase.from('quiz_questions').delete().eq('id', questionId)
+      const { error: cleanupError } = await supabase
+        .from('quiz_questions')
+        .delete()
+        .eq('id', questionId)
+
+      // See the short_text branch above: a cleanup that itself fails leaves a
+      // half-built question, and without its error in the message the failure
+      // surfaces later as an unrelated publish error.
+      if (cleanupError) {
+        throw new QuizAuthoringError(
+          `Could not save the options (${messageOf(optionError, 'unknown error')}), ` +
+            `and the incomplete question could not be removed either ` +
+            `(${messageOf(cleanupError, 'unknown error')}). ` +
+            'Delete that question by hand before adding it again.',
+          cleanupError,
+        )
+      }
+
       fail(optionError, 'Could not save the options, so the question was not kept.')
     }
   }
@@ -496,6 +533,20 @@ export async function createQuestion(quizId: string, draft: QuestionDraft): Prom
  * referenced by anything a student can reach - `quiz_answers.selected_option_id`
  * is only ever written at grading time, and an attempt is graded once - so there
  * is nothing to preserve by keeping rows.
+ *
+ * The key replacement goes through `replace_quiz_question_answers`, one
+ * statement, rather than a delete followed by an insert.
+ *
+ * It used to be four round trips: update the question, delete the key, insert
+ * the new key. Each is its own transaction, so the delete committed whether or
+ * not the insert then succeeded - and when it did not, the author had saved a
+ * working question before and now had one with no answer key. Nothing said so at
+ * the time. The failure surfaced later, as a publish refused with "no option is
+ * marked correct" about a question edited days earlier.
+ *
+ * The question row's own columns stay a separate update, deliberately. They are
+ * not the key: a failed key replacement leaves the prompt and points as the
+ * author last wrote them, which is a lost edit rather than a destroyed one.
  */
 export async function updateQuestion(questionId: string, draft: QuestionDraft): Promise<void> {
   const check = validateQuestion(draft)
@@ -513,47 +564,37 @@ export async function updateQuestion(questionId: string, draft: QuestionDraft): 
 
   if (error) fail(error, 'Could not save the question.')
 
-  if (draft.questionType === 'short_text') {
-    const accepted = (draft.acceptedAnswers ?? []).map((a) => a.trim()).filter((a) => a !== '')
+  // Both arrays are always sent, with the one that does not apply left empty.
+  // The function reads the question's own type and refuses a payload carrying
+  // the wrong one, so a draft whose type disagrees with the stored question
+  // fails here instead of writing a key the grader cannot read.
+  const accepted =
+    draft.questionType === 'short_text'
+      ? (draft.acceptedAnswers ?? []).map((a) => a.trim()).filter((a) => a !== '')
+      : []
 
-    const { error: deleteError } = await supabase
-      .from('quiz_text_answers')
-      .delete()
-      .eq('question_id', questionId)
-    if (deleteError) fail(deleteError, 'Could not replace the accepted answers.')
+  const options =
+    draft.questionType === 'short_text'
+      ? []
+      : (draft.options ?? [])
+          .map((o) => ({ ...o, optionText: o.optionText.trim() }))
+          .filter((o) => o.optionText !== '')
 
-    if (accepted.length > 0) {
-      const { error: insertError } = await supabase.from('quiz_text_answers').insert(
-        accepted.map((text, index) => ({
-          question_id: questionId,
-          accepted_answer: text,
-          position: index + 1,
-        })),
-      )
-      if (insertError) fail(insertError, 'Could not save the accepted answers.')
-    }
-    return
-  }
-
-  const options = (draft.options ?? [])
-    .map((o) => ({ ...o, optionText: o.optionText.trim() }))
-    .filter((o) => o.optionText !== '')
-
-  const { error: deleteError } = await supabase
-    .from('quiz_options')
-    .delete()
-    .eq('question_id', questionId)
-  if (deleteError) fail(deleteError, 'Could not replace the options.')
-
-  const { error: insertError } = await supabase.from('quiz_options').insert(
-    options.map((o, index) => ({
-      question_id: questionId,
-      option_text: o.optionText,
-      is_correct: coerceMarker(o.isCorrect),
-      position: index + 1,
+  const { error: replaceError } = await supabase.rpc('replace_quiz_question_answers', {
+    p_question_id: questionId,
+    p_options: options.map((o) => ({
+      optionText: o.optionText,
+      isCorrect: coerceMarker(o.isCorrect),
     })),
-  )
-  if (insertError) fail(insertError, 'Could not save the options.')
+    p_text_answers: accepted.map((text) => ({ acceptedAnswer: text })),
+  })
+
+  if (replaceError) {
+    fail(
+      replaceError,
+      'Could not save the answer key. Nothing was changed, so this question still has the answers it had before.',
+    )
+  }
 }
 
 /**

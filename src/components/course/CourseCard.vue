@@ -18,7 +18,10 @@
     </div>
 
     <h3 class="mt-3 text-theme-sm font-medium text-gray-900 dark:text-white/90">
-      <router-link :to="`/student/courses/${course.slug}`" class="hover:text-brand-600 dark:hover:text-brand-400">
+      <router-link
+        :to="`/student/courses/${course.slug}`"
+        class="hover:text-brand-600 dark:hover:text-brand-400"
+      >
         {{ course.title }}
       </router-link>
     </h3>

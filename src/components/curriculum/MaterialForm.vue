@@ -18,7 +18,11 @@ import { FileUp, Link2, Type } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import type { LessonMaterial, MaterialType } from '@/types'
 import { materialIsInlineText, materialIsLink, materialNeedsFile } from '@/types'
-import { materialTypeLabel } from '@/services/curriculum.service'
+import {
+  materialTypeLabel,
+  safeExternalHref,
+  UNSAFE_URL_REASON,
+} from '@/services/curriculum.service'
 
 const props = defineProps<{
   /** Null when creating. */
@@ -150,9 +154,27 @@ function submit(): void {
     return
   }
 
-  if (materialIsLink(type) && externalUrl.value.trim() === '' && !props.material?.externalUrl) {
-    bodyError.value = `A ${materialTypeLabel(type).toLowerCase()} material needs a link.`
-    return
+  if (materialIsLink(type)) {
+    const typed = externalUrl.value.trim()
+    if (typed === '' && !props.material?.externalUrl) {
+      bodyError.value = `A ${materialTypeLabel(type).toLowerCase()} material needs a link.`
+      return
+    }
+
+    // The scheme is checked here rather than by `type="url"`.
+    //
+    // Two reasons. The form carries `novalidate`, so the browser's own URL check
+    // never runs - which is correct, because a browser bubble is not a message
+    // this app can style or translate, but it does mean nothing else is checking.
+    // And even without `novalidate`, `type="url"` accepts any scheme it can
+    // parse, including `javascript:`, so it would not have refused the value that
+    // matters.
+    const safe = safeExternalHref(typed)
+    if (typed !== '' && safe === null) {
+      bodyError.value = `That link cannot be saved. ${UNSAFE_URL_REASON}`
+      return
+    }
+    externalUrl.value = safe ?? externalUrl.value.trim()
   }
 
   emit('submit', {

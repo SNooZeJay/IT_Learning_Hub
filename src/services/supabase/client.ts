@@ -95,6 +95,108 @@ export function readFunctionError(error: unknown): string | null {
 }
 
 /**
+ * How long an Edge Function call may take before it is abandoned.
+ *
+ * A hung function is indistinguishable from a slow one if you wait forever, and
+ * the user only sees a spinner. `create-checkout` waits on a third-party payment
+ * provider; `send-email` waits on an SMTP relay. Both can hang on a connection
+ * that never resolves, and without a deadline the button they were pressed from
+ * spins until the tab is closed.
+ *
+ * Not a value the server reads. It aborts the client's own request.
+ */
+export const FUNCTION_TIMEOUT_MS = 20_000
+
+/**
+ * A real message for a call that hit the deadline.
+ *
+ * Named rather than generic because the caller's own error text for a failed
+ * fetch is `TypeError: Failed to fetch`, which names neither the cause nor the
+ * next step - and on this project it is the single most common message a user
+ * sees for an unrelated problem.
+ */
+export const FUNCTION_TIMEOUT_MESSAGE =
+  'The request took too long and was stopped. Nothing was saved. Please try again in a moment.'
+
+/**
+ * Invoke an Edge Function with a deadline that actually aborts the request.
+ *
+ * `supabase.functions.invoke` returns `{ data, error }` and never throws, so the
+ * abort has to be signalled by us: the SDK wraps the underlying `fetch`
+ * rejection in a `FunctionsFetchError` whose message is the same
+ * `TypeError: Failed to fetch` a genuine network failure produces. This wraps
+ * the call in its own `AbortController` so a timeout is distinguishable from a
+ * dead network and can be reported as what it is.
+ *
+ * Returns the same `{ data, error }` shape as the underlying call, so callers
+ * keep their existing error handling; `error` is a `FunctionTimeoutError` when
+ * the deadline is what ended it.
+ */
+export interface FunctionResult<T> {
+  data: T | null
+  error: unknown
+}
+
+export class FunctionTimeoutError extends Error {
+  constructor(
+    readonly functionName: string,
+    readonly timeoutMs: number,
+  ) {
+    super(
+      `"${functionName}" did not answer within ${Math.round(timeoutMs / 1000)} seconds. ${FUNCTION_TIMEOUT_MESSAGE}`,
+    )
+    this.name = 'FunctionTimeoutError'
+  }
+}
+
+export async function invokeFunction<T>(
+  functionName: string,
+  options: { body?: unknown } = {},
+  timeoutMs: number = FUNCTION_TIMEOUT_MS,
+): Promise<FunctionResult<T>> {
+  const controller = new AbortController()
+  let timedOut = false
+
+  const timer = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, timeoutMs)
+
+  // Both call sites pass a plain object, which is the one body type the SDK
+  // accepts alongside the binary ones. Omitting the key entirely when there is
+  // no body keeps this typed, rather than casting `unknown` into the union.
+  const request: Parameters<typeof supabase.functions.invoke>[1] = {
+    signal: controller.signal,
+    ...(options.body === undefined ? {} : { body: options.body as Record<string, unknown> }),
+  }
+
+  try {
+    const result = await supabase.functions.invoke(functionName, request)
+
+    // A response that arrived after the deadline is still a response. Handing it
+    // back is correct - the caller asked a question and got an answer - and
+    // discarding it would report a failure for a call that in fact succeeded.
+    if (timedOut && result.error) {
+      return { data: null, error: new FunctionTimeoutError(functionName, timeoutMs) }
+    }
+
+    return { data: (result.data ?? null) as T | null, error: result.error }
+  } catch (error) {
+    // The SDK resolves `{ error }` rather than throwing, so this is only reached
+    // if something above it does throw. A timeout here is still a timeout.
+    if (timedOut) {
+      return { data: null, error: new FunctionTimeoutError(functionName, timeoutMs) }
+    }
+    return { data: null, error }
+  } finally {
+    // Cleared whether the call resolved, failed or aborted. Without this the
+    // timer holds the closure - and the signal it aborts - for another 20s after
+    // every successful call.
+    clearTimeout(timer)
+  }
+}
+
+/**
  * The client is still constructed when unconfigured, because throwing at import
  * time takes down the whole app including the page that would explain the problem.
  *

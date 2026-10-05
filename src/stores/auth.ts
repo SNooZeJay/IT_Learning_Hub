@@ -1,7 +1,13 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { Session, User } from '@supabase/supabase-js'
-import { supabase, isSupabaseConfigured, readFunctionError } from '@/services/supabase/client'
+import {
+  supabase,
+  FunctionTimeoutError,
+  invokeFunction,
+  isSupabaseConfigured,
+  readFunctionError,
+} from '@/services/supabase/client'
 import { fetchProfileByUserId } from '@/services/profile.service'
 import { useUnreadNotifications } from '@/composables/useUnreadNotifications'
 import type { Profile, Role } from '@/types'
@@ -187,11 +193,23 @@ export const useAuthStore = defineStore('auth', () => {
    */
   async function sendPasswordReset(email: string): Promise<void> {
     clearError()
-    const { data, error } = await supabase.functions.invoke('send-email', {
+    // Through the timeout wrapper. The function makes an SMTP connection to a
+    // third-party relay, and a relay that accepts the connection and then hangs
+    // leaves "Sending..." on the button indefinitely with no way to tell whether
+    // the mail is coming. A bounded call gives the user a message and a retry.
+    const { error } = await invokeFunction('send-email', {
       body: { action: 'password_reset', email: email.trim().toLowerCase() },
     })
 
     if (error) {
+      // A timeout carries its own message and no body. Falling through to
+      // `readFunctionError` would produce null here - there is no response - and
+      // the user would be told the generic "could not send" for a request that
+      // is still worth retrying.
+      if (error instanceof FunctionTimeoutError) {
+        throw new Error(error.message)
+      }
+
       throw new Error(
         // Supabase wraps a non-2xx function response in a FunctionsHttpError
         // whose `context` is the JSON body the function actually sent. Reading
@@ -203,8 +221,10 @@ export const useAuthStore = defineStore('auth', () => {
 
     // The function answers 200 with `delivered:false` when the address has no
     // account. That is deliberate - it must not be distinguishable from success -
-    // so there is nothing to act on and nothing to report.
-    void data
+    // so there is nothing to act on and nothing to report. The response body is
+    // deliberately not read: it is the only thing that would reveal whether the
+    // address has an account, and this method must not become the oracle that
+    // says so.
   }
 
   async function updatePassword(password: string): Promise<void> {

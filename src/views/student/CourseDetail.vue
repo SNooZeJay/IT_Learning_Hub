@@ -341,11 +341,23 @@ async function load(): Promise<void> {
     // The learner returning from the provider. The webhook settles asynchronously,
     // so the enrolment may not be active yet on the very first render - which is
     // why this says "confirming" rather than claiming success.
+    // The return from the provider. What the query parameter is NOT is evidence of
+    // anything - `?payment=success` is a string in the address bar that anyone
+    // can type, and it arrives whether the payment settled, was abandoned, or
+    // was never made at all. Only two things on this page are server-side
+    // facts: `enrolledHere`, read from the enrolment table above, and the
+    // webhook's own record, which the browser cannot see.
+    //
+    // So neither branch says the payment was received. When the enrolment is
+    // active the server itself put it there after the webhook settled, so the
+    // place is genuinely unlocked and saying that is honest - but the sentence
+    // is about the place, not about the payment, which is the distinction that
+    // matters when the two can come apart.
     const payment = route.query.payment
     if (payment === 'success') {
       paymentNotice.value = enrolledHere.value
-        ? 'Payment received. Your place on this course is active.'
-        : 'Payment received. We are confirming it with the provider - your lessons unlock in a moment.'
+        ? 'Your place on this course is active, so your lessons are unlocked.'
+        : 'We are confirming your payment with the provider. Your lessons unlock as soon as it is confirmed.'
     } else if (payment === 'cancelled') {
       paymentNotice.value =
         'Checkout cancelled. You have not been charged. You can try again whenever you like.'

@@ -1435,6 +1435,17 @@ export type Database = {
         Returns: undefined
       }
       /**
+       * Replace a question's options and text answers in one transaction.
+       *
+       * SECURITY DEFINER because the intermediate state of a delete-then-insert
+       * is not one the child-table policies describe; the function checks
+       * `can_edit_course_content` on the owning course itself.
+       */
+      replace_quiz_question_answers: {
+        Args: { p_question_id: string; p_options: unknown; p_text_answers: unknown }
+        Returns: undefined
+      }
+      /**
        * The student's view of their own attempt: questions in the frozen order,
        * options in the frozen order, and never `is_correct`. SECURITY DEFINER
        * because the caller holds no SELECT on `quiz_options.is_correct`.

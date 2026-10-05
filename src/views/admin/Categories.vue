@@ -18,6 +18,20 @@
       </template>
     </PageHeader>
 
+    <!--
+      `logAdminAction` returns a reason rather than throwing, so a caller that
+      ignores the return value reports a successful change that was never
+      recorded. This page discarded it on all three of its writes; the warning
+      below is what the other admin pages already show for the same reason.
+    -->
+    <Alert
+      v-if="auditWarning"
+      variant="warning"
+      title="The change was saved, but the activity log was not"
+      :message="auditWarning"
+      class="mt-4"
+    />
+
     <LoadingState v-if="isLoading" label="Loading categories" />
 
     <ErrorState
@@ -83,6 +97,14 @@
 
           <div>
             <label for="category-slug" class="mb-1 block text-sm font-medium text-ink">Slug</label>
+            <!--
+              `@input` sets `slugTouched`, and its absence was the bug: the flag was
+              only ever set in `startEdit`, so on a create the flag stayed false
+              however hard the admin typed a slug. `submit` then read
+              `slugTouched ? form.slug : slugify(name)` and discarded the typed
+              value, deriving the slug from the name and silently overwriting
+              what was on screen - the field looked editable and was not.
+            -->
             <input
               id="category-slug"
               v-model.trim="form.slug"
@@ -90,6 +112,7 @@
               maxlength="80"
               placeholder="networking-and-security"
               :class="inputClass"
+              @input="slugTouched = true"
             />
             <p class="mt-1 text-xs text-slate">
               Also unique. Left blank it is derived from the name.
@@ -315,6 +338,15 @@ const isSaving = ref(false)
 const errorMessage = ref('')
 const formError = ref('')
 const savedMessage = ref('')
+/**
+ * Why the activity log could not be written, or '' when it could.
+ *
+ * The change itself has already happened by the time the log is written, so
+ * throwing would report a successful create as a failed one. The honest
+ * outcome is the change, plus a warning that the audit trail has a hole in it -
+ * which is what an admin who deletes a category has to know about.
+ */
+const auditWarning = ref('')
 
 const editingId = ref<string | null>(null)
 const editingName = ref('')
@@ -397,6 +429,7 @@ async function submit(): Promise<void> {
   isSaving.value = true
   formError.value = ''
   savedMessage.value = ''
+  auditWarning.value = ''
 
   const payload = {
     name,
@@ -408,11 +441,17 @@ async function submit(): Promise<void> {
   try {
     if (editingId.value) {
       await updateCategory(editingId.value, payload)
-      await logAdminAction('category.update', 'course_category', editingId.value, { name, slug })
+      auditWarning.value =
+        (await logAdminAction('category.update', 'course_category', editingId.value, {
+          name,
+          slug,
+        })) ?? ''
       savedMessage.value = `“${name}” has been saved.`
     } else {
       const created = await createCategory(payload)
-      await logAdminAction('category.create', 'course_category', created.id, { name, slug })
+      auditWarning.value =
+        (await logAdminAction('category.create', 'course_category', created.id, { name, slug })) ??
+        ''
       savedMessage.value = `“${name}” has been created.`
     }
     await refresh()
@@ -430,9 +469,10 @@ async function confirmDelete(category: AdminCategory): Promise<void> {
   isSaving.value = true
   try {
     await deleteCategory(category.id)
-    await logAdminAction('category.delete', 'course_category', category.id, {
-      name: category.name,
-    })
+    auditWarning.value =
+      (await logAdminAction('category.delete', 'course_category', category.id, {
+        name: category.name,
+      })) ?? ''
     await refresh()
     if (editingId.value === category.id) resetForm()
     notice(category.id, `“${category.name}” has been deleted.`, 'success')

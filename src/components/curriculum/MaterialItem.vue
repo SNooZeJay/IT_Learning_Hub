@@ -22,10 +22,11 @@ import {
   Image as ImageIcon,
   Link as LinkIcon,
   Play,
+  TriangleAlert,
 } from 'lucide-vue-next'
 import type { LessonMaterial } from '@/types'
 import { formatDate } from '@/types'
-import { formatFileSize, materialTypeLabel } from '@/services/curriculum.service'
+import { formatFileSize, materialTypeLabel, safeExternalHref } from '@/services/curriculum.service'
 import { createMaterialUrl, materialFileName } from '@/services/material.service'
 import type { MaterialUrlState } from '@/services/material.service'
 
@@ -71,6 +72,16 @@ const isFile = computed(
 )
 
 const fileName = computed(() => materialFileName(props.material.filePath, props.material.title))
+
+/**
+ * The link, or null when it is not one this app will follow.
+ *
+ * Null covers three cases the template treats differently: no URL at all, a URL
+ * that is only whitespace, and a URL whose scheme is not http or https. The
+ * first renders nothing; the second and third render the refusal instead of an
+ * anchor.
+ */
+const safeHref = computed(() => safeExternalHref(props.material.externalUrl))
 
 /**
  * The signed URL for this file, resolved for whoever is looking at it.
@@ -133,19 +144,39 @@ watch(
         {{ material.contentText }}
       </p>
 
-      <!-- Link body. The URL is shown in full, breakable, because a learner
-           deciding whether to trust a link wants to see where it goes. -->
+      <!--
+        Link body.
+
+        `safeHref` is the check, not a nicety. This string comes out of the
+        database and was written by an instructor; rendering it into `:href`
+        unchecked made a stored `javascript:` URL a clickable script for every
+        student who opened the lesson. A value that fails the check is shown as
+        plain text with the reason, never as a link - an anchor that cannot be
+        made safe must not be rendered as an anchor at all, or the next person to
+        edit this template puts the raw value back.
+      -->
       <a
-        v-if="isLink && material.externalUrl"
-        :href="material.externalUrl"
+        v-if="isLink && safeHref"
+        :href="safeHref"
         target="_blank"
         rel="noopener noreferrer"
         class="mt-2 inline-flex min-h-11 max-w-full items-center gap-1.5 break-all text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
       >
         <ExternalLink class="size-3.5 shrink-0" aria-hidden="true" />
-        <span>{{ material.externalUrl }}</span>
+        <span>{{ safeHref }}</span>
         <span class="sr-only">(opens in a new tab)</span>
       </a>
+
+      <p
+        v-else-if="isLink && material.externalUrl"
+        class="mt-2 inline-flex min-h-11 max-w-full items-start gap-1.5 break-all text-sm text-error-600 dark:text-error-400"
+      >
+        <TriangleAlert class="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+        <span>
+          This link is not shown because its address is not an http or https URL.
+          <span class="font-mono text-xs">{{ material.externalUrl }}</span>
+        </span>
+      </p>
 
       <!--
         File body.

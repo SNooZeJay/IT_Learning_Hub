@@ -1,7 +1,7 @@
 import { copyFileSync, existsSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, type Plugin } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import vueDevTools from 'vite-plugin-vue-devtools'
@@ -84,5 +84,25 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
+  },
+
+  /**
+   * Vitest must not collect the Playwright specs.
+   *
+   * Vitest's default include is every `*.spec.ts` in the project, so when the `e2e/`
+   * directory arrived, `npm run test` began loading `e2e/*.spec.ts` into Vitest. Those
+   * files import `test` from `@playwright/test`, so every `test.describe` in them was a
+   * call Vitest did not recognise: both suites reported as failures with zero tests
+   * collected, and `npm run test` exited 1.
+   *
+   * Excluded rather than renamed, because both runners genuinely want the `.spec.ts`
+   * convention and the fix belongs in the runner that should not own those files.
+   * `npm run e2e` still collects them, and the two never meet.
+   *
+   * Caught by running the gates after adding the specs rather than by the specs
+   * themselves failing - which they had not, because Playwright was never invoked.
+   */
+  test: {
+    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
   },
 })

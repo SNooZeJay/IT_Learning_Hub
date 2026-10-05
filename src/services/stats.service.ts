@@ -37,7 +37,9 @@ async function count(
   table: 'profiles' | 'courses' | 'enrollments' | 'payments',
   build: (query: ReturnType<typeof supabase.from>) => ReturnType<typeof supabase.from>,
 ): Promise<number> {
-  const { count: total, error } = await build(supabase.from(table).select('*', { count: 'exact', head: true }))
+  const { count: total, error } = await build(
+    supabase.from(table).select('*', { count: 'exact', head: true }),
+  )
   if (error) throw new Error(error.message)
   return total ?? 0
 }
