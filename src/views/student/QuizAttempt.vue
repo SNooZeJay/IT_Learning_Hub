@@ -156,11 +156,23 @@ async function resume(attemptIdToResume: string): Promise<void> {
 async function start(): Promise<void> {
   starting.value = true
   actionError.value = ''
+
+  // Fullscreen is requested synchronously - browsers only grant it from a user
+  // gesture - but deliberately NOT awaited.
+  //
+  // Awaiting it blocked the whole start on a browser promise that need never
+  // settle. A student clicks Start, the request goes out, and nothing further
+  // happens: no attempt is created and no error is shown. It was reproduced by
+  // clicking Start in an automated browser, where `requestFullscreen` never
+  // resolves - and a student on a locked-down or embedded browser can hit the same
+  // thing.
+  //
+  // So it is fired and forgotten. The attempt starts regardless, and the warnings
+  // simply have one less signal if fullscreen never engages. A quiz that does not
+  // open is worse than one that opens without fullscreen.
+  void requestFullscreen().catch(() => false)
+
   try {
-    // Fullscreen is requested first and synchronously. Browsers only grant it from
-    // a user gesture, so anything awaited before this loses the gesture and the
-    // request is silently refused.
-    await requestFullscreen()
     const id = await startAttempt(quizId.value)
     await enterAttempt(id)
   } catch (error) {
