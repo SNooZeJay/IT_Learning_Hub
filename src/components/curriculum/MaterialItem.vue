@@ -13,7 +13,7 @@
  * organises the list. Organising by upload time is what turns a course into a
  * feed; the outline above already provides the structure.
  */
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   BookOpen,
   Download,
@@ -26,6 +26,8 @@ import {
 import type { LessonMaterial } from '@/types'
 import { formatDate } from '@/types'
 import { formatFileSize, materialTypeLabel } from '@/services/curriculum.service'
+import { createMaterialUrl, materialFileName } from '@/services/material.service'
+import type { MaterialUrlState } from '@/services/material.service'
 
 const props = defineProps<{
   material: LessonMaterial
@@ -68,11 +70,37 @@ const isFile = computed(
     props.material.materialType === 'document',
 )
 
-const fileName = computed(() => {
-  const path = props.material.filePath
-  if (!path) return props.material.title
-  return path.split('/').pop() ?? props.material.title
-})
+const fileName = computed(() => materialFileName(props.material.filePath, props.material.title))
+
+/**
+ * The signed URL for this file, resolved for whoever is looking at it.
+ *
+ * Minted on mount and re-minted if the key changes, because the signature expires and
+ * because the read policy is evaluated per viewer: a URL that worked for an enrolled
+ * student must not be handed to somebody who has since lost access, and vice versa.
+ *
+ * `idle` is the state before the first resolve. It is distinct from `loading` so the
+ * row does not flash "Preparing the download…" on every render of a non-file
+ * material, which never needs a URL at all.
+ */
+const urlState = ref<MaterialUrlState>({ status: 'idle' })
+
+async function resolveUrl(path: string): Promise<void> {
+  urlState.value = { status: 'loading' }
+  urlState.value = await createMaterialUrl(path)
+}
+
+watch(
+  () => (isFile.value ? props.material.filePath : null),
+  (path) => {
+    if (!path) {
+      urlState.value = { status: 'idle' }
+      return
+    }
+    void resolveUrl(path)
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -119,18 +147,40 @@ const fileName = computed(() => {
         <span class="sr-only">(opens in a new tab)</span>
       </a>
 
-      <!-- File body. The link is a signed request through the storage API, so a
-           learner who has lost access gets a refusal rather than a dead anchor. -->
-      <a
-        v-if="isFile && material.filePath"
-        :href="material.filePath"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-      >
-        <Download class="size-3.5 shrink-0" aria-hidden="true" />
-        Download {{ fileName }}
-      </a>
+      <!--
+        File body.
+
+        The link is a signed URL minted for this viewer, not the stored object key:
+        the bucket is private and `file_path` is a key, so binding it straight to
+        `href` asked the SPA host for a path that does not exist and the rewrite
+        answered 200 with `index.html`. All three outcomes are shown honestly -
+        preparing, ready, and refused - because refusal is a real outcome here and not
+        an edge case: it is what a learner who has lost access to the course sees.
+      -->
+      <div v-if="isFile && material.filePath" class="mt-2">
+        <p v-if="urlState.status === 'loading'" class="text-xs text-gray-400 dark:text-gray-500">
+          Preparing the download…
+        </p>
+
+        <p
+          v-else-if="urlState.status === 'unavailable'"
+          class="text-xs text-warning-700 dark:text-warning-400"
+        >
+          {{ urlState.message }}
+        </p>
+
+        <a
+          v-else-if="urlState.status === 'ready'"
+          :href="urlState.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+        >
+          <Download class="size-3.5 shrink-0" aria-hidden="true" />
+          Download {{ fileName }}
+          <span class="sr-only">(opens in a new tab)</span>
+        </a>
+      </div>
 
       <!-- Metadata line. When the instructor added it, which is useful and is
            deliberately not what organises the page. -->

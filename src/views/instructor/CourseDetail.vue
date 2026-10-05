@@ -774,7 +774,21 @@ async function saveMaterial(draft: {
 
     if (draft.file) {
       const safeName = draft.file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-      const path = `lesson-materials/${materialForm.lessonId}/${crypto.randomUUID()}-${safeName}`
+      // The first path segment MUST be the course id. The bucket's policies call
+      // `course_id_from_object_name(name)`, which casts `storage.foldername(name)[1]`
+      // to uuid and returns null when that fails - so a key starting with the bucket
+      // name was refused by RLS for every instructor, and file-type materials could
+      // never be uploaded at all. See the path-shape comment in
+      // `20261004170825_foundation.sql`.
+      // `course` is non-null for the whole of this handler: the save button only exists
+      // inside the loaded view, and every sibling handler here already dereferences it.
+      const courseId = course.value?.id
+      if (!courseId) {
+        throw new CurriculumError(
+          'This course has not finished loading, so the file was not uploaded.',
+        )
+      }
+      const path = `${courseId}/${materialForm.lessonId}/${crypto.randomUUID()}-${safeName}`
       const { error: uploadError } = await supabase.storage
         .from('lesson-materials')
         .upload(path, draft.file, { upsert: false })
