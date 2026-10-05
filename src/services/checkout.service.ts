@@ -129,10 +129,14 @@ export async function startCheckout(courseId: string): Promise<CheckoutStart> {
 
   const body = (data ?? {}) as Partial<CheckoutStart>
 
-  // A paid course that comes back without a URL is a failure, not a soft no. The
-  // function only omits checkoutUrl when the provider refused, and treating that
-  // as success would leave the learner staring at a button that does nothing.
-  if (body.requiresPayment && !body.checkoutUrl) {
+  // A paid course with no URL is a failure UNLESS the function says it reused an
+  // existing payment. That exception matters and was previously missing: the
+  // function returns `reused: true` with no URL for a pending payment it could not
+  // resurrect, and throwing here turned that into a generic provider error, so the
+  // view's own branch for the case was unreachable. The learner was told the
+  // provider had failed when the truth was that their earlier payment was still
+  // waiting.
+  if (body.requiresPayment && !body.checkoutUrl && body.reused !== true) {
     throw new CheckoutError(
       'The payment provider did not return a checkout link. Nothing has been charged - please try again.',
       'unknown',
@@ -142,7 +146,11 @@ export async function startCheckout(courseId: string): Promise<CheckoutStart> {
   return {
     requiresPayment: body.requiresPayment === true,
     amountCentavos: Number(body.amountCentavos ?? 0),
-    checkoutUrl: body.checkoutUrl,
+    // Normalised to undefined rather than passed through. The function sends
+    // `checkoutUrl: null` when it could not resurrect a session, and `null`
+    // flowing into the view would read as falsy in the same branch but break
+    // every `=== undefined` check and every falsy check written later.
+    checkoutUrl: body.checkoutUrl ?? undefined,
     paymentId: body.paymentId,
     reused: body.reused === true,
   }

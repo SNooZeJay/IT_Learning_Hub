@@ -86,33 +86,30 @@ Deno.serve(async (request) => {
   // learner is charged twice for one enrolment.
   const existing = await findPendingPayment(user.id, courseId)
   if (existing) {
-    // A pending payment with a checkout id means the learner already has an open
-    // hosted session. Returning the stored id alone is not enough: PayMongo's
-    // checkout_url is single-use per response and is not reconstructible, so a
-    // learner who abandoned the first attempt and came back would get a button
-    // that does nothing.
+    // A pending payment that still has its hosted checkout URL means the learner
+    // already has an open session. Send them back to it.
     //
-    // So the original session is only reused when we still have its id; otherwise
-    // the stale payment is cancelled and a fresh session is opened. Either way the
-    // learner is never charged twice, because only one payment is ever pending.
-    if (existing.provider_checkout_id) {
+    // This is why the URL is stored. An earlier version kept only the session id
+    // and returned nothing, so a learner who started paying, walked away, and came
+    // back got "the payment provider did not return a checkout link" - a dead
+    // button on a payment that was sitting there waiting for them. The URL cannot
+    // be reconstructed from the id with any confidence, so it is kept.
+    if (existing.provider_checkout_url) {
       return json(
         {
           requiresPayment: true,
           paymentId: existing.id,
           reused: true,
-          // PayMongo does not expose a way to re-open a session by id, so the
-          // learner is sent to the checkout list rather than to a dead button.
-          checkoutUrl: null,
+          checkoutUrl: existing.provider_checkout_url,
         },
         200,
         request,
       )
     }
 
-    // A pending payment with no provider session behind it - the first attempt
-    // died before PayMongo answered. Retire it so it cannot sit in the admin
-    // ledger forever, and start again.
+    // A pending payment with no usable session behind it - the first attempt died
+    // before PayMongo answered, or it predates the stored URL. Retire it so it
+    // cannot sit in the admin ledger forever, and open a fresh session.
     await supabase
       .from('payments')
       .update({ status: 'cancelled', updated_at: new Date().toISOString() })
@@ -166,9 +163,16 @@ Deno.serve(async (request) => {
     )
   }
 
+  // Both handles are stored: the id for reconciliation against PayMongo's API and
+  // the ledger, and the URL so a learner who abandons payment can return to the
+  // same session instead of being handed a dead button.
   await supabase
     .from('payments')
-    .update({ provider_checkout_id: checkout.id, updated_at: new Date().toISOString() })
+    .update({
+      provider_checkout_id: checkout.id,
+      provider_checkout_url: checkout.checkout_url,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', paymentId)
 
   return json({ requiresPayment: true, paymentId, checkoutUrl: checkout.checkout_url }, 200, request)
@@ -215,17 +219,17 @@ async function loadPublishedCourse(courseId: string): Promise<CourseRow | null> 
 async function findPendingPayment(
   studentId: string,
   courseId: string,
-): Promise<{ id: string; provider_checkout_id: string | null } | null> {
+): Promise<{ id: string; provider_checkout_id: string | null; provider_checkout_url: string | null } | null> {
   const { data } = await supabase
     .from('payments')
-    .select('id, provider_checkout_id')
+    .select('id, provider_checkout_id, provider_checkout_url')
     .eq('student_id', studentId)
     .eq('course_id', courseId)
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-  return (data as { id: string; provider_checkout_id: string | null } | null) ?? null
+  return (data as { id: string; provider_checkout_id: string | null; provider_checkout_url: string | null } | null) ?? null
 }
 
 /**

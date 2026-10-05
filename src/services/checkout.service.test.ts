@@ -112,6 +112,35 @@ describe('startCheckout', () => {
     await expect(startCheckout('course-1')).rejects.toThrow(/did not return a checkout link/)
   })
 
+  it('returns a reused payment that has no URL, so the page can explain it', async () => {
+    // The bug behind "the payment provider did not return a checkout link" on a
+    // course whose payment was sitting there pending. Throwing here made the
+    // view's own reused-branch unreachable, so the learner was told the provider
+    // had failed when their earlier payment was still open.
+    invoke.mockResolvedValue(
+      ok({ requiresPayment: true, amountCentavos: 150000, reused: true, checkoutUrl: null }),
+    )
+    const result = await startCheckout('course-1')
+    expect(result.reused).toBe(true)
+    expect(result.checkoutUrl).toBeUndefined()
+  })
+
+  it('returns the stored checkout URL when a pending payment is reused', async () => {
+    // The fix: the function stores PayMongo's URL, so an abandoned payment can be
+    // resumed rather than dead-ended.
+    invoke.mockResolvedValue(
+      ok({
+        requiresPayment: true,
+        amountCentavos: 150000,
+        reused: true,
+        checkoutUrl: 'https://checkout.paymongo.com/abc123',
+      }),
+    )
+    const result = await startCheckout('course-1')
+    expect(result.reused).toBe(true)
+    expect(result.checkoutUrl).toBe('https://checkout.paymongo.com/abc123')
+  })
+
   it('names the cause for an expired session', async () => {
     invoke.mockResolvedValue(fail(401, { error: 'not authenticated' }))
     await expect(startCheckout('course-1')).rejects.toMatchObject({
