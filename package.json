@@ -54,5 +54,12 @@
                             "vite-plugin-vue-devtools":  "^7.7.10",
                             "vitest":  "^5.0.3",
                             "vue-tsc":  "^2.2.12"
-                        }
+                        },
+    "description":  "IT Learning Hub - a role-based Learning Management System for students, instructors and admins.",
+    "license":  "MIT",
+    "repository":  {
+                       "type":  "git",
+                       "url":  "https://github.com/SNooZeJay/IT_Learning_Hub.git"
+                   },
+    "homepage":  "https://it-learning-hub.vercel.app"
 }

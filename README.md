@@ -1,251 +1,120 @@
-# TailAdmin Vue - Free Vue.js Tailwind CSS Admin Dashboard Template
+# IT Learning Hub LMS
 
-TailAdmin Vue is a free, open-source admin dashboard template **built on Vue.js**, popular and progressive JavaScript
-framework, and **Tailwind CSS**. This **powerful combination** provides developers with an extensive library of
-essential components, elements, and pages to launch a comprehensive and data-centric back-end, dashboard, or admin panel
-solution for any Vue.js based web projects.
+A role-based Learning Management System built with Vue 3, TypeScript, Tailwind CSS
+v4 and Supabase. Three roles: **Admin**, **Instructor**, **Student**.
 
-![TailAdmin Vue.js Dashboard Preview](./banner.png)
+The interface is built on [TailAdmin Vue Free](https://github.com/TailAdmin/tailadmin-free-tailwind-dashboard-template)
+(MIT). TailAdmin supplied the UI shell only — it does not define the data model,
+permissions, roles or workflows. Those are described below and in `docs/`.
 
-With TailAdmin Vue, you can leverage **Vue.js 3** features such as declarative rendering, component-based architecture,
-Vue Router for routing, and Pinia for state management. It also utilizes the power of Tailwind CSS for rapid UI
-development with its low-level utility classes and responsive design capabilities.
+## What this is
 
-## Overview
+An online learning platform where instructors publish courses and students enrol,
+work through modules and lessons, sit timed quizzes, and track their results.
 
-TailAdmin provides essential UI components and layouts for building feature-rich, data-driven admin dashboards and control panels. It's built on:
+| Role | Can do |
+| --- | --- |
+| **Student** | Browse the catalogue, enrol, read lessons and materials, sit quizzes, submit assignments, see grades and certificates, message instructors and other students |
+| **Instructor** | Create and publish courses, author modules / lessons / materials, build quizzes, set assignment deadlines, grade submissions, message enrolled students |
+| **Admin** | Manage users, roles, categories, courses and payments; read platform-wide analytics |
 
-- Vue 3.x (Vite)
-- Tailwind CSS 4.x
-- TypeScript
+Enrolment is the basis of access. A student sees a course once they are enrolled in
+it; an instructor sees only the courses assigned to them. Both are enforced by Row
+Level Security in the database, not by the interface.
 
-### Quick Links
+## Stack
 
-- [✨ Visit Website](https://tailadmin.com)
-- [📄 Documentation](https://tailadmin.com/docs)
-- [⬇️ Download](https://tailadmin.com/download)
-- [🖌️ Figma Design File (Community Edition)](https://www.figma.com/community/file/1463141366275764364)
-- [⚡ Get PRO Version](https://tailadmin.com/pricing)
+- **Vue 3** — Composition API, `<script setup lang="ts">`
+- **TypeScript** ~5.7 — strict
+- **Tailwind CSS v4** — configured with `@theme` tokens in `src/assets/main.css`; there is no `tailwind.config.js`
+- **Vite 6** — with `@vitejs/plugin-vue` and `@vitejs/plugin-vue-jsx`
+- **Pinia** — application state that outlives a view (auth session, profile, role)
+- **Supabase** — Postgres, Auth, Storage, Edge Functions
+- **ApexCharts** — dashboard charts
+- **Vitest** — unit and link-integrity tests
 
-### Demos
-
-- [Free Version](https://free-vue-demo.tailadmin.com/)
-- [Pro Version](https://vue-demo.tailadmin.com)
-
-### Other Versions
-
-- [HTML Version](https://github.com/TailAdmin/tailadmin-free-tailwind-dashboard-template)
-- [Next.js Version](https://github.com/TailAdmin/free-nextjs-admin-dashboard)
-- [React Version](https://github.com/TailAdmin/free-react-tailwind-admin-dashboard)
-- [Angular Version](https://github.com/TailAdmin/free-angular-tailwind-dashboard)
-
-## Installation
-
-### Prerequisites
-
-To get started with TailAdmin, ensure you have the following prerequisites installed and set up:
-
-- Node.js 18.x or later (recommended to use Node.js 20.x or later)
-- Recommended IDE Setup: [VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-#### Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-### Cloning the Repository
-
-Clone the repository using the following command:
+## Getting started
 
 ```bash
-git clone https://github.com/TailAdmin/vue-tailwind-admin-dashboard.git
+npm install
 ```
 
-> Windows Users: place the repository near the root of your drive if you face issues while cloning.
+The app needs two environment variables:
 
-1. Install dependencies:
+```
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+```
 
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
+Nothing else belongs in `.env`. Every server-side secret lives in Supabase Edge
+Function secrets, never in this repository.
 
-2. Start the development server:
+```bash
+npm run dev          # development server
+npm run build        # type-check, then build to dist/
+npm run type-check   # vue-tsc
+npm run lint         # eslint --fix
+npm run format       # prettier
+npm run test         # vitest
+npm run verify       # test, type-check, lint, build
+```
 
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
+## Layout
 
-3. Production build:
-   ```bash
-   npm run build
-   # or
-   yarn build
-   ```
+```
+src/
+├── assets/main.css          Tailwind v4 theme: design tokens and global styles
+├── components/
+│   ├── calendar/            Month, week and day-detail calendar
+│   ├── curriculum/          Module / lesson / material tree
+│   ├── layout/              Admin shell, sidebar, header, dropdowns
+│   ├── profile/             Avatar, details, security, preferences
+│   ├── quiz/                Quiz authoring and the attempt runner
+│   └── ui/                  Primitives: Button, Modal, Alert, Badge, …
+├── composables/             UI state: sidebar, RTL, shared notification count
+├── layouts/navigation.ts    Per-role navigation, single source of truth
+├── router/index.ts          Routes and the role guard
+├── services/                Every Supabase query lives here
+├── stores/                  Pinia: auth session, profile, role
+├── types/                   Shared types and enums
+└── views/                   admin/ instructor/ student/ shared/
+```
 
-## Feature Comparison
+`src/services/` owns every query. Views and stores call typed service functions and
+never import the Supabase client, so a change to a table's shape has one place to
+change.
 
-### Free Version
+## Security model
 
-- 1 Unique Dashboard
-- 50+ Dashboard UI components
-- Basic Figma design files
-- Community support
+- **Row Level Security is the enforcement point.** The interface hides what a user
+  may not see; the database refuses it. Every security claim is verified by executing
+  it as the role inside `BEGIN; … ROLLBACK;`.
+- Role checks live in `src/router/index.ts` for navigation, and in RLS for data.
+- Quiz answer keys are exposed only through functions that gate on entitlement
+  (ownership, admin, or an active enrolment) — never by a plain `select`.
+- Profile email is read-only in the interface: there is no sync trigger, so a direct
+  write would desynchronise it.
 
-### Pro Version
+`docs/quiz-system.md` records the quiz design and the verified security matrix.
 
-- 7 Unique Dashboards: Analytics, Ecommerce, Marketing, CRM, Stocks (more coming soon)
-- 500+ dashboard components and UI elements
-- Complete Figma design file
-- Email support
+## Deployment
 
-To learn more about pro version features and pricing, visit our [pricing page](https://tailadmin.com/pricing).
+`vercel.json` carries an SPA rewrite, and the build also emits `404.html` as a copy
+of `index.html`. The second is deliberate and load-bearing: the rewrite depends on
+the Vercel project's Root Directory being the repository root, and if it is not, the
+rewrite is silently ignored and every deep link 404s. `404.html` is served by the
+host for any unmatched path regardless of that setting, so deep links work either
+way. See the comment in `vite.config.ts`.
 
-## Components
+## Documentation
 
-TailAdmin is a pre-designed starting point for building a web-based dashboard using Vue.js and Tailwind CSS. The template includes:
+- `AGENTS.md` — how the project is built
+- `DESIGN.md` — how it looks; the `@theme` tokens in `src/assets/main.css` are its
+  implementation
+- `docs/` — the foundation design, the quiz system reference, and audit notes
 
-- Sophisticated and accessible sidebar
-- Data visualization components
-- Prebuilt profile management and 404 page
-- Tables and Charts(Line and Bar)
-- Authentication forms and input elements
-- Alerts, Dropdowns, Modals, Buttons and more
-- Can't forget Dark Mode 🕶️
+## Licence
 
-All components are built with Vue and styled using Tailwind CSS for easy customization.
-
-## Features
-
-**💎 High-quality, Premium Modern Design:**
-A thoughtfully designed dashboard template with a deep focus on UX/UI, already trusted and utilized by over 10K+ web apps worldwide.
-
-**✨ Vue 3:**
-Get enhanced performance with the latest Vue version.
-
-**⚡ Vite Build System:**
-Enjoy quick development with Vite, ensuring fast code compilation.
-
-**🔀 Vue Router:**
-Manage app navigation with ease using Vue Router for seamless transitions.
-
-**💡 Reactive Utilities:**
-Enhance component reactivity with @vueuse/core utilities.
-
-**📊 Charting with ApexCharts:**
-Visualize data with ApexCharts for beautiful analytics.
-
-**🗺️ Vector Maps with JSVectorMap:**
-Easily integrate interactive vector maps with JSVectorMap.
-
-**🖌️ UI with Tailwind CSS:**
-Frontend UI built on the powerful and versatile Tailwind CSS framework.
-
-**💫 TypeScript Support:**
-Write safer, maintainable code with TailAdmin Vue's TypeScript Support.
-
-**✅ Linting and Formatting:**
-Maintain a clean codebase with built-in linting and formatting.
-
-**🗃️ State Management with Pinia:**
-Handle your app's state with Pinia for clean, organized code.
-
-## Update Logs
-
-### Version 2.4.0 - [September 09, 2026]
-
-#### Major Updates & Enhancements
-
-- **RTL Support**: Added comprehensive Right-to-Left (RTL) support with dynamic direction toggling and mirrored layouts across all components, navigation, tables, and forms.
-- **Multi-Language Support**: Added language selection dropdown with locale switching and flag previews.
-- **Dependencies Upgrades**: Upgraded all project dependencies and peer packages to their latest stable releases.
-- **Major ApexCharts & FullCalendar Upgrade**:
-  - Upgraded **ApexCharts** and `vue3-apexcharts` with optimized rendering and responsive RTL chart options.
-  - Upgraded to **FullCalendar v7** LTS (`@fullcalendar/vue3`, `@fullcalendar/core`, `@fullcalendar/daygrid`, `@fullcalendar/timegrid`, `@fullcalendar/interaction`) with modern event scheduling.
-- **Composition API & TypeScript Modernization**:
-  - Removed remaining Options API boilerplate across all components in favor of clean `<script setup lang="ts">` Composition API.
-  - Resolved ESLint and TypeScript strict type checking errors across components, slots, and layout structures.
-- **Bug & Warning Fixes**:
-  - Fixed console warnings and template slot type definitions.
-  - Fixed DOM reflow warnings and animation transitions.
-
-### Version 2.3.0 - [April 28, 2026]
-- Added **AI Dashboard** with token usage and revenue tracking.
-- Added **Sales Dashboard** with retention and multi-channel analytics.
-- Added **Finance Dashboard** with cashflow and balance management.
-- Introduced **6 New Layout variations** for improved UI flexibility.
-- Integrated **Advanced Data Visualization** with 7+ new chart types.
-
-### Version 2.0.2 - [December 30, 2025]
-
-#### Enhancements
-
-- Added date range picker to Statistics Chart component.
-- Improved responsive design for chart header.
-
-### Version 2.0.1 - [February 27, 2025]
-
-#### Update Overview
-
-- Upgraded to Tailwind CSS v4 for better performance and efficiency.
-- Updated class usage to match the latest syntax and features.
-- Replaced deprecated class and optimized styles.
-
-#### Next Steps
-
-- Run npm install or yarn install to update dependencies.
-- Check for any style changes or compatibility issues.
-- Refer to the Tailwind CSS v4 [Migration Guide](https://tailwindcss.com/docs/upgrade-guide) on this release. if needed.
-- This update keeps the project up to date with the latest Tailwind improvements. 🚀
-
-### Version 2.0.0 - [February 2025]
-
-Major update with Vue 3 migration and comprehensive redesign.
-
-#### Major Improvements
-
-- Complete migration to Vue 3 Composition API
-- Updated to Vue Router 4
-- Enhanced user interface with new Vue 3 components
-- Improved performance with Vue 3's virtual DOM
-- Better accessibility and responsive design
-
-#### New Features
-
-- Redesigned dashboards (Ecommerce, Analytics, Marketing, CRM)
-- Collapsible sidebar with Vue 3 integration
-- Enhanced navigation with Vue Router 4
-- Real-time chat functionality
-- Full-featured calendar with drag-and-drop
-- Advanced table components
-- Updated data visualization with ApexCharts
-
-#### Breaking Changes
-
-- Requires Vue 3 and Vue Router 4
-- Chart components migrated to ApexCharts for Vue 3
-- Modified routing implementation
-- Updated component APIs for Vue 3 compatibility
-
-[Read more](https://tailadmin.com/docs/update-logs/vue) on this release.
-
-### Version 1.0.2 - [June 19, 2024]
-
-#### Issues
-
-- Fix Mobile Menu Hamburger Icon issue.
-
-### Version 1.0.1 - [Feb 08, 2024]
-
-#### Enhancements
-
-- Make it functional [Multiselect Dropdown/Form Elements].
-- Delete SelectGroup Components then create a SelectGroup folder and create two files under this
-  folder SelectGroupOne.vue SelectGroupTwo.vue [Select Group/Form Elements & Layout].
-- Update style.css file.
-
-### Version 1.0.0 - Initial Release - [Jan 22, 2024]
-
-- Initial release of TailAdmin Vue.
+MIT — see [`LICENSE`](./LICENSE). The TailAdmin template this UI is built on is
+itself MIT licensed; its notice is retained in
+[`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md).
