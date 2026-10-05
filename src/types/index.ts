@@ -11,10 +11,12 @@ import type { Database } from '@/services/supabase/types'
 import type {
   AccountStatus,
   AttemptStatus,
+  ContentStatus,
   CourseLevel,
   CourseStatus,
   EnrollmentStatus,
   LessonType,
+  MaterialType,
   PaymentStatus,
   ProgressStatus,
   QuestionType,
@@ -33,12 +35,23 @@ export type {
   CourseLevel,
   EnrollmentStatus,
   LessonType,
+  ContentStatus,
+  MaterialType,
   ProgressStatus,
   PaymentStatus,
   QuizStatus,
   QuestionType,
   AttemptStatus,
 }
+
+export {
+  FILE_MATERIAL_TYPES,
+  LINK_MATERIAL_TYPES,
+  TEXT_MATERIAL_TYPES,
+  materialIsInlineText,
+  materialIsLink,
+  materialNeedsFile,
+} from './enums'
 
 type Row<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
 
@@ -104,18 +117,95 @@ export interface Module {
   title: string
   description: string | null
   position: number
+  status: ContentStatus
 }
 
 export interface Lesson {
   id: string
   moduleId: string
   title: string
+  /** One line for the course outline. The old system had this and the outline is unreadable without it. */
+  summary: string | null
   content: string | null
   lessonType: LessonType
   position: number
   durationMinutes: number | null
   isPreview: boolean
   videoUrl: string | null
+  status: ContentStatus
+  /** Counts toward course progress and the complete_all_lessons requirement. */
+  isRequired: boolean
+}
+
+/**
+ * A learning material as the student sees it.
+ *
+ * Exactly one of `contentText`, `externalUrl` or `filePath` is set, and
+ * `materialType` says which. The database enforces that in
+ * `check_material_shape()`, so a rendering branch can rely on it rather than
+ * guessing.
+ */
+export interface LessonMaterial {
+  id: string
+  lessonId: string
+  title: string
+  materialType: MaterialType
+  position: number
+  contentText: string | null
+  externalUrl: string | null
+  filePath: string | null
+  fileType: string | null
+  fileSize: number | null
+  /** When the instructor added it. Metadata, not the organising principle. */
+  createdAt: string
+  updatedAt: string
+}
+
+/**
+ * One student's progress through one lesson.
+ *
+ * `studentId` is denormalised onto the row, as it is in the old system, so
+ * ownership is checkable without joining through the enrolment.
+ */
+export interface LessonProgress {
+  id: string
+  enrollmentId: string
+  lessonId: string
+  studentId: string | null
+  status: ProgressStatus
+  progressPercent: number | null
+  lastPositionSeconds: number | null
+  startedAt: string | null
+  completedAt: string | null
+}
+
+/**
+ * A lesson as it appears inside the course outline.
+ *
+ * The student's view and the instructor's view differ in exactly two ways, and
+ * the type says so: an instructor sees drafts and can open the editor, and a
+ * student's progress is attached. Everything else - the shape of the hierarchy -
+ * is identical, which is what lets both sides share the same outline component.
+ */
+export interface CurriculumLesson extends Lesson {
+  materials: LessonMaterial[]
+  /** Null when the caller is not enrolled, so "not started" and "no record" stay distinguishable. */
+  progress: LessonProgress | null
+}
+
+export interface CurriculumModule extends Module {
+  lessons: CurriculumLesson[]
+}
+
+/** Counts used by the outline header, computed once rather than in the template. */
+export interface CurriculumSummary {
+  moduleCount: number
+  lessonCount: number
+  materialCount: number
+  /** Only lessons the viewer may complete. Null when they are not enrolled at all. */
+  completedLessonCount: number | null
+  /** Percentage of required lessons completed, or null when there are none to complete. */
+  completionPercent: number | null
 }
 
 /**

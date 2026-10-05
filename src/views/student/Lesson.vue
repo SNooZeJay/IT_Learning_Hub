@@ -153,8 +153,10 @@
           <!-- Materials -->
           <section class="mt-6 rounded-lg border border-hairline bg-canvas dark:bg-white/[0.03]">
             <div class="border-b border-hairline px-6 py-4">
-              <h2 class="text-theme-sm text-ink">Materials</h2>
-              <p class="mt-1 text-sm text-slate">Files your instructor attached to this lesson.</p>
+              <h2 class="text-theme-sm text-ink">Learning materials</h2>
+              <p class="mt-1 text-sm text-slate">
+                Readings, code, links and downloads your instructor attached to this lesson.
+              </p>
             </div>
 
             <LoadingState v-if="materialsLoading" class="border-0" label="Loading materials" />
@@ -167,33 +169,15 @@
               @retry="loadMaterials"
             />
 
-            <ul v-else-if="materials.length" class="divide-y divide-hairline">
-              <li
-                v-for="material in materials"
-                :key="material.id"
-                class="flex items-center gap-3 px-6 py-4"
-              >
-                <Paperclip class="size-4 shrink-0 text-slate" aria-hidden="true" />
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-ink">{{ material.title }}</p>
-                  <p class="mt-0.5 text-xs text-slate">
-                    {{ material.fileType ?? 'file' }}
-                    <template v-if="material.fileSize !== null">
-                      · {{ formatBytes(material.fileSize) }}
-                    </template>
-                    · added {{ formatDate(material.uploadedAt) }}
-                  </p>
-                </div>
-                <a
-                  class="shrink-0 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-                  :href="material.filePath"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Open
-                </a>
-              </li>
-            </ul>
+            <div v-else-if="materials.length" class="px-6 py-5">
+              <ul role="list" class="flex flex-col gap-2">
+                <MaterialItem
+                  v-for="material in materials"
+                  :key="material.id"
+                  :material="material"
+                />
+              </ul>
+            </div>
 
             <EmptyState
               v-else
@@ -568,12 +552,6 @@ function isPlayableUrl(url: string): boolean {
 function formatSeconds(total: number): string {
   const minutes = Math.floor(total / 60)
   return `${minutes}:${String(total % 60).padStart(2, '0')}`
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function onTimeUpdate(event: Event): void {

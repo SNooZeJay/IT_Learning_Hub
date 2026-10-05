@@ -49,10 +49,10 @@ const COURSE_COLUMNS =
 
 const CATEGORY_COLUMNS = 'id, name, slug, description, icon'
 
-const MODULE_COLUMNS = 'id, course_id, title, description, position'
+const MODULE_COLUMNS = 'id, course_id, title, description, position, status'
 
 const LESSON_COLUMNS =
-  'id, module_id, title, content, lesson_type, position, duration_minutes, is_preview, video_url'
+  'id, module_id, title, summary, content, lesson_type, position, duration_minutes, is_preview, video_url, status, is_required'
 
 const ENROLLMENT_COLUMNS = 'id, course_id, student_id, status, enrolled_at, completed_at'
 
@@ -373,6 +373,7 @@ function toModule(row: ModuleRow): Module {
     title: row.title,
     description: row.description,
     position: row.position,
+    status: row.status,
   }
 }
 
@@ -381,12 +382,15 @@ function toLesson(row: LessonRow): Lesson {
     id: row.id,
     moduleId: row.module_id,
     title: row.title,
+    summary: row.summary,
     content: row.content,
     lessonType: row.lesson_type,
     position: row.position,
     durationMinutes: row.duration_minutes,
     isPreview: row.is_preview,
     videoUrl: row.video_url,
+    status: row.status,
+    isRequired: row.is_required,
   }
 }
 

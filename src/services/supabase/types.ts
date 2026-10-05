@@ -1,10 +1,12 @@
 import type {
   AccountStatus,
   AttemptStatus,
+  ContentStatus,
   CourseLevel,
   CourseStatus,
   EnrollmentStatus,
   LessonType,
+  MaterialType,
   PaymentStatus,
   ProgressStatus,
   QuestionType,
@@ -183,6 +185,7 @@ export type Database = {
           title: string
           description: string | null
           position: number
+          status: Database['public']['Enums']['content_status']
           created_at: string
           updated_at: string
         }
@@ -192,6 +195,7 @@ export type Database = {
           title: string
           description?: string | null
           position: number
+          status?: Database['public']['Enums']['content_status']
           created_at?: string
           updated_at?: string
         }
@@ -199,6 +203,7 @@ export type Database = {
           title?: string
           description?: string | null
           position?: number
+          status?: Database['public']['Enums']['content_status']
           updated_at?: string
         }
         Relationships: [
@@ -222,6 +227,9 @@ export type Database = {
           duration_minutes: number | null
           is_preview: boolean
           video_url: string | null
+          status: Database['public']['Enums']['content_status']
+          summary: string | null
+          is_required: boolean
           created_at: string
           updated_at: string
         }
@@ -235,6 +243,9 @@ export type Database = {
           duration_minutes?: number | null
           is_preview?: boolean
           video_url?: string | null
+          status?: Database['public']['Enums']['content_status']
+          summary?: string | null
+          is_required?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -246,6 +257,9 @@ export type Database = {
           duration_minutes?: number | null
           is_preview?: boolean
           video_url?: string | null
+          status?: Database['public']['Enums']['content_status']
+          summary?: string | null
+          is_required?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -263,28 +277,42 @@ export type Database = {
           id: string
           lesson_id: string
           title: string
-          file_path: string
+          file_path: string | null
           file_type: string | null
           file_size: number | null
           position: number
+          material_type: Database['public']['Enums']['material_type']
+          content_text: string | null
+          external_url: string | null
+          uploaded_by: string | null
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
           lesson_id: string
           title: string
-          file_path: string
+          file_path?: string | null
           file_type?: string | null
           file_size?: number | null
           position?: number
+          material_type?: Database['public']['Enums']['material_type']
+          content_text?: string | null
+          external_url?: string | null
+          uploaded_by?: string | null
           created_at?: string
+          updated_at?: string
         }
         Update: {
           title?: string
-          file_path?: string
+          file_path?: string | null
           file_type?: string | null
           file_size?: number | null
           position?: number
+          material_type?: Database['public']['Enums']['material_type']
+          content_text?: string | null
+          external_url?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -338,6 +366,7 @@ export type Database = {
           id: string
           enrollment_id: string
           lesson_id: string
+          student_id: string | null
           status: Database['public']['Enums']['progress_status']
           progress_percent: number
           last_position_seconds: number | null
@@ -348,6 +377,7 @@ export type Database = {
           id?: string
           enrollment_id: string
           lesson_id: string
+          student_id?: string | null
           status?: Database['public']['Enums']['progress_status']
           progress_percent?: number
           last_position_seconds?: number | null
@@ -355,6 +385,7 @@ export type Database = {
           completed_at?: string | null
         }
         Update: {
+          student_id?: string | null
           status?: Database['public']['Enums']['progress_status']
           progress_percent?: number
           last_position_seconds?: number | null
@@ -366,6 +397,12 @@ export type Database = {
             foreignKeyName: 'lesson_progress_enrollment_id_fkey'
             columns: ['enrollment_id']
             referencedRelation: 'enrollments'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'lesson_progress_student_id_fkey'
+            columns: ['student_id']
+            referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
@@ -747,6 +784,25 @@ export type Database = {
       claim_own_course: { Args: { p_course_id: string }; Returns: boolean }
       /** Courses with no instructor assigned. An operations query. */
       unassigned_courses: { Args: Record<never, never>; Returns: unknown }
+      /** True for an admin or the instructor assigned to the course. */
+      can_edit_course_content: { Args: { target_course: string }; Returns: boolean }
+      /**
+       * Reorder modules or lessons in one atomic statement.
+       *
+       * `modules` and `lessons` both carry unique (parent, position), so writing
+       * positions one at a time from the client either collides or leaves a gap
+       * visible to readers. The function moves everything to negative placeholders
+       * and then writes the final order.
+       */
+      reorder_curriculum: {
+        Args: {
+          p_table: string
+          p_parent_column: string
+          p_parent_id: string
+          p_ordered_ids: string[]
+        }
+        Returns: undefined
+      }
     }
 
     Enums: {
@@ -756,6 +812,8 @@ export type Database = {
       course_level: CourseLevel
       enrollment_status: EnrollmentStatus
       lesson_type: LessonType
+      content_status: ContentStatus
+      material_type: MaterialType
       progress_status: ProgressStatus
       payment_status: PaymentStatus
       quiz_status: QuizStatus

@@ -24,12 +24,15 @@
             <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
               <h2 class="text-title-sm text-gray-900 dark:text-white/90">Curriculum</h2>
               <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {{ moduleCount }} module{{ moduleCount === 1 ? '' : 's' }} ·
-                {{ lessonCount }} lesson{{ lessonCount === 1 ? '' : 's' }}
+                {{
+                  isEnrolledHere
+                    ? 'Course, modules, lessons and materials, in the order you will work through them.'
+                    : 'What this course covers.'
+                }}
               </p>
             </div>
 
-            <div v-if="moduleCount === 0" class="p-6">
+            <div class="p-6">
               <!--
                 Two different causes produce an empty curriculum, and telling a
                 student the wrong one is worse than showing nothing. Row Level
@@ -38,13 +41,7 @@
                 not "the instructor has not written it yet".
               -->
               <EmptyState
-                v-if="isEnrolledHere"
-                title="No lessons yet"
-                description="The instructor has not published the lessons for this course yet. Check back soon."
-                :icon="BookOpen"
-              />
-              <EmptyState
-                v-else
+                v-if="!isEnrolledHere"
                 :title="
                   isPaidCourse ? 'Enrol to unlock the curriculum' : 'Enrol to see the lessons'
                 "
@@ -64,64 +61,8 @@
                   }}
                 </Button>
               </EmptyState>
-            </div>
 
-            <div v-else class="divide-y divide-gray-200 dark:divide-gray-800">
-              <section v-for="module in modules" :key="module.id" class="px-6 py-5">
-                <div class="flex items-baseline justify-between gap-3">
-                  <h3 class="text-theme-sm font-medium text-gray-900 dark:text-white/90">
-                    {{ module.position }}. {{ module.title }}
-                  </h3>
-                  <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400">
-                    {{ module.lessons.length }} lesson{{ module.lessons.length === 1 ? '' : 's' }}
-                  </span>
-                </div>
-                <p v-if="module.description" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  {{ module.description }}
-                </p>
-
-                <ul class="mt-3 space-y-1">
-                  <li v-for="lesson in module.lessons" :key="lesson.id">
-                    <router-link
-                      v-if="canOpen(lesson)"
-                      :to="`/student/lessons/${lesson.id}`"
-                      class="flex items-center gap-2.5 rounded px-2 py-2 text-sm transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.06]"
-                    >
-                      <PlayCircle
-                        v-if="lesson.lessonType === 'video'"
-                        class="size-4 shrink-0 text-gray-400"
-                      />
-                      <FileText v-else class="size-4 shrink-0 text-gray-400" />
-                      <span class="text-gray-700 dark:text-gray-300">{{ lesson.title }}</span>
-                      <span
-                        v-if="lesson.isPreview"
-                        class="ms-auto rounded bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400"
-                      >
-                        Preview
-                      </span>
-                      <span
-                        v-else-if="lesson.durationMinutes"
-                        class="ms-auto text-xs text-gray-400"
-                      >
-                        {{ lesson.durationMinutes }}m
-                      </span>
-                    </router-link>
-
-                    <!--
-                      Locked rows are shown rather than hidden. A student can see
-                      the shape of what they are working towards; a row that
-                      simply vanished would look like a bug.
-                    -->
-                    <div
-                      v-else
-                      class="flex items-center gap-2.5 px-2 py-2 text-sm text-gray-400 dark:text-gray-500"
-                    >
-                      <Lock class="size-4 shrink-0" />
-                      <span>{{ lesson.title }}</span>
-                    </div>
-                  </li>
-                </ul>
-              </section>
+              <CurriculumOutline v-else :modules="curriculumModules" :summary="curriculumSummary" />
             </div>
           </div>
         </div>
@@ -224,28 +165,27 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { BookOpen, CircleCheck, FileText, LoaderCircle, Lock, PlayCircle } from 'lucide-vue-next'
+import { CircleCheck, LoaderCircle, Lock } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import Alert from '@/components/ui/Alert.vue'
 import Button from '@/components/ui/Button.vue'
+import CurriculumOutline from '@/components/curriculum/CurriculumOutline.vue'
 import { getCourseWithCurriculum, isPaid } from '@/services/course.service'
 import { findEnrollment, enrollInFreeCourse } from '@/services/enrollment.service'
 import { startCheckout } from '@/services/checkout.service'
+import { loadCurriculum, type Curriculum } from '@/services/curriculum.service'
 import { useAuthStore } from '@/stores/auth'
 import { formatPeso } from '@/types'
-import type { Course, Lesson, Module } from '@/types'
-
-type ModuleWithLessons = Module & { lessons: Lesson[] }
+import type { Course } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
 const course = ref<Course | null>(null)
-const modules = ref<ModuleWithLessons[]>([])
 const enrolledHere = ref(false)
 const isLoading = ref(true)
 const isActing = ref(false)
@@ -260,10 +200,22 @@ const paymentNotice = ref('')
 
 const slug = computed(() => String(route.params.id ?? ''))
 
-const moduleCount = computed(() => modules.value.length)
-const lessonCount = computed(() => modules.value.reduce((n, m) => n + m.lessons.length, 0))
 const isPaidCourse = computed(() => (course.value ? isPaid(course.value) : false))
 const isEnrolledHere = computed(() => enrolledHere.value)
+
+/**
+ * The full hierarchy for this course, materials included, with the student's own
+ * progress attached.
+ *
+ * The enrolment id is resolved first because progress is scoped to it. It is
+ * fetched rather than assumed: an enrolled student must not be shown a course
+ * with no progress on it just because the lookup ran before the store was ready.
+ */
+const curriculum = ref<Curriculum | null>(null)
+const enrollmentId = ref<string | null>(null)
+
+const curriculumModules = computed(() => curriculum.value?.modules ?? [])
+const curriculumSummary = computed(() => curriculum.value?.summary ?? null)
 
 const priceLabel = computed(() =>
   !course.value ? '' : isPaidCourse.value ? formatPeso(course.value.priceCentavos) : 'Free',
@@ -277,15 +229,6 @@ const durationLabel = computed(() => {
   if (rest === 0) return `${hours}h`
   return `${hours}h ${rest}m`
 })
-
-/**
- * Preview lessons are open to anyone; everything else needs an enrolment.
- * The database enforces this too, so this is purely to avoid offering a link
- * that would fail on click.
- */
-function canOpen(lesson: Lesson): boolean {
-  return lesson.isPreview || enrolledHere.value
-}
 
 async function load(): Promise<void> {
   isLoading.value = true
@@ -303,12 +246,19 @@ async function load(): Promise<void> {
       return
     }
     course.value = result.course
-    modules.value = result.modules
 
     if (auth.profile) {
       const enrolment = await findEnrollment(result.course.id, auth.profile.id)
       enrolledHere.value = enrolment?.status === 'active' || enrolment?.status === 'completed'
+      enrollmentId.value = enrolledHere.value ? (enrolment?.id ?? null) : null
     }
+
+    // The hierarchy is loaded once, after the enrolment is known, so progress is
+    // attached on the first render rather than appearing a moment later.
+    curriculum.value = await loadCurriculum({
+      courseId: result.course.id,
+      enrollmentId: enrollmentId.value,
+    })
 
     // The learner returning from the provider. The webhook settles asynchronously,
     // so the enrolment may not be active yet on the very first render - which is

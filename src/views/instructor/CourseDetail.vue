@@ -36,74 +36,82 @@
         <!-- Curriculum -->
         <div class="space-y-6 lg:col-span-2">
           <div
-            class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+            class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
           >
-            <div
-              class="flex items-baseline justify-between gap-3 border-b border-gray-200 px-6 py-4 dark:border-gray-800"
-            >
+            <div class="mb-5 border-b border-gray-200 pb-4 dark:border-gray-800">
               <h2 class="text-title-sm text-gray-900 dark:text-white/90">Curriculum</h2>
-              <span class="text-xs text-gray-500 dark:text-gray-400">
-                {{ modules.length }} module{{ modules.length === 1 ? '' : 's' }} ·
-                {{ lessonCount }} lesson{{ lessonCount === 1 ? '' : 's' }}
-              </span>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Build the course as modules, then lessons, then materials. New content is saved as a
+                draft; publish it when you are ready for students to see it.
+              </p>
             </div>
 
-            <EmptyState
-              v-if="modules.length === 0"
-              title="No modules yet"
-              description="Add a module from the course editor, then fill it with lessons. Nothing reaches a student until you publish."
-              :icon="BookOpen"
+            <Alert
+              v-if="curriculumError"
+              variant="error"
+              title="Could not load the curriculum"
+              :message="curriculumError"
+              class="mb-4"
             />
 
-            <div v-else class="divide-y divide-gray-200 dark:divide-gray-800">
-              <section v-for="module in modules" :key="module.id" class="px-6 py-5">
-                <div class="flex items-baseline justify-between gap-3">
-                  <h3 class="text-theme-sm font-medium text-gray-900 dark:text-white/90">
-                    {{ module.position }}. {{ module.title }}
-                  </h3>
-                  <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400">
-                    {{ module.lessons.length }} lesson{{ module.lessons.length === 1 ? '' : 's' }}
-                  </span>
-                </div>
-                <p v-if="module.description" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  {{ module.description }}
-                </p>
+            <Alert
+              v-else-if="actionMessage"
+              :variant="actionVariant"
+              :title="actionVariant === 'error' ? 'That did not work' : 'Saved'"
+              :message="actionMessage"
+              class="mb-4"
+            />
 
-                <!-- An empty module is stated rather than left blank: from the
-                     instructor's side it is a gap to fill, and a row of nothing
-                     reads as a rendering fault. -->
-                <p
-                  v-if="module.lessons.length === 0"
-                  class="mt-3 rounded border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400"
-                >
-                  No lessons in this module yet.
-                </p>
+            <CurriculumOutline
+              :modules="curriculumModules"
+              :summary="curriculumSummary"
+              editable
+              @add-module="openModuleForm()"
+              @add-lesson="openLessonForm"
+              @add-material="openMaterialForm"
+              @edit-module="openModuleForm"
+              @edit-lesson="openLessonForm"
+              @edit-material="openMaterialForm"
+              @remove-module="confirmRemoveModule"
+              @remove-lesson="confirmRemoveLesson"
+              @remove-material="confirmRemoveMaterial"
+            />
 
-                <ul v-else class="mt-3 space-y-1">
-                  <li
-                    v-for="lesson in module.lessons"
-                    :key="lesson.id"
-                    class="flex items-center gap-2.5 px-2 py-2 text-sm"
-                  >
-                    <PlayCircle
-                      v-if="lesson.lessonType === 'video'"
-                      class="size-4 shrink-0 text-gray-400"
-                    />
-                    <FileText v-else class="size-4 shrink-0 text-gray-400" />
-                    <span class="text-gray-700 dark:text-gray-300">{{ lesson.title }}</span>
-                    <span
-                      v-if="lesson.isPreview"
-                      class="rounded bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400"
-                    >
-                      Preview
-                    </span>
-                    <span v-if="lesson.durationMinutes" class="ms-auto text-xs text-gray-400">
-                      {{ lesson.durationMinutes }}m
-                    </span>
-                  </li>
-                </ul>
-              </section>
-            </div>
+            <!-- Inline forms. The old system used a native <details> disclosure per
+                 module and per lesson, holding one create form each, so adding a
+                 lesson never meant a page change. That is kept: it is the difference
+                 between a workflow that feels fast and one that does not. -->
+            <ModuleForm
+              v-if="moduleForm.open"
+              class="mt-5"
+              :module="moduleForm.module"
+              :saving="moduleForm.saving"
+              :error="moduleForm.error"
+              @cancel="closeModuleForm"
+              @submit="saveModule"
+            />
+
+            <LessonForm
+              v-if="lessonForm.open"
+              class="mt-5"
+              :lesson="lessonForm.lesson"
+              :module-title="lessonForm.moduleTitle"
+              :saving="lessonForm.saving"
+              :error="lessonForm.error"
+              @cancel="closeLessonForm"
+              @submit="saveLesson"
+            />
+
+            <MaterialForm
+              v-if="materialForm.open"
+              class="mt-5"
+              :material="materialForm.material"
+              :lesson-title="materialForm.lessonTitle"
+              :saving="materialForm.saving"
+              :error="materialForm.error"
+              @cancel="closeMaterialForm"
+              @submit="saveMaterial"
+            />
           </div>
 
           <!-- Quizzes -->
@@ -435,49 +443,390 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import {
-  BookOpen,
   Check,
   ChevronRight,
   ClipboardCheck,
   ClipboardList,
-  FileText,
   Library,
   Pencil,
-  PlayCircle,
   X,
 } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
+import CurriculumOutline from '@/components/curriculum/CurriculumOutline.vue'
+import ModuleForm from '@/components/curriculum/ModuleForm.vue'
+import LessonForm from '@/components/curriculum/LessonForm.vue'
+import MaterialForm from '@/components/curriculum/MaterialForm.vue'
 import {
   getInstructorCourse,
   getQuizAnswerKey,
   listAssignments,
-  listCourseCurriculum,
   listCourseQuizzes,
 } from '@/services/instructor.service'
 import type {
   Assignment,
-  CourseModule,
   InstructorCourse,
   QuizAnswerKey,
   QuizSummary,
 } from '@/services/instructor.service'
+import {
+  createLesson,
+  createMaterial,
+  createModule,
+  CurriculumError,
+  deleteLesson,
+  deleteMaterial,
+  deleteModule,
+  loadCurriculum,
+  updateLesson,
+  updateMaterial,
+  updateModule,
+  type Curriculum,
+} from '@/services/curriculum.service'
+import { supabase } from '@/services/supabase/client'
+import { materialTypeLabel } from '@/services/curriculum.service'
 import { formatDate, formatDateTime, formatPeso } from '@/types'
+import type {
+  ContentStatus,
+  CurriculumLesson,
+  CurriculumModule,
+  Lesson,
+  LessonMaterial,
+  MaterialType,
+  Module,
+} from '@/types'
 
 const route = useRoute()
 
 const course = ref<InstructorCourse | null>(null)
-const modules = ref<CourseModule[]>([])
 const quizzes = ref<QuizSummary[]>([])
 const assignments = ref<Assignment[]>([])
 
 const isLoading = ref(true)
 const errorMessage = ref('')
+
+// ---------------------------------------------------------------------------
+// Curriculum state
+// ---------------------------------------------------------------------------
+
+const curriculum = ref<Curriculum | null>(null)
+const isLoadingCurriculum = ref(false)
+const curriculumError = ref('')
+
+/** One banner for the outcome of the last write, rather than a toast per action. */
+const actionMessage = ref('')
+const actionVariant = ref<'success' | 'error'>('success')
+
+const curriculumModules = computed(() => curriculum.value?.modules ?? [])
+const curriculumSummary = computed(() => curriculum.value?.summary ?? null)
+
+/** Every lesson across every module, so a form can be opened from a flat lookup. */
+const lessonIndex = computed(() => {
+  const index = new Map<string, CurriculumLesson>()
+  for (const module of curriculumModules.value) {
+    for (const lesson of module.lessons) index.set(lesson.id, lesson)
+  }
+  return index
+})
+
+const moduleIndex = computed(() => {
+  const index = new Map<string, CurriculumModule>()
+  for (const module of curriculumModules.value) index.set(module.id, module)
+  return index
+})
+
+// ---------------------------------------------------------------------------
+// Inline form state
+// ---------------------------------------------------------------------------
+
+const moduleForm = reactive({
+  open: false,
+  module: null as Module | null,
+  saving: false,
+  error: null as string | null,
+})
+
+const lessonForm = reactive({
+  open: false,
+  lesson: null as Lesson | null,
+  moduleId: '',
+  moduleTitle: '',
+  saving: false,
+  error: null as string | null,
+})
+
+const materialForm = reactive({
+  open: false,
+  material: null as LessonMaterial | null,
+  lessonId: '',
+  lessonTitle: '',
+  saving: false,
+  error: null as string | null,
+})
+
+function closeModuleForm(): void {
+  moduleForm.open = false
+  moduleForm.module = null
+  moduleForm.error = null
+}
+
+function closeLessonForm(): void {
+  lessonForm.open = false
+  lessonForm.lesson = null
+  lessonForm.error = null
+}
+
+function closeMaterialForm(): void {
+  materialForm.open = false
+  materialForm.material = null
+  materialForm.error = null
+}
+
+function openModuleForm(moduleId?: string): void {
+  moduleForm.module = moduleId ? (moduleIndex.value.get(moduleId) ?? null) : null
+  moduleForm.error = null
+  moduleForm.open = true
+}
+
+function openLessonForm(lessonId?: string, moduleId?: string): void {
+  if (lessonId) {
+    const lesson = lessonIndex.value.get(lessonId)
+    if (!lesson) return
+    lessonForm.lesson = lesson
+    lessonForm.moduleId = lesson.moduleId
+    lessonForm.moduleTitle = moduleIndex.value.get(lesson.moduleId)?.title ?? ''
+  } else {
+    lessonForm.lesson = null
+    lessonForm.moduleId = moduleId ?? ''
+    lessonForm.moduleTitle = moduleIndex.value.get(moduleId ?? '')?.title ?? ''
+  }
+  lessonForm.error = null
+  lessonForm.open = true
+}
+
+function openMaterialForm(materialId?: string, lessonId?: string): void {
+  if (materialId) {
+    for (const module of curriculumModules.value) {
+      for (const lesson of module.lessons) {
+        const found = lesson.materials.find((m) => m.id === materialId)
+        if (found) {
+          materialForm.material = found
+          materialForm.lessonId = lesson.id
+          materialForm.lessonTitle = lesson.title
+          materialForm.error = null
+          materialForm.open = true
+          return
+        }
+      }
+    }
+    return
+  }
+  materialForm.material = null
+  materialForm.lessonId = lessonId ?? ''
+  materialForm.lessonTitle = lessonIndex.value.get(lessonId ?? '')?.title ?? ''
+  materialForm.error = null
+  materialForm.open = true
+}
+
+// ---------------------------------------------------------------------------
+// Writes
+// ---------------------------------------------------------------------------
+
+function describe(error: unknown, fallback: string): string {
+  if (error instanceof CurriculumError) return error.message
+  if (error instanceof Error) return error.message
+  return fallback
+}
+
+async function refreshCurriculum(): Promise<void> {
+  if (!course.value) return
+  isLoadingCurriculum.value = true
+  curriculumError.value = ''
+  try {
+    const result = await loadCurriculum({
+      courseId: course.value.id,
+      // The instructor's view is the whole point of this page, so drafts and
+      // archived rows are included. RLS keeps this to the course's own instructor.
+      includeUnpublished: true,
+    })
+    curriculum.value = result
+  } catch (error) {
+    curriculumError.value = describe(error, 'Could not load the curriculum.')
+  } finally {
+    isLoadingCurriculum.value = false
+  }
+}
+
+async function saveModule(draft: {
+  title: string
+  description: string | null
+  status: ContentStatus
+}): Promise<void> {
+  if (!course.value) return
+  moduleForm.saving = true
+  moduleForm.error = null
+  try {
+    if (moduleForm.module) {
+      await updateModule(moduleForm.module.id, draft)
+      actionMessage.value = `Saved "${draft.title}".`
+    } else {
+      await createModule(course.value.id, draft)
+      actionMessage.value = `Added module "${draft.title}".`
+    }
+    await refreshCurriculum()
+    closeModuleForm()
+  } catch (error) {
+    moduleForm.error = describe(error, 'Could not save the module.')
+  } finally {
+    moduleForm.saving = false
+  }
+}
+
+async function saveLesson(draft: {
+  title: string
+  summary: string | null
+  content: string | null
+  lessonType: 'article' | 'video'
+  durationMinutes: number | null
+  videoUrl: string | null
+  isPreview: boolean
+  isRequired: boolean
+  status: ContentStatus
+}): Promise<void> {
+  lessonForm.saving = true
+  lessonForm.error = null
+  try {
+    if (lessonForm.lesson) {
+      await updateLesson(lessonForm.lesson.id, draft)
+      actionMessage.value = `Saved "${draft.title}".`
+    } else {
+      await createLesson(lessonForm.moduleId, draft)
+      actionMessage.value = `Added lesson "${draft.title}".`
+    }
+    await refreshCurriculum()
+    closeLessonForm()
+  } catch (error) {
+    lessonForm.error = describe(error, 'Could not save the lesson.')
+  } finally {
+    lessonForm.saving = false
+  }
+}
+
+/**
+ * Upload a file, then record the material.
+ *
+ * The row is written after the upload succeeds rather than before, so a failed
+ * upload does not leave a material pointing at a path that holds nothing. The
+ * path includes the lesson id and a random suffix, so two uploads of the same
+ * filename never collide - the same convention the old system used.
+ */
+async function saveMaterial(draft: {
+  title: string
+  materialType: MaterialType
+  contentText: string | null
+  externalUrl: string | null
+  file: File | null
+}): Promise<void> {
+  materialForm.saving = true
+  materialForm.error = null
+  try {
+    let filePath: string | null = materialForm.material?.filePath ?? null
+    let fileSize: number | null = materialForm.material?.fileSize ?? null
+    let fileType: string | null = materialForm.material?.fileType ?? null
+
+    if (draft.file) {
+      const safeName = draft.file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const path = `lesson-materials/${materialForm.lessonId}/${crypto.randomUUID()}-${safeName}`
+      const { error: uploadError } = await supabase.storage
+        .from('lesson-materials')
+        .upload(path, draft.file, { upsert: false })
+
+      if (uploadError) {
+        throw new CurriculumError(`The file did not upload: ${uploadError.message}`, uploadError)
+      }
+      filePath = path
+      fileSize = draft.file.size
+      fileType = draft.file.type === '' ? null : draft.file.type
+    }
+
+    const payload = {
+      title: draft.title,
+      materialType: draft.materialType,
+      contentText: draft.contentText,
+      externalUrl: draft.externalUrl,
+      filePath,
+      fileSize,
+      fileType,
+    }
+
+    if (materialForm.material) {
+      await updateMaterial(materialForm.material.id, payload)
+      actionMessage.value = `Saved "${draft.title}".`
+    } else {
+      await createMaterial(materialForm.lessonId, payload)
+      actionMessage.value = `Added ${materialTypeLabel(draft.materialType).toLowerCase()} "${draft.title}".`
+    }
+    await refreshCurriculum()
+    closeMaterialForm()
+  } catch (error) {
+    materialForm.error = describe(error, 'Could not save the material.')
+  } finally {
+    materialForm.saving = false
+  }
+}
+
+/**
+ * Confirm before removing.
+ *
+ * Removal cascades: deleting a module deletes its lessons, and deleting a lesson
+ * deletes its materials and every student's progress on it. That is the correct
+ * behaviour for the same reason the old system archived rather than deleted, but
+ * this schema uses ON DELETE CASCADE, so the warning has to say what is actually
+ * lost. "Are you sure" without that would be a lie.
+ */
+function confirmRemoveModule(moduleId: string): void {
+  const module = moduleIndex.value.get(moduleId)
+  if (!module) return
+  const lessonCount = module.lessons.length
+  const message =
+    lessonCount === 0
+      ? `Remove the module "${module.title}"?`
+      : `Remove "${module.title}" and its ${lessonCount} lesson${lessonCount === 1 ? '' : 's'}? Every student's progress on ${lessonCount === 1 ? 'it' : 'them'} is deleted with it. Archiving keeps the record instead.`
+  if (!window.confirm(message)) return
+  void runRemoval(() => deleteModule(moduleId), 'Module removed.')
+}
+
+function confirmRemoveLesson(lessonId: string): void {
+  const lesson = lessonIndex.value.get(lessonId)
+  if (!lesson) return
+  const message =
+    lesson.materials.length > 0
+      ? `Remove "${lesson.title}" and its ${lesson.materials.length} material${lesson.materials.length === 1 ? '' : 's'}? Progress students recorded on it is deleted too.`
+      : `Remove "${lesson.title}"? Progress students recorded on it is deleted too.`
+  if (!window.confirm(message)) return
+  void runRemoval(() => deleteLesson(lessonId), 'Lesson removed.')
+}
+
+function confirmRemoveMaterial(materialId: string): void {
+  void runRemoval(() => deleteMaterial(materialId), 'Material removed.')
+}
+
+async function runRemoval(work: () => Promise<void>, success: string): Promise<void> {
+  actionVariant.value = 'success'
+  try {
+    await work()
+    actionMessage.value = success
+    await refreshCurriculum()
+  } catch (error) {
+    actionVariant.value = 'error'
+    actionMessage.value = describe(error, 'Could not remove that.')
+  }
+}
 
 // The quizzes, assignments and answer keys load after the course itself. Each
 // has its own flag so a failure in one does not blank the whole page, and each
@@ -494,10 +843,6 @@ const keyError = ref<string | null>(null)
 const keyErrorMessage = ref('')
 
 const courseId = computed(() => String(route.params.id ?? ''))
-
-const lessonCount = computed(() =>
-  modules.value.reduce((total, module) => total + module.lessons.length, 0),
-)
 
 const completionRate = computed(() => {
   if (!course.value || course.value.enrolledCount === 0) return 0
@@ -519,7 +864,11 @@ async function load(): Promise<void> {
   try {
     course.value = await getInstructorCourse(courseId.value)
     if (!course.value) return
-    modules.value = await listCourseCurriculum(course.value.id)
+    // The curriculum has its own error surface. A failure to read it must not
+    // blank the page - the quiz and assignment panels are still useful - and it
+    // must be visible, because an instructor looking at an empty outline would
+    // reasonably conclude they had no content.
+    await refreshCurriculum()
     // Deliberately not awaited with the curriculum: the page is useful without
     // the quiz list, and a quiz-side failure should not hide the curriculum.
     void loadQuizzes()

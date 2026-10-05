@@ -1,5 +1,5 @@
 import { supabase } from './supabase/client'
-import type { CourseRow, ModuleRow, LessonRow  } from '@/types'
+import type { CourseRow, ModuleRow, LessonRow } from '@/types'
 import type { Course, Lesson, Module } from '@/types'
 
 /**
@@ -39,6 +39,7 @@ function toModule(row: ModuleRow): Module {
     title: row.title,
     description: row.description,
     position: row.position,
+    status: row.status,
   }
 }
 
@@ -47,12 +48,15 @@ function toLesson(row: LessonRow): Lesson {
     id: row.id,
     moduleId: row.module_id,
     title: row.title,
+    summary: row.summary,
     content: row.content,
     lessonType: row.lesson_type,
     position: row.position,
     durationMinutes: row.duration_minutes,
     isPreview: row.is_preview,
     videoUrl: row.video_url,
+    status: row.status,
+    isRequired: row.is_required,
   }
 }
 
@@ -100,7 +104,7 @@ export async function getCourseById(id: string): Promise<Course | null> {
 export async function listModules(courseId: string): Promise<Module[]> {
   const { data, error } = await supabase
     .from('modules')
-    .select('id, course_id, title, description, position, created_at, updated_at')
+    .select('id, course_id, title, description, position, status, created_at, updated_at')
     .eq('course_id', courseId)
     .order('position', { ascending: true })
 
@@ -167,10 +171,7 @@ export interface CourseDraft {
  * Always created as a draft. Publishing is a separate, deliberate step, so a
  * half-built course cannot appear in the catalogue by accident.
  */
-export async function createCourse(
-  draft: CourseDraft,
-  instructorId: string,
-): Promise<Course> {
+export async function createCourse(draft: CourseDraft, instructorId: string): Promise<Course> {
   const { data, error } = await supabase
     .from('courses')
     .insert({

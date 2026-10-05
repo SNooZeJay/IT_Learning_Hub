@@ -5,6 +5,8 @@ import type {
   CourseRow,
   EnrollmentStatus,
   Lesson,
+  LessonMaterial,
+  MaterialType,
   LessonMaterialRow,
   LessonProgressRow,
   LessonRow,
@@ -68,10 +70,10 @@ const later = supabase as unknown as SupabaseClient
 const COURSE_COLUMNS =
   'id, category_id, title, slug, description, thumbnail_url, status, level, duration_minutes, passing_score, price_centavos, created_by, published_at'
 
-const MODULE_COLUMNS = 'id, course_id, title, description, position'
+const MODULE_COLUMNS = 'id, course_id, title, description, position, status'
 
 const LESSON_COLUMNS =
-  'id, module_id, title, content, lesson_type, position, duration_minutes, is_preview, video_url'
+  'id, module_id, title, summary, content, lesson_type, position, duration_minutes, is_preview, video_url, status, is_required'
 
 const MATERIAL_COLUMNS =
   'id, lesson_id, title, file_path, file_type, file_size, position, created_at'
@@ -198,16 +200,19 @@ export interface CourseOutline {
   enrollmentStatus: EnrollmentStatus | null
 }
 
-export interface LessonMaterial {
-  id: string
-  lessonId: string
-  title: string
-  filePath: string
-  fileType: string | null
-  fileSize: number | null
-  position: number
-  uploadedAt: string
-}
+/**
+ * Re-exported rather than redefined.
+ *
+ * This file had its own `LessonMaterial` with a required `filePath`, written
+ * before a material could be anything but an uploaded file. That is why the
+ * shape was wrong rather than merely narrow: with `filePath` mandatory in the
+ * type as well as in the database, a reading-list link or a code snippet had no
+ * representation anywhere in the codebase.
+ *
+ * The canonical shape lives in `@/types` and carries the material type, which is
+ * what tells a renderer which of the three bodies to use.
+ */
+export type { LessonMaterial } from '@/types'
 
 /** One unmet course requirement, in the database's own words. */
 export interface CompletionGap {
@@ -323,11 +328,15 @@ export interface CourseDeadline {
 }
 
 /**
- * A file attached to a lesson the student has not finished.
+ * A material attached to a lesson the student has not finished.
  *
  * There is no `due_at` on `lesson_materials` — the only deadline column in the
  * schema is `assignments.due_at`. `uploadedAt` is when the instructor added the
- * file, and the UI says so rather than dressing it up as a due date.
+ * material, and the UI says so rather than dressing it up as a due date.
+ *
+ * `filePath` is nullable and `materialType` is carried alongside it, because a
+ * material is no longer only a file: an unfinished reading or a code snippet
+ * counts as outstanding work too.
  */
 export interface OutstandingMaterial {
   materialId: string
@@ -336,7 +345,8 @@ export interface OutstandingMaterial {
   courseId: string
   courseTitle: string
   title: string
-  filePath: string
+  filePath: string | null
+  materialType: MaterialType
   fileType: string | null
   fileSize: number | null
   uploadedAt: string
@@ -411,6 +421,7 @@ function toModule(row: ModuleRow): Module {
     title: row.title,
     description: row.description,
     position: row.position,
+    status: row.status,
   }
 }
 
@@ -419,12 +430,15 @@ function toLesson(row: LessonRow): Lesson {
     id: row.id,
     moduleId: row.module_id,
     title: row.title,
+    summary: row.summary,
     content: row.content,
     lessonType: row.lesson_type,
     position: row.position,
     durationMinutes: row.duration_minutes,
     isPreview: row.is_preview,
     videoUrl: row.video_url,
+    status: row.status,
+    isRequired: row.is_required,
   }
 }
 
@@ -433,11 +447,15 @@ function toMaterial(row: LessonMaterialRow): LessonMaterial {
     id: row.id,
     lessonId: row.lesson_id,
     title: row.title,
+    materialType: row.material_type,
+    position: row.position,
+    contentText: row.content_text,
+    externalUrl: row.external_url,
     filePath: row.file_path,
     fileType: row.file_type,
     fileSize: row.file_size === null ? null : Number(row.file_size),
-    position: row.position,
-    uploadedAt: row.created_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 
@@ -1428,9 +1446,10 @@ async function outstandingMaterials(
         courseTitle: titles.get(courseId) ?? 'Unknown course',
         title: material.title,
         filePath: material.filePath,
+        materialType: material.materialType,
         fileType: material.fileType,
         fileSize: material.fileSize,
-        uploadedAt: material.uploadedAt,
+        uploadedAt: material.createdAt,
       }
     })
 }
