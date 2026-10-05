@@ -13,7 +13,6 @@ import {
   ChartColumn,
   ShieldCheck,
   FolderTree,
-  CreditCard,
   Settings,
 } from 'lucide-vue-next'
 import type { Role } from '@/types'
@@ -22,7 +21,13 @@ export interface NavItem {
   label: string
   to: string
   icon: Component
-  /** Small status dot, used for the unread-notification count. */
+  /**
+   * A count to show on the item, or `true` for a plain dot.
+   *
+   * The unread-notification count is a number a student wants, not a red smear:
+   * 40 unread and 1 unread look identical as a dot, and the student is the only one
+   * who can act on it.
+   */
   badge?: 'notifications'
 }
 
@@ -67,14 +72,27 @@ export const ROLE_NAVIGATION: Record<Role, NavItem[]> = {
   ],
 }
 
-/** Items shown to a signed-out visitor browsing the marketing shell. */
-export const VISITOR_NAVIGATION: NavItem[] = [
-  { label: 'Catalogue', to: '/', icon: BookOpen },
-  { label: 'Payments', to: '/admin/payments', icon: CreditCard },
-]
+/**
+ * The fallback shown when the role could not be read.
+ *
+ * There is deliberately nothing in it.
+ *
+ * `navigationFor(null)` is not the signed-out case. `auth.role` is derived from the
+ * profile, and `stores/auth.ts` sets the profile to `null` when the profile fetch
+ * fails - so a signed-in user with a transient database error got this list. It
+ * offered "Catalogue" pointing at `/`, which the navigation guard then bounced back
+ * to their home, and "Payments" pointing at `/admin/payments`, which is
+ * `roles: ['admin']` and bounced too. Two items, both wrong, for whoever saw them.
+ *
+ * There is no visitor shell either: `AppLayout` wraps guarded routes only, so a
+ * genuinely signed-out visitor never sees a sidebar. Emptying this means a failed
+ * profile read shows the sidebar's recovery state instead of a menu of links that
+ * all lead somewhere the guard will refuse.
+ */
+export const UNKNOWN_ROLE_NAVIGATION: NavItem[] = []
 
 export function navigationFor(role: Role | null): NavItem[] {
-  return role ? ROLE_NAVIGATION[role] : VISITOR_NAVIGATION
+  return role ? ROLE_NAVIGATION[role] : UNKNOWN_ROLE_NAVIGATION
 }
 
 /** Brand name shown in the sidebar and header. */

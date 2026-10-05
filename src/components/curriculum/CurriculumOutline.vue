@@ -131,8 +131,17 @@ const requiredLessonTotal = computed(() =>
   props.modules.reduce((n, m) => n + m.lessons.filter((l) => l.isRequired).length, 0),
 )
 
-function linkTo(lessonId: string): string {
-  return props.editable ? `/instructor/lessons/${lessonId}` : `/student/lessons/${lessonId}`
+/**
+ * Where a lesson title goes.
+ *
+ * Students have a lesson page; instructors do not. There is no
+ * `/instructor/lessons/:id` route, so linking there sent every lesson title in
+ * every instructor's course outline to the 404 page. Instructors edit a lesson
+ * from the Edit button on the row itself, which is where the controls they need
+ * already are - so the title is not a link for them at all.
+ */
+function linkTo(lessonId: string): string | null {
+  return props.editable ? null : `/student/lessons/${lessonId}`
 }
 
 function onRemoveMaterial(materialId: string): void {
@@ -295,12 +304,20 @@ function onRemoveMaterial(materialId: string): void {
 
             <div class="min-w-0 flex-1">
               <router-link
-                :to="linkTo(lesson.id)"
+                v-if="linkTo(lesson.id)"
+                :to="linkTo(lesson.id)!"
                 class="font-medium text-gray-900 hover:text-brand-600 hover:underline dark:text-white/90 dark:hover:text-brand-400"
                 :class="activeLessonId === lesson.id ? 'text-brand-600 dark:text-brand-400' : ''"
               >
                 {{ lesson.title }}
               </router-link>
+              <span
+                v-else
+                class="font-medium text-gray-900 dark:text-white/90"
+                title="Use Edit to change this lesson"
+              >
+                {{ lesson.title }}
+              </span>
 
               <span
                 v-if="editable && lesson.status !== 'published'"

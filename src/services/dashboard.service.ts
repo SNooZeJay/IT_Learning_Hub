@@ -1,4 +1,5 @@
 import { supabase } from './supabase/client'
+import type { MaterialType } from '@/types'
 
 /**
  * Dashboard figures, and the rows behind them.
@@ -445,12 +446,14 @@ export interface RecentEnrolment {
 
 export interface RecentMaterial {
   materialTitle: string
-  materialType: string
+  /** Typed rather than a bare string so `materialTypeLabel` applies without a cast. */
+  materialType: MaterialType
   courseTitle: string
   createdAt: string
 }
 
 export interface RecentQuizAttempt {
+  studentId: string
   studentName: string | null
   quizTitle: string
   courseTitle: string
@@ -595,7 +598,7 @@ async function loadRecentMaterials(limit = 6): Promise<RecentMaterial[]> {
 
   return rows.map((r) => ({
     materialTitle: r.title,
-    materialType: r.material_type,
+    materialType: r.material_type as MaterialType,
     courseTitle: r.lessons?.modules?.courses?.title ?? 'Unknown course',
     createdAt: r.created_at,
   }))
@@ -625,6 +628,9 @@ async function loadRecentQuizAttempts(limit = 6): Promise<RecentQuizAttempt[]> {
   const names = await nameMap([...new Set(rows.map((r) => r.student_id))])
 
   return rows.map((r) => ({
+    // Carried through as well as the name: two students can share a name, and a
+    // list keyed on it would collide and render the wrong row.
+    studentId: r.student_id,
     studentName: names.get(r.student_id) ?? null,
     quizTitle: r.quizzes?.title ?? 'Unknown quiz',
     courseTitle: r.quizzes?.courses?.title ?? 'Unknown course',
