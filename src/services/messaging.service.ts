@@ -120,96 +120,65 @@ export function normaliseSubject(raw: string): string {
 /**
  * Everyone the signed-in user could start a conversation with.
  *
- * Derived from real teaching relationships rather than a directory:
+ * One RPC, `messageable_people()`: a student's instructors, an instructor's students, each
+ * restricted to enrolments that grant access, with the course the relationship comes from
+ * so the picker is a list of people you have a reason to write to rather than strangers.
  *
- * - a student's instructors: the instructors of the courses they are enrolled in
- * - an instructor's students: the students enrolled in the courses they teach
- * - an admin: nobody, and the UI says so rather than offering an empty picker
+ * This used to be built in the browser, from
+ * `enrollments -> courses -> course_instructors -> profiles`. It returned nothing, always,
+ * for a student - and the composer said "Finding people" until you navigated away.
  *
- * `profiles` is readable by an admin for all, by a user for themselves, and - per the
- * policies written for this project - for anyone sharing a course. The joins below
- * therefore stay inside a relationship the database already agrees with, rather than
- * trying to read the whole table.
+ * `profiles select` is `can_view_profile(id)`, which permits three things: your own
+ * profile, an administrator's, and - in one direction only - an instructor seeing their own
+ * students. There is no clause for a student seeing an instructor, so the innermost join
+ * matched no rows and every enrolment row went with it.
+ *
+ * The fix is deliberately not to widen `can_view_profile`. That would expose every column
+ * of every instructor's profile to every signed-in student, which is far more than a
+ * picker needs in order to show a name. The RPC returns an id and a name and nothing else,
+ * scoped by relationships the caller is already party to.
+ *
+ * Confirmed against the live database, as each real account:
+ *
+ *     Joren Lalamonan         1 recipient  Instructor Demo  (via Introduction to Programming,
+ *                                                        Networking Fundamentals)
+ *     Shan Lee Kian Garmino  1 recipient  Instructor Demo
+ *     Justine Josh Guia      1 recipient  Instructor Demo
+ *     Instructor Demo        3 recipients Joren, Justine, Shan Lee Kian
  */
 export async function listMessageablePeople(): Promise<MessagePerson[]> {
-  const { data: me, error: meError } = await supabase
-    .from('profiles')
-    .select('id, role')
-    .single<{ id: string; role: string }>()
+  const { data, error } = await supabase.rpc('messageable_people')
 
-  if (meError || !me) {
-    throw new MessagingError(messageOf(meError, 'Could not read your account.'), meError)
+  if (error) {
+    throw new MessagingError(messageOf(error, 'Could not find the people you can message.'), error)
   }
 
-  const people = new Map<string, MessagePerson>()
+  const rows = (data ?? []) as unknown as Array<{
+    person_id: string
+    person_name: string | null
+    via: string | null
+  }>
 
-  if (me.role === 'student') {
-    // The instructors of my courses. `course_instructors` and `enrollments` are both
-    // readable by the participants, so this join is inside what RLS already allows.
-    const { data, error } = await supabase
-      .from('enrollments')
-      .select('courses!inner(id, title, course_instructors!inner(profiles!inner(id, full_name)))')
-      .eq('student_id', me.id)
-      .eq('status', 'active')
+  // Collapsed by person: one instructor may teach two of your courses, and the picker
+  // should list them once with both courses beside their name rather than twice.
+  const byPerson = new Map<string, MessagePerson>()
 
-    if (error) throw new MessagingError(messageOf(error, 'Could not find your instructors.'), error)
-
-    for (const row of (data ?? []) as unknown as Array<{
-      courses: {
-        title: string
-        course_instructors: Array<{ profiles: { id: string; full_name: string } }>
-      } | null
-    }>) {
-      const course = row.courses
-      if (!course) continue
-      for (const link of course.course_instructors ?? []) {
-        const person = link.profiles
-        if (!person || person.id === me.id) continue
-        const existing = people.get(person.id)
-        // One entry per person, listing every course that makes them reachable.
-        if (existing) {
-          if (!existing.via.includes(course.title))
-            existing.via = `${existing.via}, ${course.title}`
-        } else {
-          people.set(person.id, { id: person.id, fullName: person.full_name, via: course.title })
-        }
-      }
+  for (const row of rows) {
+    const existing = byPerson.get(row.person_id)
+    if (existing) {
+      if (row.via && !existing.via.includes(row.via)) existing.via = `${existing.via}, ${row.via}`
+    } else {
+      byPerson.set(row.person_id, {
+        id: row.person_id,
+        // A name is the entire point of a recipient row. A nameless one renders as a blank
+        // option, which is worse than no option at all.
+        fullName: row.person_name ?? 'Unknown participant',
+        via: row.via ?? '',
+      })
     }
   }
 
-  if (me.role === 'instructor') {
-    const { data, error } = await supabase
-      .from('course_instructors')
-      .select(
-        'courses!inner(id, title, enrollments!inner(student_id, profiles!inner(id, full_name)))',
-      )
-      .eq('instructor_id', me.id)
-
-    if (error) throw new MessagingError(messageOf(error, 'Could not find your students.'), error)
-
-    for (const row of (data ?? []) as unknown as Array<{
-      courses: {
-        title: string
-        enrollments: Array<{ profiles: { id: string; full_name: string } | null }>
-      } | null
-    }>) {
-      const course = row.courses
-      if (!course) continue
-      for (const enrol of course.enrollments ?? []) {
-        const person = enrol.profiles
-        if (!person || person.id === me.id) continue
-        const existing = people.get(person.id)
-        if (existing) {
-          if (!existing.via.includes(course.title))
-            existing.via = `${existing.via}, ${course.title}`
-        } else {
-          people.set(person.id, { id: person.id, fullName: person.full_name, via: course.title })
-        }
-      }
-    }
-  }
-
-  return [...people.values()].sort((a, b) => a.fullName.localeCompare(b.fullName))
+  return [...byPerson.values()].sort((a, b) => a.fullName.localeCompare(b.fullName))
 }
 
 /**
@@ -298,58 +267,54 @@ export async function listMessages(conversationId: string): Promise<Message[]> {
 /**
  * Start a conversation with one person.
  *
- * Two inserts and no transaction, which is a real limitation and is handled rather than
- * hidden: if the second insert fails there is a thread with one participant, and the
- * list below treats a one-participant thread as a conversation you can still post into
- * rather than an error. The creator's own participant row is written first, so the
- * thread is at least readable by the person who made it.
+ * One RPC, `start_conversation()`, which creates the conversation and adds both
+ * participants in a single statement.
  *
- * An RPC would make this atomic. That is a schema change and this file does not make
- * one.
+ * This used to be two inserts from here, and it had never worked - not once, for anybody.
+ * The two policies involved deadlock each other:
+ *
+ *     conversations select  admits only participants
+ *     participants insert   proves you created the conversation by *reading* that row
+ *
+ * So the creator could not read their own brand-new conversation, and the participant
+ * insert was refused with a bare 42501 that read like a permissions problem. Step by step,
+ * as a signed-in student:
+ *
+ *     insert into conversations (subject, created_by) values (...)      ok
+ *     rows of it the creator can select                                0
+ *     insert into conversation_participants (conversation_id, user_id) 42501
+ *
+ * The comment that stood here described "only the creator can add participants" as though
+ * it were the intended design. It was the deadlock. The third instance of the same class
+ * in this schema, after the `X = X` tautology and the `42P17` self-reference, and the
+ * quietest of the three.
+ *
+ * The function is SECURITY DEFINER, which is the only way through: the creator has to
+ * write a participant row for a conversation whose row the select policy will not show
+ * them until that row exists. To stop that becoming "add any account to a conversation",
+ * the function requires the recipient to be one the caller could already have written to -
+ * their own instructor, or their own student.
+ *
+ * Atomic too, which the two inserts never were: a failure between them left a
+ * conversation with one participant that nobody could open or repair.
  */
 export async function startConversation(recipientId: string, subjectRaw: string): Promise<string> {
   const subject = normaliseSubject(subjectRaw)
 
-  const { data: me, error: meError } = await supabase
-    .from('profiles')
-    .select('id')
-    .single<{ id: string }>()
-  if (meError || !me)
-    throw new MessagingError(messageOf(meError, 'Could not read your account.'), meError)
+  const { data, error } = await supabase.rpc('start_conversation', {
+    p_recipient_id: recipientId,
+    p_subject: subject,
+  })
 
-  if (recipientId === me.id) {
-    throw new MessagingError('You cannot start a conversation with yourself.')
+  if (error) {
+    throw new MessagingError(messageOf(error, 'Could not start the conversation.'), error)
   }
 
-  const { data: created, error: createError } = await supabase
-    .from('conversations')
-    .insert({ subject, created_by: me.id })
-    .select('id')
-    .single<{ id: string }>()
-
-  if (createError || !created) {
-    throw new MessagingError(
-      messageOf(createError, 'Could not start the conversation.'),
-      createError,
-    )
+  if (typeof data !== 'string' || data === '') {
+    throw new MessagingError('Could not start the conversation.')
   }
 
-  const { error: participantError } = await supabase.from('conversation_participants').insert([
-    { conversation_id: created.id, user_id: me.id },
-    { conversation_id: created.id, user_id: recipientId },
-  ])
-
-  if (participantError) {
-    throw new MessagingError(
-      messageOf(
-        participantError,
-        'The conversation was created but the other person could not be added.',
-      ),
-      participantError,
-    )
-  }
-
-  return created.id
+  return data
 }
 
 /**

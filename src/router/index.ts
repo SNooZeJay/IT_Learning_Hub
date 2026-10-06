@@ -393,8 +393,29 @@ router.beforeEach(async (to) => {
 
   // Never decide anything before the session is known. Without this, a refresh
   // on a deep link bounces a signed-in user to the sign-in page.
-  await auth.ensureReady()
-
+  //
+  // But never let *failing* to learn the session stop the navigation either.
+  // initialize() is 	ry { await readyPromise } finally { readyPromise = null } - there
+  // is no catch - so anything supabase.auth.getSession() throws propagates out of
+  // ensureReady(). An unguarded await here therefore REJECTS the navigation, Vue Router
+  // abandons it, and because main.ts mounts without awaiting
+  // router.isReady() nothing
+  // ever paints: a blank page, no console error, no route.
+  //
+  // Observed while driving the real app: document.body was empty, the document title
+  // still read IT Learning Hub rather than IT Learning Hub | My profile - the guard had
+  // not reached line two - and the console held nothing but Vite's connect messages. One
+  // transient failure to read the session was a permanently blank application.
+  //
+  // Continuing is strictly better than aborting: the checks below decide on whatever the
+  // store knows. No session sends the user to sign in; a session with an unknown role goes
+  // to /profile, which renders its own error state with a retry. Both are visible and
+  // recoverable. A rejected navigation is neither.
+  try {
+    await auth.ensureReady()
+  } catch (error) {
+    console.warn('[router] the session could not be read; continuing without it', error)
+  }
   document.title = to.meta.title ? `${to.meta.title} | IT Learning Hub` : 'IT Learning Hub'
 
   if (to.meta.public) {

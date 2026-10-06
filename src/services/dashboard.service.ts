@@ -164,14 +164,23 @@ async function loadContinueLearning(): Promise<ContinueLearning | null> {
   const enrolments = await rowsOf(() =>
     supabase
       .from('enrollments')
-      .select('course_id, courses!inner(id, slug, title)')
+      // `enrolled_at` is selected because the sort below reads it. It was not selected
+      // when this query was written, so every row arrived with `enrolled_at` undefined and
+      // `b.enrolled_at.localeCompare(...)` threw a TypeError - taking down the whole
+      // student dashboard, and the activity figures on the profile page, for every
+      // student. Found by loading the app, not by reading it: nothing type-checks a
+      // column a select string forgot to ask for.
+      .select('course_id, enrolled_at, courses!inner(id, slug, title)')
       .eq('status', 'active'),
   )
 
   // Most recent first, so a student who just joined a course sees that one rather
   // than whichever happens to sort first by id.
+  //
+  // `?? ''` on both sides: a sort that can throw is a sort that takes the page with it,
+  // and the ordering is a convenience rather than a correctness requirement.
   const ordered = [...(enrolments as unknown as EnrolmentWithCourse[])].sort((a, b) =>
-    b.enrolled_at.localeCompare(a.enrolled_at),
+    (b.enrolled_at ?? '').localeCompare(a.enrolled_at ?? ''),
   )
 
   for (const row of ordered) {

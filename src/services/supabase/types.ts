@@ -1403,6 +1403,26 @@ export type Database = {
        * value compares a browser clock against a server one.
        */
       mark_conversation_read: { Args: { p_conversation_id: string }; Returns: boolean }
+      /**
+       * The people the signed-in user can start a conversation with.
+       *
+       * A student's instructors and an instructor's students, limited to enrolments that
+       * grant access, with the course each relationship comes from. Returns an id and a
+       * name only: `profiles select` does not let a student read an instructor's row, and
+       * this is narrower than widening that would be.
+       */
+      messageable_people: {
+        Args: Record<never, never>
+        Returns: { person_id: string; person_name: string | null; via: string | null }[]
+      }
+      /**
+       * Creates a conversation and adds both participants in one statement.
+       *
+       * The client cannot do this itself: `participants insert` proves the caller created
+       * the conversation by reading that row, and `conversations select` admits only
+       * participants - so the creator cannot read their own brand-new conversation.
+       */
+      start_conversation: { Args: { p_recipient_id: string; p_subject: string }; Returns: string }
       start_quiz_attempt: { Args: { p_quiz_id: string }; Returns: string }
       submit_quiz_attempt: { Args: { p_attempt_id: string; p_answers: unknown }; Returns: unknown }
       quiz_with_answers: { Args: { p_quiz_id: string }; Returns: unknown }

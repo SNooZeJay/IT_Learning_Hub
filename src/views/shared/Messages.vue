@@ -182,17 +182,35 @@ async function onSend(): Promise<void> {
   }
 }
 
+/**
+ * Is the recipient list still being fetched?
+ *
+ * An explicit flag rather than inferring it from `people.length === 0 && !composeError`.
+ * That inference was the bug: it is *identical* to the condition for "nobody to message",
+ * and because the spinner came first in the `v-if` chain, the empty state was unreachable.
+ * A genuinely empty result therefore rendered "Finding people" for ever.
+ *
+ * Which is exactly what hid the real defect behind it. `listMessageablePeople` returned an
+ * empty list for every student, because `profiles select` does not let a student read an
+ * instructor's row. The spinner claimed "still working" and the empty state would have said
+ * "nobody", and only one of the two could ever be displayed.
+ */
+const isLoadingPeople = ref(false)
+
 async function openCompose(): Promise<void> {
   isComposing.value = true
   composeError.value = ''
   recipientId.value = ''
   subjectDraft.value = ''
   people.value = []
+  isLoadingPeople.value = true
   try {
     people.value = await listMessageablePeople()
   } catch (error) {
     composeError.value =
       error instanceof Error ? error.message : 'The people you can message could not be loaded.'
+  } finally {
+    isLoadingPeople.value = false
   }
 }
 
@@ -213,9 +231,16 @@ async function onStartConversation(): Promise<void> {
   }
 }
 
-/** Nobody reachable is a real outcome, not an error, and it says why. */
+/**
+ * Nobody reachable is a real outcome, not an error, and it says why.
+ *
+ * Deliberately distinct from `isLoadingPeople`. The two were the same expression, and the
+ * spinner - being first in the `v-if` chain - won, so this branch was dead code that read
+ * like a handled case.
+ */
 const nobodyToMessage = computed(
-  () => !isComposing.value || (people.value.length === 0 && !composeError.value),
+  () =>
+    isComposing.value && !isLoadingPeople.value && people.value.length === 0 && !composeError.value,
 )
 
 onMounted(async () => {
@@ -488,10 +513,7 @@ onMounted(async () => {
           </button>
         </div>
 
-        <LoadingState
-          v-if="isComposing && people.length === 0 && !composeError"
-          label="Finding people"
-        />
+        <LoadingState v-if="isComposing && isLoadingPeople" label="Finding people" />
 
         <div v-else-if="nobodyToMessage" class="mt-4">
           <p class="flex items-start gap-2 text-sm text-slate">
