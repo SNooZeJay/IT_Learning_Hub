@@ -287,6 +287,8 @@ const routes: RouteRecordRaw[] = [
 
   // ---- Shared -------------------------------------------------------------
   {
+    // Who the signed-in person is. Their photo, name, contact details and bio, and the
+    // figures that summarise their own activity. No settings on this screen.
     path: '/profile',
     // No name on the parent: Vue Router rejects a child route that shares its
     // ancestor's name, and this parent exists only to attach AppLayout. The
@@ -298,6 +300,30 @@ const routes: RouteRecordRaw[] = [
         name: 'profile',
         component: () => import('@/views/shared/Profile.vue'),
         meta: { title: 'My profile' },
+      },
+    ],
+  },
+  {
+    // How the LMS behaves for them. Appearance and security.
+    //
+    // Separate from `/profile` because they are different questions. `/profile` is "who
+    // am I" and is part of how they are identified everywhere in the LMS; `/settings` is
+    // "how do I want this to behave" and is per-browser or per-account, never shown next
+    // to a person's name. They used to be one page, which is why the user menu offered
+    // "Profile" and then "Account settings" pointing at two anchors on the same route -
+    // two labels for one destination, so the choice carried no information.
+    //
+    // No `meta.roles`, for the same reason `/profile` has none: this is not a
+    // student-only or instructor-only feature. The guard refuses it for a signed-out
+    // visitor, which is the only restriction that applies.
+    path: '/settings',
+    component: () => import('@/layouts/AppLayout.vue'),
+    children: [
+      {
+        path: '',
+        name: 'settings',
+        component: () => import('@/views/shared/Settings.vue'),
+        meta: { title: 'Settings' },
       },
     ],
   },

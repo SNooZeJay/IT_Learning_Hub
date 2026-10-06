@@ -2,9 +2,32 @@
   <div>
     <PageHeader
       title="My profile"
-      subtitle="Your photo, your details, your password, and the settings this account can actually hold."
-      :crumbs="[{ label: 'Profile' }]"
+      subtitle="Your photo, your name and your contact details — how you appear across the LMS."
+      :crumbs="[{ label: 'My profile' }]"
     />
+
+    <!--
+      This screen is about identity and nothing else.
+
+      It used to hold the password form and a language picker as well, which made it the
+      place people went to for three unrelated things. Those now live on /settings, and
+      saying so here is deliberate: a visitor who arrives expecting their password and
+      finds no field for it will otherwise assume the feature is gone.
+
+      The security card was genuinely the wrong home for it. A password is not displayed
+      beside a person's name or photo anywhere in this LMS, and it is not part of how
+      their identity appears - so it was never a profile detail to begin with.
+    -->
+    <p class="mt-4 max-w-2xl text-sm text-slate">
+      Changing your sign-in address or password is in
+      <RouterLink
+        to="/settings"
+        class="font-medium text-brand-600 hover:underline dark:text-brand-400"
+      >
+        Settings
+      </RouterLink>
+      , along with how the interface looks.
+    </p>
 
     <!--
       Everything below needs a profile row. The route guard has already proved
@@ -20,10 +43,22 @@
     />
 
     <template v-else>
-      <div class="grid gap-6 lg:grid-cols-3">
-        <div class="space-y-6 lg:col-span-2">
-          <ProfileAvatarCard :profile="profile" @updated="applyProfile" />
+      <!--
+        Photo on the left, details on the right.
 
+        This used to be a two-thirds column holding both cards stacked, with the other
+        third holding security and the language picker. Those have moved to /settings, so
+        keeping the two-thirds layout would have left a third of the page permanently
+        empty. The photo is the narrow thing and the details are the wide thing, which is
+        the same relationship the old layout had between the two columns - just without
+        the empty third.
+      -->
+      <div class="mt-6 grid gap-6 lg:grid-cols-3">
+        <div class="lg:col-span-1">
+          <ProfileAvatarCard :profile="profile" @updated="applyProfile" />
+        </div>
+
+        <div class="lg:col-span-2">
           <ProfileDetailsCard
             :profile="profile"
             :saving="isSavingDetails"
@@ -32,11 +67,6 @@
             @submit="saveDetails"
             @truncated="detailsTruncated = true"
           />
-        </div>
-
-        <div class="space-y-6 lg:col-span-1">
-          <ProfileSecurityCard :profile="profile" />
-          <ProfilePreferencesCard />
         </div>
       </div>
 
@@ -99,8 +129,6 @@ import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import ProfileAvatarCard from '@/components/profile/ProfileAvatarCard.vue'
 import ProfileDetailsCard from '@/components/profile/ProfileDetailsCard.vue'
-import ProfilePreferencesCard from '@/components/profile/ProfilePreferencesCard.vue'
-import ProfileSecurityCard from '@/components/profile/ProfileSecurityCard.vue'
 import { useAuthStore } from '@/stores/auth'
 import { updateOwnProfile } from '@/services/profile.service'
 import { loadInstructorDashboard, loadStudentDashboard } from '@/services/dashboard.service'

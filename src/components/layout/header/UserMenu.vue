@@ -58,7 +58,20 @@
         </span>
       </div>
 
-      <!-- Menu Items -->
+      <!--
+        My profile, Settings, Sign out. Three items, two destinations, one meaning each.
+
+        This menu used to offer "Profile" and "Account settings" - two labels pointing at
+        `/profile` and `/profile#security`, which are the same page. The choice carried no
+        information, so "Account settings" had to be read as the more comprehensive option
+        and was the natural place to look for the password form, the appearance controls
+        and the language picker, all three of which lived on that one page.
+
+        They are now genuinely different: /profile is who you are, /settings is how this
+        behaves for you. "Account settings" is gone, because the account is not what
+        either screen edits - one edits a profile row, the other edits this browser and
+        this account's password.
+      -->
       <ul class="flex flex-col gap-0.5 border-t border-hairline-soft pt-2" aria-label="Account">
         <li>
           <RouterLink
@@ -67,104 +80,20 @@
             @click="closeDropdown"
           >
             <UserRound class="size-4 shrink-0 text-slate dark:text-gray-400" aria-hidden="true" />
-            Profile
+            My profile
           </RouterLink>
         </li>
         <li>
-          <!--
-            Not a second copy of "Profile". The profile screen owns its own
-            security section, so the deep link lands on the password form rather
-            than making the user hunt for it. The two used to point at the same
-            bare `/profile`.
-          -->
           <RouterLink
-            to="/profile#security"
+            to="/settings"
             class="group flex items-center gap-3 rounded-md px-3 py-2 text-theme-sm font-medium text-slate transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-500 dark:text-gray-300 dark:hover:bg-white/[0.06] dark:hover:text-gray-100"
             @click="closeDropdown"
           >
-            <ShieldCheck class="size-4 shrink-0 text-slate dark:text-gray-400" aria-hidden="true" />
-            Account settings
+            <Settings class="size-4 shrink-0 text-slate dark:text-gray-400" aria-hidden="true" />
+            Settings
           </RouterLink>
         </li>
       </ul>
-
-      <!--
-        Language preference.
-
-        This is a preference, not a translation control. There is no i18n library
-        and no string table in this project, so picking "Filipino" does not — and
-        cannot — change a single word on screen. The control says so rather than
-        implying otherwise, and it never renders a flag: a flag names a country,
-        not a language, which is why "Arabic" is being dropped rather than kept
-        with a Saudi flag next to it.
-      -->
-      <div class="mt-2 border-t border-hairline-soft px-3 pt-3">
-        <div class="flex items-center justify-between gap-2">
-          <span class="inline-flex items-center gap-2 text-theme-xs font-medium text-slate">
-            <Languages class="size-4 shrink-0" aria-hidden="true" />
-            Language preference
-          </span>
-          <span
-            class="shrink-0 rounded-full border border-hairline bg-surface-soft px-2 py-0.5 text-theme-xs font-medium text-slate dark:bg-white/[0.06]"
-          >
-            {{ currentLanguage.name }}
-          </span>
-        </div>
-
-        <fieldset class="mt-2">
-          <legend class="sr-only">Language preference</legend>
-          <div class="grid grid-cols-2 gap-1.5">
-            <label v-for="language in languages" :key="language.id" class="relative block">
-              <input
-                v-model="languageId"
-                type="radio"
-                name="user-language"
-                :value="language.id"
-                class="peer sr-only"
-              />
-              <span
-                class="flex cursor-pointer items-center justify-center rounded-md border border-hairline bg-canvas px-2 py-1.5 text-theme-xs font-medium text-slate transition-colors peer-checked:border-brand-500 peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-500 dark:bg-white/[0.03] dark:text-gray-300 dark:peer-checked:bg-brand-500/15 dark:peer-checked:text-brand-400"
-              >
-                {{ language.name }}
-              </span>
-            </label>
-          </div>
-        </fieldset>
-
-        <p class="mt-2 text-xs leading-relaxed text-slate">
-          Saved on this device. Interface translation is not available yet, so the app still reads
-          in English.
-        </p>
-      </div>
-
-      <!--
-        Text direction. Kept, because it is real: `setRTL` flips the `dir`
-        attribute on <html> and <body> and the whole layout mirrors. Relabelled,
-        because "Arabic" implied a language switch that was never there.
-      -->
-      <div class="mt-2 border-t border-hairline-soft px-3 pt-3">
-        <button
-          type="button"
-          class="flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-theme-xs font-medium text-slate transition-colors hover:bg-surface-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:text-gray-300 dark:hover:bg-white/[0.06]"
-          :aria-pressed="isRtl"
-          @click="setDirection(!isRtl)"
-        >
-          <component
-            :is="isRtl ? AlignRight : AlignLeft"
-            class="size-4 shrink-0"
-            aria-hidden="true"
-          />
-          <span class="flex-1 text-start">Text direction</span>
-          <span
-            class="shrink-0 rounded-full border border-hairline bg-surface-soft px-2 py-0.5 dark:bg-white/[0.06]"
-          >
-            {{ isRtl ? 'Right to left' : 'Left to right' }}
-          </span>
-        </button>
-        <p class="mt-1 ps-6 text-xs leading-relaxed text-slate">
-          Mirrors the layout. It does not translate any text.
-        </p>
-      </div>
 
       <!-- Sign Out -->
       <button
@@ -181,43 +110,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import {
-  AlignLeft,
-  AlignRight,
-  ChevronDown,
-  Languages,
-  LogOut,
-  ShieldCheck,
-  UserRound,
-} from 'lucide-vue-next'
-import { useRTL } from '@/composables/useRTL'
+import { ChevronDown, LogOut, Settings, UserRound } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
-
-/**
- * Where the language preference is kept.
- *
- * Documented here rather than inlined at the call site because this is the only
- * thing that would need changing when the preference is promoted from a device
- * setting to a column on `profiles`. `rtl_mode` is a separate key owned by
- * `@/composables/useRTL` and is deliberately not reused.
- */
-const LANGUAGE_STORAGE_KEY = 'lms.languagePreference'
-
-interface LanguageOption {
-  id: 'en' | 'fil'
-  name: string
-}
-
-const languages: LanguageOption[] = [
-  { id: 'en', name: 'English' },
-  { id: 'fil', name: 'Filipino' },
-]
 
 const auth = useAuthStore()
 const router = useRouter()
-const { isRtl, setRTL } = useRTL()
 
 const dropdownOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
@@ -271,31 +170,20 @@ const avatarFallbackClass = computed(() => {
   return AVATAR_SWATCHES[hash % AVATAR_SWATCHES.length]
 })
 
-function readStoredLanguage(): LanguageOption['id'] {
-  if (typeof localStorage === 'undefined') return 'en'
-  const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY)
-  return languages.some((language) => language.id === saved)
-    ? (saved as LanguageOption['id'])
-    : 'en'
-}
-
-const languageId = ref<LanguageOption['id']>(readStoredLanguage())
-
-const currentLanguage = computed(
-  () => languages.find((language) => language.id === languageId.value) ?? languages[0],
-)
-
-// Writing on change rather than on every render keeps the store out of the
-// read path: opening the dropdown cannot write to storage.
-watch(languageId, (value) => {
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(LANGUAGE_STORAGE_KEY, value)
-  }
-})
-
-function setDirection(rtl: boolean): void {
-  setRTL(rtl)
-}
+/**
+ * Two language controls are gone from this menu.
+ *
+ * One lived here as a two-option radio group, and a second lived on the profile page.
+ * They wrote two different keys - `lms.languagePreference` and `lms.preferences` - and
+ * neither was ever read by anything. There is no i18n library and no string table in this
+ * project, so choosing "Filipino" changed no word on screen.
+ *
+ * Both were honest about it in small print, which does not make them honest controls. A
+ * radio group is an assertion that one of the options is in effect; here none of them
+ * were. The text-direction control that shared this menu was kept for the opposite
+ * reason - it does mirror the whole interface - and now lives in Settings, beside the
+ * theme, where the two appearance controls sit together.
+ */
 
 function toggleDropdown(): void {
   dropdownOpen.value = !dropdownOpen.value
