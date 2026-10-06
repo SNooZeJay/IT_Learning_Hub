@@ -103,6 +103,12 @@ actually installed.
   - `npm run build` — runs type-check then builds the production bundle into `dist/`.
   - `npm run type-check` — runs `vue-tsc --build` for TypeScript validation.
   - `npm run lint` — runs ESLint with auto-fix.
+  - `npm run test` — runs Vitest.
+  - `npm run check:workflows` — fails if a GitHub Actions `if:` names a context its key
+    does not allow. Run this before pushing any change to `.github/`. `secrets` is the
+    one that bites: it is available in `env:`, `run:` and `with:`, and in **no** `if`.
+    A file that breaks that rule is rejected whole by GitHub, so no job runs at all and
+    the run reports "No jobs were found".
   - `npm run format` — runs Prettier on `src/`.
 
 ## Conventions

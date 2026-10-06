@@ -3,6 +3,15 @@ name: CI
 # Runs on every push and pull request. The deploy itself is Vercel's job, connected to
 # the repository; this workflow exists to refuse a bad commit rather than to publish
 # one, so it never deploys.
+#
+# Read this before editing an `if:`. `secrets` is not an available context in an `if` at
+# any level, and using it there does not fail one job - GitHub rejects the entire file,
+# schedules nothing, and reports an instant failure reading "No jobs were found". That
+# happened here for nine consecutive pushes, and because `verify` and `schema` carry no
+# conditions of their own, the lint, type-check and test jobs never ran either.
+#
+# `node scripts/check-workflow-expressions.mjs` enforces the table, and
+# `src/checks/workflow-expressions.test.ts` covers the checker itself.
 on:
   push:
     branches: [main]
@@ -57,6 +66,13 @@ jobs:
       # that somebody might mistake for a release candidate.
       - name: Build
         run: npm run build
+
+      # A workflow GitHub cannot parse fails as a whole file rather than one job, so
+      # this check runs here and not in `schema`: a bad expression in this file means
+      # none of the three jobs get scheduled, this one included. It is the check that
+      # would have caught the original, before nine pushes went by with no CI at all.
+      - name: Workflow expressions use allowed contexts
+        run: node scripts/check-workflow-expressions.mjs
 
       # The SPA fallback the build emits is load-bearing: if it goes missing, every
       # deep link 404s while the app still works at the root, and nothing else in this
@@ -126,35 +142,82 @@ jobs:
     name: End-to-end (Student and Instructor)
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    # Skipped rather than failed when the secrets are absent, so a fork can run the
-    # gates and get a meaningful signal without access to this database.
-    if: ${{ github.event_name == 'push' || secrets.E2E_SUPABASE_URL != '' }}
+
+    # The credentials arrive here, as environment variables, rather than in an `if`.
+    #
+    # This is not a style preference. `secrets` is not an available context in an `if`
+    # at any level - a job-level one allows only `github`, `needs`, `vars` and `inputs`,
+    # and a step-level one does not list it either. Referencing it there does not fail
+    # this job; it invalidates the entire workflow file, so GitHub schedules no jobs at
+    # all and reports "No jobs were found". That is what happened for nine consecutive
+    # pushes: `verify` and `schema` have no conditions of their own and were never run
+    # either, which means the gates this workflow exists to enforce had never once
+    # executed.
+    #
+    # `env` is the only place a secret can be read, so the decision moves into a shell
+    # step that can actually see it.
+    #
+    # Fork pull requests need no special case: GitHub withholds secrets from them, so
+    # every variable below is empty, the check writes skip=true, and the browser is
+    # never installed. The old `github.event_name == 'push' ||` guard was trying to
+    # express that and was the thing that broke the file.
+    env:
+      E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      E2E_STUDENT_EMAIL: ${{ secrets.E2E_STUDENT_EMAIL }}
+      E2E_STUDENT_PASSWORD: ${{ secrets.E2E_STUDENT_PASSWORD }}
+      E2E_INSTRUCTOR_EMAIL: ${{ secrets.E2E_INSTRUCTOR_EMAIL }}
+      E2E_INSTRUCTOR_PASSWORD: ${{ secrets.E2E_INSTRUCTOR_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
 
+      # The skip decision, made where the secrets are readable.
+      #
+      # Deliberately checks for every variable the suite needs rather than only the
+      # URL. Half-configured credentials would otherwise reach Playwright and fail as a
+      # confusing auth error deep in a run, which reads like a broken test rather than
+      # a missing setting.
+      - name: Are the end-to-end credentials configured?
+        id: creds
+        run: |
+          set -eu
+          missing=""
+          for name in E2E_SUPABASE_URL E2E_STUDENT_EMAIL E2E_STUDENT_PASSWORD \
+                      E2E_INSTRUCTOR_EMAIL E2E_INSTRUCTOR_PASSWORD; do
+            eval "value=\${$name:-}"
+            if [ -z "$value" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=End-to-end skipped::Missing repository secrets:$missing"
+            echo "These are repository settings, not code. The other two jobs still ran."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-node@v4
+        if: steps.creds.outputs.skip == 'false'
         with:
           node-version: 22
           cache: npm
 
       - name: Install dependencies
+        if: steps.creds.outputs.skip == 'false'
         run: npm ci
 
       - name: Install the browser
+        if: steps.creds.outputs.skip == 'false'
         run: npx playwright install --with-deps chromium
 
       - name: End-to-end tests
-        env:
-          E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
-          E2E_STUDENT_EMAIL: ${{ secrets.E2E_STUDENT_EMAIL }}
-          E2E_STUDENT_PASSWORD: ${{ secrets.E2E_STUDENT_PASSWORD }}
-          E2E_INSTRUCTOR_EMAIL: ${{ secrets.E2E_INSTRUCTOR_EMAIL }}
-          E2E_INSTRUCTOR_PASSWORD: ${{ secrets.E2E_INSTRUCTOR_PASSWORD }}
+        if: steps.creds.outputs.skip == 'false'
         run: npx playwright test
 
+      # `steps.creds.outputs` rather than a bare `failure()`: a skipped run is not a
+      # failed one, and uploading an empty report for a job that never ran is noise
+      # that makes a green build look like it left something behind.
       - name: Upload the failure report
-        if: failure()
+        if: failure() && steps.creds.outputs.skip == 'false'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
