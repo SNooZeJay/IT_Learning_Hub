@@ -601,7 +601,7 @@ async function findLiveEnrollment(
     .order('enrolled_at', { ascending: false })
     .limit(1)
 
-  if (error) throw new LearningError(messageOf(error, 'Could not check your enrolment.'))
+  if (error) throw new LearningError(messageOf(error, 'Could not check your enrollment.'))
   if (!data?.length) return null
   const row = data[0]
   return { id: row.id, status: row.status }
@@ -615,7 +615,7 @@ async function liveCourseIds(studentId: string): Promise<string[]> {
     .eq('student_id', studentId)
     .in('status', ['active', 'completed'])
 
-  if (error) throw new LearningError(messageOf(error, 'Could not load your enrolments.'))
+  if (error) throw new LearningError(messageOf(error, 'Could not load your enrollments.'))
   const ids = new Set((data ?? []).map((row) => row.course_id))
   return [...ids]
 }
@@ -1132,7 +1132,7 @@ export async function getStudentGrades(studentId: string): Promise<StudentGrades
     .eq('student_id', studentId)
 
   if (enrollmentError) {
-    throw new LearningError(messageOf(enrollmentError, 'Could not load your enrolments.'))
+    throw new LearningError(messageOf(enrollmentError, 'Could not load your enrollments.'))
   }
   const liveEnrollments = (enrollmentRows ?? []).filter(
     (row) => row.status === 'active' || row.status === 'completed',
@@ -1796,7 +1796,7 @@ async function completedLessonIds(courseIds: string[], studentId: string): Promi
     .in('course_id', courseIds)
 
   if (enrollmentError) {
-    throw new LearningError(messageOf(enrollmentError, 'Could not load your enrolments.'))
+    throw new LearningError(messageOf(enrollmentError, 'Could not load your enrollments.'))
   }
   const enrollmentIds = (enrollmentRows ?? []).map((row) => row.id)
   if (enrollmentIds.length === 0) return done

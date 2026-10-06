@@ -238,7 +238,7 @@ function onSubmit(): void {
   // which would render as a nameless avatar chip everywhere. That is a bug this
   // check is cheaper than.
   if (!fullName.value) {
-    nameError.value = 'A name is required — it is what shows on your enrolments and certificates.'
+    nameError.value = 'A name is required — it is what shows on your enrollments and certificates.'
     return
   }
 

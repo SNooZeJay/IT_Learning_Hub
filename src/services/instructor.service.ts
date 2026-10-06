@@ -478,7 +478,7 @@ async function countForCourses(courseIds: string[]): Promise<CourseCounts> {
   if (quizResult.error)
     throw new InstructorError(messageOf(quizResult.error, 'Could not load the quizzes.'))
   if (enrollmentResult.error)
-    throw new InstructorError(messageOf(enrollmentResult.error, 'Could not load the enrolments.'))
+    throw new InstructorError(messageOf(enrollmentResult.error, 'Could not load the enrollments.'))
 
   const moduleRows = (moduleResult.data ?? []) as Array<{ id: string; course_id: string }>
   const moduleCourse = new Map<string, string>()
@@ -1446,7 +1446,7 @@ export async function getInstructorInsights(instructorId: string): Promise<Instr
 
   if (courseError) throw new InstructorError(messageOf(courseError, 'Could not load your courses.'))
   if (enrollmentError)
-    throw new InstructorError(messageOf(enrollmentError, 'Could not load the enrolments.'))
+    throw new InstructorError(messageOf(enrollmentError, 'Could not load the enrollments.'))
   if (attemptError)
     throw new InstructorError(messageOf(attemptError, 'Could not load the quiz attempts.'))
 

@@ -30,7 +30,7 @@
           :hint="`${analytics.revenue.paidCount} settled, ${formatPeso(analytics.revenue.refundedCentavos)} refunded`"
         />
         <StatCard
-          label="Enrolments"
+          label="Enrollments"
           :value="String(analytics.enrollment.total)"
           :icon="BookOpen"
           :hint="`${analytics.enrollment.active} active, ${analytics.enrollment.completed} completed`"
@@ -105,7 +105,7 @@
             <EmptyState
               v-if="!isMounted || !analytics.revenueByMonth.some((month) => month.centavos > 0)"
               title="No money collected in these six months"
-              description="Free enrolments never create a payment, so this panel stays empty until a paid course is checked out."
+              description="Free enrollments never create a payment, so this panel stays empty until a paid course is checked out."
               :icon="Wallet"
             />
             <VueApexCharts
@@ -119,14 +119,14 @@
         </section>
 
         <section class="rounded-lg border border-hairline bg-canvas p-6">
-          <h2 class="text-title-sm font-semibold text-ink">New enrolments, by month</h2>
+          <h2 class="text-title-sm font-semibold text-ink">New enrollments, by month</h2>
           <p class="mt-1 text-sm text-slate">
-            Counted on the day the enrolment row was written, whichever status it settled into.
+            Counted on the day the enrollment row was written, whichever status it settled into.
           </p>
           <div class="mt-6">
             <EmptyState
               v-if="!isMounted || !analytics.enrollmentsByMonth.some((month) => month.count > 0)"
-              title="No enrolments in these six months"
+              title="No enrollments in these six months"
               description="This panel fills in as students open courses. It counts every status, including pending and dropped."
               :icon="ChartColumn"
             />
@@ -143,14 +143,14 @@
 
       <div class="mt-6 grid gap-6 lg:grid-cols-2">
         <section class="rounded-lg border border-hairline bg-canvas p-6">
-          <h2 class="text-title-sm font-semibold text-ink">Enrolments by status</h2>
+          <h2 class="text-title-sm font-semibold text-ink">Enrollments by status</h2>
           <p class="mt-1 text-sm text-slate">
             Completed is the only status that means somebody finished. Dropped is somebody who left.
           </p>
           <div class="mt-6">
             <EmptyState
               v-if="!isMounted || analytics.enrollment.total === 0"
-              title="No enrolments yet"
+              title="No enrollments yet"
               description="Nothing has enrolled in anything, so there is no split to draw."
               :icon="BookOpen"
             />
@@ -394,7 +394,7 @@ const revenueChartOptions = computed<ApexOptions>(() => ({
 
 const enrolmentChartSeries = computed(() => [
   {
-    name: 'New enrolments',
+    name: 'New enrollments',
     data: (analyticsData.value?.enrollmentsByMonth ?? []).map((m) => m.count),
   },
 ])
@@ -413,12 +413,12 @@ const enrolmentChartOptions = computed<ApexOptions>(() => ({
   },
   yaxis: { labels: { formatter: (value: number) => String(Math.round(value)) } },
   grid: { yaxis: { lines: { show: true } } },
-  tooltip: { y: { formatter: (value: number) => `${value} enrolments` } },
+  tooltip: { y: { formatter: (value: number) => `${value} enrollments` } },
 }))
 
 const enrolmentStatusChartSeries = computed(() => [
   {
-    name: 'Enrolments',
+    name: 'Enrollments',
     data: (analyticsData.value?.enrollmentsByStatus ?? []).map((slice) => slice.count),
   },
 ])
@@ -434,7 +434,7 @@ const enrolmentStatusChartOptions = computed<ApexOptions>(() => ({
   },
   yaxis: { labels: { maxWidth: 110 } },
   grid: { xaxis: { lines: { show: true } } },
-  tooltip: { y: { formatter: (value: number) => `${value} enrolments` } },
+  tooltip: { y: { formatter: (value: number) => `${value} enrollments` } },
 }))
 
 const paymentStatusChartSeries = computed(() => [

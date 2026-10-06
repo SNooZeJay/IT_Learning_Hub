@@ -64,7 +64,7 @@
       <EmptyState
         v-if="notifications.length === 0"
         title="Nothing here yet"
-        description="Enrolments, quiz results, graded assignments and certificates all arrive here as notifications."
+        description="Enrollments, quiz results, graded assignments and certificates all arrive here as notifications."
         :icon="BellOff"
       />
 
@@ -227,7 +227,7 @@ const headerSubtitle = computed(() => {
 const TYPE_META: Record<NotificationType, { icon: typeof Award; label: string; wrap: string }> = {
   enrolment_confirmed: {
     icon: School,
-    label: 'Enrolment',
+    label: 'Enrollment',
     wrap: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400',
   },
   payment_received: {

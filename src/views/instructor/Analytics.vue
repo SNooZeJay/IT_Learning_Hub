@@ -2,7 +2,7 @@
   <div>
     <PageHeader
       title="Course insights"
-      subtitle="Enrolments, completions and quiz performance across your courses."
+      subtitle="Enrollments, completions and quiz performance across your courses."
       :crumbs="[{ label: 'Instructor', to: '/instructor/dashboard' }, { label: 'Insights' }]"
     />
 
@@ -13,7 +13,7 @@
     <EmptyState
       v-else-if="stats.courses.length === 0"
       title="Nothing to measure yet"
-      description="Create a course first. Enrolment and completion figures appear once a course exists, and quiz scores once students sit one."
+      description="Create a course first. Enrollment and completion figures appear once a course exists, and quiz scores once students sit one."
       :icon="ChartColumn"
     />
 
@@ -37,7 +37,7 @@
           :icon="CircleCheckBig"
           :hint="
             stats.totals.enrolments === 0
-              ? 'No enrolments yet'
+              ? 'No enrollments yet'
               : `${stats.totals.completions} of ${stats.totals.enrolments} finished`
           "
         />
@@ -61,9 +61,9 @@
       <div
         class="mt-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
       >
-        <h2 class="text-title-sm text-gray-900 dark:text-white/90">Enrolments per course</h2>
+        <h2 class="text-title-sm text-gray-900 dark:text-white/90">Enrollments per course</h2>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Live places, excluding dropped enrolments.
+          Live places, excluding dropped enrollments.
         </p>
 
         <!-- isMounted, per AGENTS.md: ApexCharts reads the DOM on init. -->
@@ -79,7 +79,7 @@
           v-else-if="isMounted"
           class="mt-6 rounded border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400"
         >
-          No enrolments across your courses yet.
+          No enrollments across your courses yet.
         </p>
       </div>
 
@@ -237,7 +237,7 @@ const errorMessage = ref('')
  */
 const isMounted = ref(false)
 
-const HEADINGS = ['Course', 'Enrolments', 'Completed', 'Completion rate', 'Avg quiz score']
+const HEADINGS = ['Course', 'Enrollments', 'Completed', 'Completion rate', 'Avg quiz score']
 
 const FONT_FAMILY =
   "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
@@ -255,7 +255,7 @@ function axisLabel(value: string): string {
 
 const enrolmentSeries = computed(() => [
   {
-    name: 'Enrolments',
+    name: 'Enrollments',
     data: courses.value.map((course) => course.enrolments),
   },
 ])

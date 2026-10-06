@@ -42,7 +42,7 @@
       -->
       <h1 class="text-title-md text-ink">Browse published courses</h1>
       <p class="mt-3 max-w-2xl text-base text-slate">
-        These courses are published and open to everyone. Sign in to enrol in one.
+        These courses are published and open to everyone. Sign in to enroll in one.
       </p>
       <p class="mt-2 text-sm text-slate">
         <template v-if="loading">{{ courses.length }} courses published</template>
@@ -145,7 +145,7 @@
         :title="courses.length === 0 ? 'No courses published yet' : 'No published courses match'"
         :description="
           courses.length === 0
-            ? 'Courses appear here as soon as an instructor publishes them. Sign in to enrol once the catalogue is live.'
+            ? 'Courses appear here as soon as an instructor publishes them. Sign in to enroll once the catalogue is live.'
             : 'No published course matches these filters yet. Try a different search, or clear the filters to see everything.'
         "
         :icon="BookOpen"

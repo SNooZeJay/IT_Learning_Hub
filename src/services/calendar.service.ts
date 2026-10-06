@@ -662,7 +662,7 @@ async function collectInstructorEvents(): Promise<CalendarEvent[]> {
     events.push({
       id: `enrolment-${row.id}`,
       kind: 'course_started',
-      title: 'New enrolment',
+      title: 'New enrollment',
       detail: row.courses.title,
       at: row.enrolled_at,
       courseTitle: row.courses.title,

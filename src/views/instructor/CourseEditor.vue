@@ -1001,7 +1001,7 @@ const STATUS_OPTIONS: Array<{ value: CourseStatus; label: string }> = [
 
 const STATUS_HINTS: Record<CourseStatus, string> = {
   draft: 'Only you can see it. Use this while the course is still being built.',
-  published: 'Visible in the catalogue. Students can enrol.',
+  published: 'Visible in the catalogue. Students can enroll.',
   archived: 'Hidden from the catalogue but kept, with its student records intact.',
 }
 

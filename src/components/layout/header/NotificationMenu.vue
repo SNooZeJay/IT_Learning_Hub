@@ -134,7 +134,7 @@
           </span>
           <p class="text-theme-sm font-medium text-ink dark:text-gray-200">Nothing new</p>
           <p class="mt-1 text-xs text-slate">
-            Enrolments, quiz results, graded work and certificates arrive here.
+            Enrollments, quiz results, graded work and certificates arrive here.
           </p>
         </div>
 
@@ -326,7 +326,7 @@ const homePath = computed(() => auth.homePath)
 const TYPE_META: Record<NotificationType, { icon: typeof Award; label: string; wrap: string }> = {
   enrolment_confirmed: {
     icon: School,
-    label: 'Enrolment',
+    label: 'Enrollment',
     wrap: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400',
   },
   payment_received: {

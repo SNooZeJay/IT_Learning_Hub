@@ -45,7 +45,7 @@
           label="Completed"
           :value="String(completedEnrolments)"
           :icon="CircleCheck"
-          hint="Enrolments the database marks completed"
+          hint="Enrollments the database marks completed"
         />
         <StatCard
           label="Suspended"
@@ -81,7 +81,7 @@
           </label>
 
           <label class="block">
-            <span class="mb-1 block text-xs font-medium text-slate">Enrolments</span>
+            <span class="mb-1 block text-xs font-medium text-slate">Enrollments</span>
             <select v-model="enrolmentFilter" :class="selectClass">
               <option value="all">Any number</option>
               <option value="none">None yet</option>
@@ -108,7 +108,7 @@
         v-else-if="filtered.length === 0"
         class="mt-6"
         title="No students match those filters"
-        description="Try a different search word, or widen the account status and enrolment filters."
+        description="Try a different search word, or widen the account status and enrollment filters."
         :icon="Search"
       />
 
@@ -116,7 +116,7 @@
         <div class="overflow-x-auto custom-scrollbar">
           <table class="min-w-full text-start text-sm">
             <caption class="sr-only">
-              Students with their enrolment counts
+              Students with their enrollment counts
             </caption>
             <thead>
               <tr class="bg-surface text-xs tracking-wide text-slate uppercase">

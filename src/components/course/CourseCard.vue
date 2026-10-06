@@ -54,7 +54,7 @@
           : 'border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.06]'
       "
     >
-      {{ enrolled ? 'Continue' : course.priceCentavos > 0 ? 'View and enrol' : 'View course' }}
+      {{ enrolled ? 'Continue' : course.priceCentavos > 0 ? 'View and enroll' : 'View course' }}
       <ArrowRight class="size-4" />
     </router-link>
   </article>

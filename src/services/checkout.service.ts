@@ -215,7 +215,7 @@ function messageFor(reason: CheckoutFailure, detail: string | null): string {
     case 'not_authenticated':
       return 'Your session has expired. Sign in again and retry - nothing has been charged.'
     case 'no_such_course':
-      return 'That course is no longer available for enrolment.'
+      return 'That course is no longer available for enrollment.'
     case 'not_configured':
       return (
         useful ??

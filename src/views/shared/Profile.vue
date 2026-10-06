@@ -233,7 +233,7 @@ const activitySubtitle = computed(() => {
     case 'instructor':
       return 'Scoped to the courses you own, by Row Level Security rather than by a filter here.'
     case 'student':
-      return 'Your own enrolments, lessons and graded quizzes.'
+      return 'Your own enrollments, lessons and graded quizzes.'
     default:
       return 'These appear once your account has a role.'
   }
@@ -269,7 +269,7 @@ function studentFigures(data: StudentDashboard): Figure[] {
   return [
     count(
       data.enrolledCourses,
-      'Active enrolments',
+      'Active enrollments',
       GraduationCap,
       data.completedCourses === null
         ? 'Courses currently running'

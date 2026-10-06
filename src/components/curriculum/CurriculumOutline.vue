@@ -437,7 +437,7 @@ function onRemoveMaterial(materialId: string): void {
           A module is a section of the course. Add one, then fill it with lessons.
         </template>
         <template v-else>
-          The instructor has not published any modules for this course yet. Your enrolment is kept,
+          The instructor has not published any modules for this course yet. Your enrollment is kept,
           and the content appears here as soon as it is ready.
         </template>
       </p>

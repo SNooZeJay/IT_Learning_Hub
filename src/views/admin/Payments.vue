@@ -121,7 +121,7 @@
         v-if="payments.length === 0"
         class="mt-6"
         title="No payments yet"
-        description="Charges appear here when a student starts a checkout on a paid course. Free enrolments never create a payment."
+        description="Charges appear here when a student starts a checkout on a paid course. Free enrollments never create a payment."
         :icon="Wallet"
       />
 

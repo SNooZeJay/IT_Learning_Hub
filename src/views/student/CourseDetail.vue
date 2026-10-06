@@ -43,12 +43,12 @@
               <EmptyState
                 v-if="!isEnrolledHere"
                 :title="
-                  isPaidCourse ? 'Enrol to unlock the curriculum' : 'Enrol to see the lessons'
+                  isPaidCourse ? 'Enroll to unlock the curriculum' : 'Enroll to see the lessons'
                 "
                 :description="
                   isPaidCourse
-                    ? `The module list for this course is only visible once you have a place. Enrol for ${formatPeso(course.priceCentavos)} to unlock every lesson.`
-                    : 'The module list for this course is only visible once you have a place. Enrol free to unlock every lesson.'
+                    ? `The module list for this course is only visible once you have a place. Enroll for ${formatPeso(course.priceCentavos)} to unlock every lesson.`
+                    : 'The module list for this course is only visible once you have a place. Enroll free to unlock every lesson.'
                 "
                 :icon="Lock"
               >
@@ -56,8 +56,8 @@
                   <LoaderCircle v-if="isActing" class="size-4 animate-spin" />
                   {{
                     isPaidCourse
-                      ? `Enrol for ${formatPeso(course.priceCentavos)}`
-                      : 'Enrol for free'
+                      ? `Enroll for ${formatPeso(course.priceCentavos)}`
+                      : 'Enroll for free'
                   }}
                 </Button>
               </EmptyState>
@@ -186,7 +186,7 @@
               {{ priceLabel }}
             </p>
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {{ isPaidCourse ? 'One-off, in Philippine pesos' : 'Free to enrol' }}
+              {{ isPaidCourse ? 'One-off, in Philippine pesos' : 'Free to enroll' }}
             </p>
 
             <dl class="mt-5 space-y-2.5 text-sm">
@@ -220,7 +220,7 @@
               <Alert
                 v-if="actionError"
                 variant="error"
-                title="Could not enrol"
+                title="Could not enroll"
                 :message="actionError"
                 class="mb-3"
               />
@@ -242,7 +242,9 @@
               >
                 <LoaderCircle v-if="isActing" class="size-4 animate-spin" />
                 {{
-                  isActing ? 'Opening checkout...' : `Enrol for ${formatPeso(course.priceCentavos)}`
+                  isActing
+                    ? 'Opening checkout...'
+                    : `Enroll for ${formatPeso(course.priceCentavos)}`
                 }}
               </Button>
 
@@ -254,7 +256,7 @@
                 @click="handleEnrol"
               >
                 <LoaderCircle v-if="isActing" class="size-4 animate-spin" />
-                {{ isActing ? 'Enrolling...' : 'Enrol for free' }}
+                {{ isActing ? 'Enrolling...' : 'Enroll for free' }}
               </Button>
             </div>
 
@@ -580,7 +582,7 @@ async function handleEnrol(): Promise<void> {
     // curriculum still "3 modules, 0 lessons" -> after reload, 3/6/6.
     await load()
   } catch (error) {
-    actionError.value = error instanceof Error ? error.message : 'Could not enrol in this course.'
+    actionError.value = error instanceof Error ? error.message : 'Could not enroll in this course.'
   } finally {
     isActing.value = false
   }

@@ -400,7 +400,7 @@
           <div
             class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
           >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Enrolment</h2>
+            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Enrollment</h2>
 
             <dl class="mt-4 grid grid-cols-2 gap-4">
               <div>

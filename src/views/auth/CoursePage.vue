@@ -147,7 +147,7 @@
               <h2 class="text-title-sm text-ink">Course outline</h2>
               <p class="mt-2 text-sm text-slate">
                 Module and lesson titles only. Lesson content and materials stay private until you
-                enrol.
+                enroll.
               </p>
 
               <p
@@ -335,12 +335,12 @@ const facts = computed(() => {
 const enrollmentMessage = computed(() =>
   isPaid.value
     ? 'This course is paid. Lesson content and materials stay locked until a payment is confirmed.'
-    : 'This course is free. Enrol to start your learning record.',
+    : 'This course is free. Enroll to start your learning record.',
 )
 
 const primaryAction = computed(() =>
   isPaid.value
-    ? { to: '/auth/register', label: 'Create an account to enrol' }
-    : { to: '/auth/register', label: 'Create a free account to enrol' },
+    ? { to: '/auth/register', label: 'Create an account to enroll' }
+    : { to: '/auth/register', label: 'Create a free account to enroll' },
 )
 </script>

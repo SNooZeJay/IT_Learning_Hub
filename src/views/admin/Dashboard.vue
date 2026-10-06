@@ -42,7 +42,7 @@
           label="Revenue"
           :value="formatPeso(stats.revenueCentavos)"
           :icon="Wallet"
-          :hint="`${stats.enrolments} active enrolment${stats.enrolments === 1 ? '' : 's'}`"
+          :hint="`${stats.enrolments} active enrollment${stats.enrolments === 1 ? '' : 's'}`"
         />
       </div>
 
@@ -51,9 +51,9 @@
           <div
             class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
           >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Enrolment trend</h2>
+            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Enrollment trend</h2>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              New enrolments per month across the platform.
+              New enrollments per month across the platform.
             </p>
             <div class="mt-6">
               <!--
@@ -62,8 +62,8 @@
                 numbers. Swap in the trend chart when the query lands.
               -->
               <EmptyState
-                title="No enrolments yet"
-                :description="`Once students enrol, this panel plots new enrolments month by month. There are ${stats.enrolments} active so far.`"
+                title="No enrollments yet"
+                :description="`Once students enroll, this panel plots new enrollments month by month. There are ${stats.enrolments} active so far.`"
                 :icon="ChartColumn"
               />
             </div>
@@ -120,7 +120,7 @@
               <EmptyState
                 v-else-if="payments.length === 0"
                 title="No payments yet"
-                description="Receipts appear here as students enrol in paid courses."
+                description="Receipts appear here as students enroll in paid courses."
                 :icon="Wallet"
               />
 

@@ -80,7 +80,7 @@
               </div>
 
               <p class="mt-4 text-sm text-slate">
-                Browsing is open to everyone. You only need an account to enrol.
+                Browsing is open to everyone. You only need an account to enroll.
               </p>
             </div>
 
@@ -205,7 +205,7 @@
             v-else-if="featured.length === 0"
             class="mt-8"
             title="No courses published yet"
-            description="Courses appear here as soon as an instructor publishes them. Sign in to enrol once the catalogue is live."
+            description="Courses appear here as soon as an instructor publishes them. Sign in to enroll once the catalogue is live."
             :icon="BookOpen"
           >
             <RouterLink
@@ -242,7 +242,7 @@
           </h2>
           <p class="mt-4 max-w-2xl text-base leading-relaxed text-slate">
             Lessons are written to be read, and quizzes check what you took in. Both sit behind your
-            enrolment, so a free course and a paid one give you the same material.
+            enrollment, so a free course and a paid one give you the same material.
           </p>
 
           <div class="mt-10 grid gap-6 lg:grid-cols-2">
@@ -330,7 +330,7 @@ git --version</code></pre>
               Your next skill is a lesson away.
             </h2>
             <p class="mt-4 text-base leading-relaxed text-white/70">
-              Create a free account to enrol in a free course, or pay for one in Philippine pesos.
+              Create a free account to enroll in a free course, or pay for one in Philippine pesos.
               Either way your progress is kept from your first lesson.
             </p>
             <RouterLink

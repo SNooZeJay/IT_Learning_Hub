@@ -653,7 +653,7 @@ export async function listAllStudents(): Promise<AdminStudent[]> {
     ])
 
   if (profileError) throw fail(profileError, 'Could not load the student list.')
-  if (enrollError) throw fail(enrollError, 'Could not load enrolments.')
+  if (enrollError) throw fail(enrollError, 'Could not load enrollments.')
 
   const byStudent = new Map<
     string,
@@ -819,7 +819,7 @@ export async function listAllCourses(): Promise<AdminCourse[]> {
   if (categoryError) throw fail(categoryError, 'Could not load categories.')
   if (assignmentError) throw fail(assignmentError, 'Could not load course assignments.')
   if (nameError) throw fail(nameError, 'Could not load people.')
-  if (enrollError) throw fail(enrollError, 'Could not load enrolments.')
+  if (enrollError) throw fail(enrollError, 'Could not load enrollments.')
 
   const namesById = new Map<string, string>()
   for (const row of (nameRows ?? []) as Array<{ id: string; full_name: string }>) {
@@ -1223,7 +1223,7 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalytics> {
   ])
 
   if (paymentError) throw fail(paymentError, 'Could not read payment history.')
-  if (enrollError) throw fail(enrollError, 'Could not read enrolments.')
+  if (enrollError) throw fail(enrollError, 'Could not read enrollments.')
   if (attemptError) throw fail(attemptError, 'Could not read quiz attempts.')
 
   const payments = (paymentRows ?? []) as Array<{
@@ -1445,21 +1445,21 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
     ),
     readCount(
       supabase.from('enrollments').select('id', { count: 'exact', head: true }),
-      'Could not count enrolments.',
+      'Could not count enrollments.',
     ),
     readCount(
       supabase
         .from('enrollments')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'active'),
-      'Could not count active enrolments.',
+      'Could not count active enrollments.',
     ),
     readCount(
       supabase
         .from('enrollments')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'completed'),
-      'Could not count completed enrolments.',
+      'Could not count completed enrollments.',
     ),
     supabase.from('payments').select('amount_centavos, status'),
   ])

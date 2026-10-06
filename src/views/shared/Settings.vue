@@ -116,7 +116,7 @@ const ABSENT: ReadonlyArray<{ title: string; why: string }> = [
   },
   {
     title: 'Privacy',
-    why: 'What is visible about you is decided by your role and your enrolments, not by a setting. The only per-person visibility choice — your profile photo — is on My profile.',
+    why: 'What is visible about you is decided by your role and your enrollments, not by a setting. The only per-person visibility choice — your profile photo — is on My profile.',
   },
 ]
 </script>

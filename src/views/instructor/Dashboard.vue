@@ -341,7 +341,7 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
             class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
           >
             <div class="flex items-baseline justify-between gap-3">
-              <h2 class="text-title-sm text-gray-900 dark:text-white/90">Recent enrolments</h2>
+              <h2 class="text-title-sm text-gray-900 dark:text-white/90">Recent enrollments</h2>
               <router-link
                 to="/instructor/students"
                 class="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
@@ -407,7 +407,7 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
             <EmptyState
               v-else
               class="mt-4"
-              title="No enrolments yet"
+              title="No enrollments yet"
               description="When a student joins one of your courses, they appear here."
               :icon="GraduationCap"
             />

@@ -52,7 +52,7 @@
           :hint="`${overview.catalogue.publishedCourses} published, ${overview.catalogue.draftCourses} draft`"
         />
         <StatCard
-          label="Enrolments"
+          label="Enrollments"
           :value="String(overview.learning.enrollments)"
           :icon="BookOpen"
           :hint="`${overview.learning.completedEnrollments} completed, ${overview.learning.certificates} certificates`"
@@ -137,7 +137,7 @@
             </div>
           </dl>
           <p class="mt-5 text-sm text-slate">
-            Certificates are issued by the database when an enrolment completes. Revoking one is a
+            Certificates are issued by the database when an enrollment completes. Revoking one is a
             write the schema allows and this screen does not offer, because it is a decision about a
             named learner rather than a platform setting.
           </p>
@@ -256,7 +256,7 @@ const learningRows = computed(() => {
   const learning = data.value?.learning
   if (!learning) return []
   return [
-    { label: 'Enrolments', value: learning.enrollments },
+    { label: 'Enrollments', value: learning.enrollments },
     { label: 'Active', value: learning.activeEnrollments },
     { label: 'Completed', value: learning.completedEnrollments },
     { label: 'Certificates issued', value: learning.certificates },

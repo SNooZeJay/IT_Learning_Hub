@@ -37,7 +37,7 @@
           :hint="`${statusCount('draft')} draft, ${statusCount('archived')} archived`"
         />
         <StatCard
-          label="Enrolments"
+          label="Enrollments"
           :value="String(totalEnrolments)"
           :icon="BookOpen"
           :hint="`${activeEnrolments} active, ${completedEnrolments} completed`"
@@ -127,7 +127,7 @@
                 <th scope="col" class="px-5 py-3 text-start font-medium">Course</th>
                 <th scope="col" class="px-5 py-3 text-start font-medium">Status</th>
                 <th scope="col" class="px-5 py-3 text-end font-medium">Price</th>
-                <th scope="col" class="px-5 py-3 text-end font-medium">Enrolments</th>
+                <th scope="col" class="px-5 py-3 text-end font-medium">Enrollments</th>
                 <th scope="col" class="px-5 py-3 text-start font-medium">Instructors</th>
               </tr>
             </thead>

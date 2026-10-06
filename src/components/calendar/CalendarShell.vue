@@ -215,11 +215,11 @@ watch(view, (next) => {
       <h2 class="mt-3 text-theme-sm text-ink">Nothing on your calendar yet</h2>
       <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate">
         <template v-if="audience === 'student'">
-          Dates appear here as you enrol in a course, sit a quiz, complete a lesson and reach a
+          Dates appear here as you enroll in a course, sit a quiz, complete a lesson and reach a
           deadline. Nothing has to be set up first.
         </template>
         <template v-else>
-          Dates appear here as students enrol in your courses, sit your quizzes, and as you publish
+          Dates appear here as students enroll in your courses, sit your quizzes, and as you publish
           content and set assignment deadlines.
         </template>
       </p>

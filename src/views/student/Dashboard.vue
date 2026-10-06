@@ -279,7 +279,7 @@ const hasAnyActivity = computed(() => {
               v-else
               class="mt-4"
               title="Nothing in progress"
-              description="Enrol in a course and your next lesson appears here, so you can pick up where you left off."
+              description="Enroll in a course and your next lesson appears here, so you can pick up where you left off."
               :icon="BookOpen"
             >
               <router-link
