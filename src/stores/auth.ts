@@ -10,6 +10,7 @@ import {
 } from '@/services/supabase/client'
 import { fetchProfileByUserId } from '@/services/profile.service'
 import { useUnreadNotifications } from '@/composables/useUnreadNotifications'
+import { useUnreadMessages } from '@/composables/useUnreadMessages'
 import type { Profile, Role } from '@/types'
 
 /**
@@ -240,6 +241,7 @@ export const useAuthStore = defineStore('auth', () => {
     // to sign in on a shared machine should never see this one's unread count on
     // the sidebar for even a moment.
     useUnreadNotifications().reset()
+    useUnreadMessages().reset()
     await supabase.auth.signOut()
     session.value = null
     profile.value = null

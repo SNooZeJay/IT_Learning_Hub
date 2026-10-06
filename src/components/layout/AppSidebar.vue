@@ -106,12 +106,15 @@
                 notification read in the bell moves this badge too.
               -->
               <span
-                v-if="item.badge === 'notifications' && isKnown && (unreadCount ?? 0) > 0"
+                v-if="badgeCount(item) !== null && isKnown && (badgeCount(item) ?? 0) > 0"
                 class="ms-auto shrink-0 rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] leading-none font-semibold text-white tabular-nums"
                 :class="!isExpanded && !isHovered ? 'hidden' : ''"
               >
-                {{ unreadCount }}
-                <span class="sr-only"> unread notification{{ unreadCount === 1 ? '' : 's' }} </span>
+                {{ badgeCount(item) }}
+                <span class="sr-only">
+                  unread {{ item.badge === 'messages' ? 'messages' : 'notification'
+                  }}{{ (badgeCount(item) ?? 0) === 1 ? '' : 's' }}
+                </span>
               </span>
             </router-link>
           </li>
@@ -130,8 +133,24 @@ import { useSidebar } from '@/composables/useSidebar'
 import { useAuthStore } from '@/stores/auth'
 import { BRAND, navigationFor } from '@/layouts/navigation'
 import { useUnreadNotifications } from '@/composables/useUnreadNotifications'
+import { useUnreadMessages } from '@/composables/useUnreadMessages'
 
 const { unreadCount, isKnown } = useUnreadNotifications()
+const messages = useUnreadMessages()
+
+/**
+ * The count for a nav item, or `null` when it carries no badge.
+ *
+ * One function rather than a second inline condition, because the sidebar and the
+ * header button for the same thing must show the same number. A badge that is
+ * rendered from one source here and a different one there is a bug that only shows
+ * up when the two disagree, which is to say when somebody uses both.
+ */
+function badgeCount(item: { badge?: 'notifications' | 'messages' }): number | null {
+  if (item.badge === 'messages') return messages.unreadCount.value
+  if (item.badge === 'notifications') return unreadCount.value
+  return null
+}
 
 const route = useRoute()
 const auth = useAuthStore()

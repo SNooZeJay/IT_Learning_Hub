@@ -65,6 +65,15 @@
       >
         <div class="flex items-center gap-2 2xsm:gap-3">
           <ThemeToggleButton />
+          <!--
+            Messages sits immediately before the bell rather than after it.
+
+            A message is something you write and a notification is something that
+            happened to you, so the one you compose comes first. It is a plain link
+            rather than a dropdown: opening a thread is navigation, and a panel that
+            opened over the page would hide the thing you are replying to.
+          -->
+          <MessageButton />
           <NotificationMenu />
         </div>
         <UserMenu />
@@ -81,6 +90,7 @@ import ThemeToggleButton from '../common/ThemeToggleButton.vue'
 import SearchBar from './header/SearchBar.vue'
 import HeaderLogo from './header/HeaderLogo.vue'
 import NotificationMenu from './header/NotificationMenu.vue'
+import MessageButton from './header/MessageButton.vue'
 import UserMenu from './header/UserMenu.vue'
 
 const { toggleSidebar, toggleMobileSidebar, isMobileOpen } = useSidebar()

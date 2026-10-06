@@ -301,6 +301,24 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
+  {
+    // Every role, like the profile above it. Messaging is not a student feature or an
+    // instructor feature - it is the way all three talk to the people they share a
+    // course with, and the permission check that matters lives in Row Level Security:
+    // a conversation is only visible to its own participants. Listing all three roles
+    // here means the navigation guard lets them through and RLS decides what they
+    // actually see, rather than the route deciding who may have a conversation at all.
+    path: '/messages',
+    component: () => import('@/layouts/AppLayout.vue'),
+    children: [
+      {
+        path: '',
+        name: 'messages',
+        component: () => import('@/views/shared/Messages.vue'),
+        meta: { title: 'Messages', roles: ['student', 'instructor', 'admin'] },
+      },
+    ],
+  },
 
   // ---- Errors -------------------------------------------------------------
   {

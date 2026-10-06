@@ -6,6 +6,7 @@ import {
   Wallet,
   CalendarDays,
   Bell,
+  MessageSquare,
   Award,
   Library,
   ListChecks,
@@ -27,8 +28,11 @@ export interface NavItem {
    * The unread-notification count is a number a student wants, not a red smear:
    * 40 unread and 1 unread look identical as a dot, and the student is the only one
    * who can act on it.
+   *
+   * One vocabulary for both counts rather than a second mechanism, so the sidebar
+   * badge and the header button for the same thing cannot drift apart.
    */
-  badge?: 'notifications'
+  badge?: 'notifications' | 'messages'
 }
 
 /**
@@ -48,6 +52,7 @@ export const ROLE_NAVIGATION: Record<Role, NavItem[]> = {
     { label: 'My Grades', to: '/student/grades', icon: Award },
     { label: 'Calendar', to: '/student/calendar', icon: CalendarDays },
     { label: 'Notifications', to: '/student/notifications', icon: Bell, badge: 'notifications' },
+    { label: 'Messages', to: '/messages', icon: MessageSquare, badge: 'messages' },
   ],
 
   instructor: [
@@ -57,6 +62,7 @@ export const ROLE_NAVIGATION: Record<Role, NavItem[]> = {
     { label: 'Grading', to: '/instructor/grading', icon: ListChecks },
     { label: 'Insights', to: '/instructor/analytics', icon: ChartColumn },
     { label: 'Calendar', to: '/instructor/calendar', icon: CalendarDays },
+    { label: 'Messages', to: '/messages', icon: MessageSquare, badge: 'messages' },
   ],
 
   admin: [
@@ -68,6 +74,7 @@ export const ROLE_NAVIGATION: Record<Role, NavItem[]> = {
     { label: 'Categories', to: '/admin/categories', icon: FolderTree },
     { label: 'Payments', to: '/admin/payments', icon: Wallet },
     { label: 'Analytics', to: '/admin/analytics', icon: ChartColumn },
+    { label: 'Messages', to: '/messages', icon: MessageSquare, badge: 'messages' },
     { label: 'Settings', to: '/admin/settings', icon: Settings },
   ],
 }
