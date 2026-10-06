@@ -23,6 +23,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { parsePayMongoEvent } from '../_shared/paymongo-envelope.ts'
+import { parseOrWrap } from '../_shared/safe-payload.ts'
 import { readSignatureHeader, verifySignature } from '../_shared/paymongo-signature.ts'
 import { decidePaymentAction } from '../_shared/paymongo-decision.ts'
 import type { PayMongoEnvelope } from '../_shared/paymongo-envelope.ts'
@@ -92,27 +93,27 @@ Deno.serve(async (request) => {
   const paymentId = await findPayment(envelope.referenceNumber)
   const recorded = await recordEvent(rawBody, envelope, paymentId)
   if (!recorded.ok) return json({ received: true, matched: false, error: recorded.error })
-    // A duplicate is only a duplicate if the row holding the id was itself verified.
-    //
-    // Any delivery that failed verification is still recorded, and still claims the
-    // event id. Treating "the id is taken" as "we already handled it" meant that a
-    // retry arriving with a corrupt or missing signature header claimed the id, and
-    // PayMongo next, correctly signed, retry was swallowed as a duplicate: 200, no
-    // settlement, the learner charged and the payment stuck at pending with nothing to
-    // show for it. The endpoint is deliberately unauthenticated because the provider
-    // cannot send a JWT, and the id comes from the request body, so an unverified
-    // pre-claim is also reachable by anyone who learns or guesses one.
-    //
-    // Falling through instead is safe: settle_payment refuses to run twice, so the
-    // genuinely-already-handled case re-runs and is refused idempotently.
-    if (recorded.isNew === false && recorded.storedVerified) {
-      return json({ received: true, duplicate: true })
-    }
-    if (recorded.isNew === false) {
-      console.warn(
-        'paymongo webhook: event id was already claimed by an unverified row; continuing so the genuine event can settle',
-      )
-    }
+  // A duplicate is only a duplicate if the row holding the id was itself verified.
+  //
+  // Any delivery that failed verification is still recorded, and still claims the
+  // event id. Treating "the id is taken" as "we already handled it" meant that a
+  // retry arriving with a corrupt or missing signature header claimed the id, and
+  // PayMongo next, correctly signed, retry was swallowed as a duplicate: 200, no
+  // settlement, the learner charged and the payment stuck at pending with nothing to
+  // show for it. The endpoint is deliberately unauthenticated because the provider
+  // cannot send a JWT, and the id comes from the request body, so an unverified
+  // pre-claim is also reachable by anyone who learns or guesses one.
+  //
+  // Falling through instead is safe: settle_payment refuses to run twice, so the
+  // genuinely-already-handled case re-runs and is refused idempotently.
+  if (recorded.isNew === false && recorded.storedVerified) {
+    return json({ received: true, duplicate: true })
+  }
+  if (recorded.isNew === false) {
+    console.warn(
+      'paymongo webhook: event id was already claimed by an unverified row; continuing so the genuine event can settle',
+    )
+  }
 
   if (!paymentId) {
     console.warn(
@@ -130,30 +131,28 @@ Deno.serve(async (request) => {
   }
 
   const outcome =
-      decision.action === 'settle'
-        ? await settle(paymentId, envelope)
-        : await fail(paymentId, envelope, decision.action === 'cancel')
+    decision.action === 'settle'
+      ? await settle(paymentId, envelope)
+      : await fail(paymentId, envelope, decision.action === 'cancel')
 
-    // A failure to settle is a failure, and it has to reach the provider as one.
-    //
-    // Returning 200 here told PayMongo the delivery succeeded, so it stopped retrying,
-    // and the learner was left charged with the payment stuck at pending and the
-    // enrolment never activated. 500 makes the provider try again, which is the only
-    // thing that can fix a transient fault.
-    //
-    // This is deliberately different from the unmatched-event case above, which does
-    // return 200. An event we cannot match is a permanent condition and retrying it
-    // forever achieves nothing; a settlement that failed is not, and the difference is
-    // the whole reason the status code is not uniform.
-    if (outcome === 'settle_failed' || outcome === 'fail_failed') {
-      console.error(
-        'paymongo webhook: could not apply the event; asking the provider to retry',
-      )
-      return json({ received: true, matched: true, outcome }, 500)
-    }
+  // A failure to settle is a failure, and it has to reach the provider as one.
+  //
+  // Returning 200 here told PayMongo the delivery succeeded, so it stopped retrying,
+  // and the learner was left charged with the payment stuck at pending and the
+  // enrolment never activated. 500 makes the provider try again, which is the only
+  // thing that can fix a transient fault.
+  //
+  // This is deliberately different from the unmatched-event case above, which does
+  // return 200. An event we cannot match is a permanent condition and retrying it
+  // forever achieves nothing; a settlement that failed is not, and the difference is
+  // the whole reason the status code is not uniform.
+  if (outcome === 'settle_failed' || outcome === 'fail_failed') {
+    console.error('paymongo webhook: could not apply the event; asking the provider to retry')
+    return json({ received: true, matched: true, outcome }, 500)
+  }
 
-    return json({ received: true, matched: true, outcome })
-  })
+  return json({ received: true, matched: true, outcome })
+})
 /**
  * Find the payment by the reference number we sent when creating the checkout.
  *
@@ -187,14 +186,15 @@ async function recordEvent(
   rawBody: string,
   envelope: PayMongoEnvelope,
   paymentId: string | null,
-  ): Promise<
-    { ok: true; isNew: boolean; storedVerified: boolean } | { ok: false; error: string }
-  > {
+): Promise<{ ok: true; isNew: boolean; storedVerified: boolean } | { ok: false; error: string }> {
   const { data, error } = await supabase.rpc('record_payment_event', {
     in_event_id: envelope.eventId,
     in_event_type: envelope.eventType,
     in_resource_id: envelope.resourceId,
-    in_payload: JSON.parse(rawBody),
+    // The body is known to parse on this path - the signature verified over exactly
+    // these bytes - but parseOrWrap is used here too so both writes into the ledger go
+    // through one function. There is no second code path for storing a payload.
+    in_payload: parseOrWrap(rawBody),
     in_signature_verified: true,
     // What the provider claimed, stored beside our own record rather than merged
     // into it, so an amount mismatch stays detectable instead of being silently
@@ -210,9 +210,12 @@ async function recordEvent(
     return { ok: false, error: 'record_failed' }
   }
 
-    const rows = (data ?? []) as Array<
-      { id: string; is_new: boolean; payment_id: string | null; stored_signature_verified: boolean | null }
-    >
+  const rows = (data ?? []) as Array<{
+    id: string
+    is_new: boolean
+    payment_id: string | null
+    stored_signature_verified: boolean | null
+  }>
   const row = rows[0]
   if (!row) return { ok: false, error: 'record_returned_nothing' }
 
@@ -222,11 +225,11 @@ async function recordEvent(
     await supabase.from('payment_events').update({ payment_id: paymentId }).eq('id', row.id)
   }
 
-    // Whether the row that already held this id was itself verified. The RPC reads it from
-    // the *stored* row rather than from the argument, which is the whole point: a correctly
-    // signed event that collides with an unverified pre-claim has to be able to tell that
-    // apart from a genuine provider retry.
-    return { ok: true, isNew: row.is_new, storedVerified: row.stored_signature_verified === true }
+  // Whether the row that already held this id was itself verified. The RPC reads it from
+  // the *stored* row rather than from the argument, which is the whole point: a correctly
+  // signed event that collides with an unverified pre-claim has to be able to tell that
+  // apart from a genuine provider retry.
+  return { ok: true, isNew: row.is_new, storedVerified: row.stored_signature_verified === true }
 }
 
 /**
@@ -301,7 +304,11 @@ async function recordAsUnusable(
     in_event_id: eventId,
     in_event_type: envelope?.eventType ?? null,
     in_resource_id: envelope?.resourceId ?? null,
-    in_payload: JSON.parse(rawBody),
+    // NOT JSON.parse(rawBody). This function is reached *from* the catch of a
+    // JSON.parse, so parsing the same body again throws again - the recovery path could
+    // not record the one thing it exists to record, and the guaranteed
+    // 200 {received: true, matched: false} was never returned. See _shared/safe-payload.ts.
+    in_payload: parseOrWrap(rawBody),
     in_signature_verified: verified,
     // Recorded even when unverified. An event this code could not trust is still
     // evidence of what the provider sent, and the admin ledger asserting 'Test mode'

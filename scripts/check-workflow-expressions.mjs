@@ -361,7 +361,19 @@ import { basename, join } from 'node:path'
  */
 export function checkWorkflowContexts(root = process.cwd()) {
   const dir = join(root, WORKFLOW_DIR)
-  if (!existsSync(dir)) return []
+
+  // A missing directory used to return "no problems", and `main` then printed
+  // "checked .github/workflows" and exited 0. Run from the wrong directory, or after the
+  // folder is moved, the check passed having validated nothing - which is the one failure
+  // mode this file exists to avoid and the reason its own tests pin the known-bad case.
+  //
+  // An empty *file* is fine: a workflow with no `if:` has nothing to check and saying so
+  // would be noise. A missing directory is not fine, because it means the check never ran.
+  if (!existsSync(dir)) {
+    throw new Error(
+      `no ${WORKFLOW_DIR} directory under ${root}. The check validated nothing, so it fails rather than reporting success.`,
+    )
+  }
 
   const problems = []
   for (const file of workflowFiles(dir)) {
@@ -373,7 +385,15 @@ export function checkWorkflowContexts(root = process.cwd()) {
 
 /** @param {string[]} argv */
 function main(argv) {
-  const problems = checkWorkflowContexts(argv[2] ?? process.cwd())
+  let problems
+  try {
+    problems = checkWorkflowContexts(argv[2] ?? process.cwd())
+  } catch (error) {
+    console.error(
+      `workflow expression check could not run: ${error instanceof Error ? error.message : String(error)}`,
+    )
+    process.exit(1)
+  }
 
   if (problems.length > 0) {
     console.error(`${problems.length} workflow expression problem(s):\n`)

@@ -377,26 +377,32 @@ export async function sendMessage(conversationId: string, bodyRaw: string): Prom
 
   if (error) throw new MessagingError(messageOf(error, 'That message could not be sent.'), error)
 
-  // Keeping the list ordered by this column is what lets the list view avoid reading
-  // every message of every conversation.
-  const { error: stampError } = await supabase
-    .from('conversations')
-    .update({ last_message_at: new Date().toISOString() })
-    .eq('id', conversationId)
-
-  if (stampError) {
-    // The message is delivered; only the ordering hint failed. Saying the send failed
-    // would make the user resend it.
-    console.warn('messaging: could not stamp last_message_at', stampError)
-  }
+  // No client write of `last_message_at`. A trigger on the message insert stamps the
+  // conversation with the message's own `created_at`, so the two cannot disagree.
+  //
+  // It used to be written here from the browser clock, against a `created_at` the
+  // database wrote from the server's. That disagreement reordered the inbox whenever a
+  // student's clock was off, and it could not be seen: a wrongly ordered list looks like a
+  // list. It was also a second write that could half fail, leaving the message stored and
+  // the conversation ordered by an older time.
 }
 
-/** Mark a thread read up to now. */
+/**
+ * Mark a thread read up to now, using the database's clock.
+ *
+ * An RPC rather than an UPDATE so that `now()` is the server's. `last_read_at` is compared
+ * against `created_at` by `conversation_inbox`, and `created_at` is server-written, so a
+ * client-written `last_read_at` compares a browser clock against a server one. A clock a
+ * minute behind marks unseen messages as read; a clock ahead hides them. Neither is
+ * detectable, and both present as a wrong number rather than as a wrong clock.
+ *
+ * SECURITY INVOKER on the server side, so the existing `conversation_participants` update
+ * policy still decides whose row this may touch.
+ */
 export async function markConversationRead(conversationId: string): Promise<void> {
-  const { error } = await supabase
-    .from('conversation_participants')
-    .update({ last_read_at: new Date().toISOString() })
-    .eq('conversation_id', conversationId)
+  const { error } = await supabase.rpc('mark_conversation_read', {
+    p_conversation_id: conversationId,
+  })
 
   if (error) {
     // A read receipt nobody is waiting on. Not worth an error banner in the thread.

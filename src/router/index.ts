@@ -356,6 +356,38 @@ const router = createRouter({
  *   - guarded route, signed out -> sign in, carrying where they were headed
  *   - route the role cannot use -> that role's own home
  */
+/**
+ * Where a navigation should go, given the roles a route accepts and the caller's role.
+ *
+ * Extracted from the guard because the interesting part is a pure decision, and a pure
+ * decision can be tested without a DOM. Vue Router needs `window.history` and
+ * `document`, so exercising the guard itself in node means stubbing a browser, and the
+ * bug this exists to pin down - a redirect sent to a route the guard then refuses - is a
+ * property of this function's output, not of Vue Router.
+ *
+ * Returns `undefined` to allow the navigation, or the destination to redirect to.
+ *
+ * The two refusals are different on purpose:
+ *
+ *   * A **wrong role** goes to that role's own home. `homePath` is derived from `role`,
+ *     so it is a route for a role we know, and `ROLE_HOME[role]` is the same table the
+ *     redirect uses, which makes the loop below structural rather than accidental.
+ *
+ *   * An **unknown role** goes to `/profile`, which carries no `meta.roles`. It cannot go
+ *     to `homePath`: that is `/student/dashboard` for a null role, and that route declares
+ *     `roles: ['student']`, so the guard would refuse its own redirect target and redirect
+ *     again - for ever, in a production build. `Profile.vue` renders an error state with a
+ *     retry, so this destination can also be reached *and* do something about the failure.
+ */
+export function resolveRoleRedirect(
+  allowed: readonly Role[] | undefined,
+  role: Role | null,
+): { name: 'profile' } | string | undefined {
+  if (!allowed) return undefined
+  if (role === null) return { name: 'profile' }
+  if (!allowed.includes(role)) return ROLE_HOME[role]
+  return undefined
+}
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
@@ -375,24 +407,15 @@ router.beforeEach(async (to) => {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
 
-  // A role-gated route, entered with the role still unknown.
-  //
-  // `auth.role` is `profile?.role ?? null`, and `stores/auth.ts` sets `profile = null` when
-  // the profile read throws. The `auth.role &&` clause that used to sit in this condition
-  // made an unknown role evaluate it false, so the guard allowed the navigation: a
+  // `auth.role` is `profile?.role ?? null`, and the store sets `profile = null` when the
+  // profile read throws. The guard used to carry an `auth.role &&` clause here, which made
+  // an unknown role evaluate the condition false and let the navigation through: a
   // signed-in user whose profile failed to load reached the admin shell and saw empty
-  // tables and "your profile has not loaded".
-  //
-  // Not a data leak - RLS is the boundary, as the note at the top of this file says - but
-  // a fail-open in the one place that otherwise tries not to. `layouts/navigation.ts`
-  // returns no items for an unknown role rather than guessing, so the sidebar was careful
-  // while the guard was not.
-  //
-  // `homePath` for a null role is the dashboard, which is not itself role-gated, so this
-  // cannot loop.
-  if (to.meta.roles && (!auth.role || !to.meta.roles.includes(auth.role))) {
-    return auth.homePath
-  }
+  // tables. Not a data leak - RLS is the boundary - but a fail-open in the one place that
+  // otherwise tries not to, since navigation.ts returns no items for an unknown role
+  // rather than guessing.
+  const roleRedirect = resolveRoleRedirect(to.meta.roles, auth.role)
+  if (roleRedirect) return roleRedirect
 
   return true
 })

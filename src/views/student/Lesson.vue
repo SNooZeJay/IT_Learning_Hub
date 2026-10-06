@@ -596,14 +596,14 @@ async function load(): Promise<void> {
     // Discard a response the user has already navigated away from.
     if (token !== loadToken || wanted !== lessonId.value) return
     context.value = loaded
-    if (!loaded) return
+    context.value = loaded
     if (!loaded) return
 
     // Opening a lesson is the one moment where recording "in progress" is honest
     // without being asked, so it happens here rather than behind a button.
     //
     // Guarded on `not_started` and nothing else. Revisiting a finished lesson must
-    // not reset it — `startLesson` writes percent 0 and status in_progress, so
+    // not reset it - `startLesson` writes percent 0 and status in_progress, so
     // calling it on a completed row would quietly undo the student's own work the
     // second time they came back to read it.
     if (loaded.enrollmentId && (loaded.progress?.status ?? 'not_started') === 'not_started') {
@@ -611,18 +611,30 @@ async function load(): Promise<void> {
         ...loaded,
         progress: await startLesson(loaded.enrollmentId, loaded.lesson.id),
       }
+      // The startLesson await is another gap: a slow one used to write the previous
+      // lesson's progress into the current lesson's context.
+      if (token !== loadToken || wanted !== lessonId.value) return
     }
 
     // The sidebar and the materials are independent, so they load in parallel
     // behind the lesson body rather than holding the page hostage.
     void Promise.all([loadOutline(), loadMaterials(), loadGaps()])
   } catch (error) {
+    // A stale failure must not be reported against a lesson the student has left.
+    // Without this the message survives into the next lesson, whose success path has
+    // already cleared it - so a lesson that loaded perfectly renders ""Could not load
+    // this lesson"" for ever.
+    if (token !== loadToken) return
     // LearningError messages are written to be shown to a person, so they pass
     // through untouched.
     errorMessage.value =
       error instanceof Error ? error.message : 'Could not load this lesson. Try again.'
   } finally {
-    isLoading.value = false
+    // Only the newest load may clear the spinner. A stale one finishing would hide a
+    // spinner the current load still wants, and watch(lessonId) has already nulled
+    // context, so the page would show ""Lesson not found"" for a lesson that is
+    // merely still loading.
+    if (token === loadToken) isLoading.value = false
   }
 }
 

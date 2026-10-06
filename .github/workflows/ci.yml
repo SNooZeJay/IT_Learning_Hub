@@ -99,15 +99,36 @@ jobs:
         with:
           version: latest
 
-      - name: Every migration parses
+      - name: Every migration is present and non-empty
         run: |
           set -e
-          for f in supabase/migrations/*.sql; do
-            # `supabase db lint` needs a database; parsing does not. A migration that
-            # will not parse fails the push here rather than at deploy time, which is
-            # the difference between a red build and a broken site.
-            echo "checking $f"
+          # Renamed from "Every migration parses", because it did not parse anything: the
+          # step looped over the files and echoed each name. The comment inside it claimed
+          # "a migration that will not parse fails the push here rather than at deploy
+          # time", and nothing in the step could fail on syntax.
+          #
+          # A real parse needs a PostgreSQL instance - `supabase db lint` connects, and
+          # there is no parse-only command - so claiming one would be claiming something
+          # this job does not do, and a check that says it checks something is worse than
+          # no check. What can be verified without a database is verified: every file
+          # exists, is non-empty, and the set is not empty.
+          #
+          # For the real thing, start a database in this job (`supabase start` then
+          # `supabase db reset --dry-run`) and pay the minutes it costs. Until then the
+          # step's name says what it does.
+          shopt -s nullglob
+          files=(supabase/migrations/*.sql)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::no migrations found"
+            exit 1
+          fi
+          for f in "${files[@]}"; do
+            if [ ! -s "$f" ]; then
+              echo "::error::$f is empty"
+              exit 1
+            fi
           done
+          echo "${#files[@]} migrations present and non-empty"
 
       - name: Migrations are numbered and ordered
         run: |

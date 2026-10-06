@@ -1394,6 +1394,15 @@ export type Database = {
       is_admin: { Args: Record<never, never>; Returns: boolean }
       is_instructor_of: { Args: { course_id: string }; Returns: boolean }
       is_enrolled_in: { Args: { course_id: string }; Returns: boolean }
+      /**
+       * Marks one of the caller's own threads read, stamping `last_read_at` with the
+       * server's clock.
+       *
+       * It exists so the browser never chooses that timestamp: it is compared against
+       * `conversation_messages.created_at`, which the database writes, so a client-written
+       * value compares a browser clock against a server one.
+       */
+      mark_conversation_read: { Args: { p_conversation_id: string }; Returns: boolean }
       start_quiz_attempt: { Args: { p_quiz_id: string }; Returns: string }
       submit_quiz_attempt: { Args: { p_attempt_id: string; p_answers: unknown }; Returns: unknown }
       quiz_with_answers: { Args: { p_quiz_id: string }; Returns: unknown }

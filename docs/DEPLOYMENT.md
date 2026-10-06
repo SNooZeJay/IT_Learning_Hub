@@ -13,7 +13,7 @@ Ordered by what blocks what. Nothing after step 3 works until step 2 is done.
 | ------------------- | ---------------------------------------------------- | --------------------------------------- |
 | Vercel app          | https://it-learning-hub-three.vercel.app/            | deployed, env vars set, SPA fallback on |
 | Supabase project    | `rfqhekvtmegjjsofqlse`                               | live, 28 tables, RLS on every one       |
-| Database migrations | `supabase/migrations/`                               | 0001–0013 applied                       |
+| Database migrations | `supabase/migrations/`                               | 60 applied                              |
 | Edge functions      | `supabase/functions/`                                | **all three deployed**                  |
 | Vercel env vars     | `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | set, All Environments                   |
 
@@ -238,16 +238,20 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST \
   -d '{"courseId":"x"}' \
   https://rfqhekvtmegjjsofqlse.supabase.co/functions/v1/create-checkout
 
-# 200 with verified:false means deployed AND rejecting a forged signature.
+# A 200 with matched:false means deployed AND rejecting this body: `{}` has no
+# data.attributes.type, so there is nothing to match and it is recorded as an unusable
+# event rather than settled. The response is {received, matched} - there is no
+# `verified` field, so do not wait for one.
 curl -s -X POST -H 'Content-Type: application/json' \
-  -H 'paymongo-signature: te signature=forged' -d '{}' \
+  -H 'paymongo-signature: t=forged' -d '{}' \
   https://rfqhekvtmegjjsofqlse.supabase.co/functions/v1/paymongo-webhook
 ```
 
 ### Mail
 
 ```bash
-# 200 with delivered:true means the whole path worked: link minted, SMTP accepted.
+# A 200 with sent:true means the whole path worked: link minted, SMTP accepted.
+# An earlier version also returned delivered, which is gone - do not wait for it.
 # 502 means a secret is missing - check `secrets list`.
 curl -s -X POST -H "apikey: $VITE_SUPABASE_PUBLISHABLE_KEY" \
   -H 'Content-Type: application/json' \

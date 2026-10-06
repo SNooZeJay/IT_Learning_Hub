@@ -217,8 +217,22 @@ describe('the walk itself', () => {
     expect(problems[0]).toContain('ci.yml:9')
   })
 
-  it('reports nothing when there are no workflows', () => {
-    expect(checkWorkflowContexts(join(tmpdir(), 'lms-no-such-workflow-dir'))).toEqual([])
+  it('fails when there are no workflows to check, rather than reporting success', () => {
+    // This asserted the opposite for a while: a missing directory returned `[]` and the
+    // CLI printed "checked .github/workflows" and exited 0. Run from the wrong directory,
+    // or after the folder is moved, the check passed having validated nothing - which is
+    // the one failure mode this file exists to avoid, and the reason the known-bad case is
+    // pinned by a test at all.
+    expect(() => checkWorkflowContexts(join(tmpdir(), 'lms-no-such-workflow-dir'))).toThrow(
+      /validated nothing/,
+    )
+  })
+
+  it('still reports nothing for an empty workflow file', () => {
+    // A missing directory is not the same as an empty one. A workflow with no `if:` has
+    // nothing to check and saying so would be noise; a directory that is not there means
+    // the check never ran.
+    expect(checkWorkflowContexts(projectWith({ 'empty.yml': '' }))).toEqual([])
   })
 })
 
