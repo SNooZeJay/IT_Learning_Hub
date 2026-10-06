@@ -569,6 +569,7 @@ import {
 import { supabase } from '@/services/supabase/client'
 import { materialTypeLabel } from '@/services/curriculum.service'
 import { useAuthStore } from '@/stores/auth'
+import { useConfirm } from '@/composables/useConfirm'
 // The student dashboard caches module ids per course, so an instructor's
 // curriculum write has to drop it or a student sees the old module list.
 import { forgetModuleCache } from '@/services/dashboard.service'
@@ -585,6 +586,7 @@ import type {
 
 const route = useRoute()
 const auth = useAuthStore()
+const confirm = useConfirm()
 
 const course = ref<InstructorCourse | null>(null)
 const quizzes = ref<QuizSummary[]>([])
@@ -758,7 +760,7 @@ async function saveAssignment(draft: {
  * `assignment_submissions`, so every hand-in against this assignment - graded work
  * included - goes with it. There is no soft delete on either table.
  */
-function confirmRemoveAssignment(assignmentId: string): void {
+async function confirmRemoveAssignment(assignmentId: string): Promise<void> {
   const assignment = assignments.value.find((row) => row.id === assignmentId)
   if (!assignment) return
 
@@ -767,7 +769,13 @@ function confirmRemoveAssignment(assignmentId: string): void {
     assignment.title +
     '"? Every hand-in against it is deleted with it, including any that has already ' +
     'been marked. This cannot be undone.'
-  if (!window.confirm(message)) return
+  const confirmed = await confirm.ask({
+    title: 'Remove assignment?',
+    message,
+    confirmText: 'Remove',
+    variant: 'danger',
+  })
+  if (!confirmed) return
 
   actionVariant.value = 'success'
   void (async () => {
@@ -1050,15 +1058,20 @@ async function saveMaterial(draft: {
  * this schema uses ON DELETE CASCADE, so the warning has to say what is actually
  * lost. "Are you sure" without that would be a lie.
  */
-function confirmRemoveModule(moduleId: string): void {
+async function confirmRemoveModule(moduleId: string): Promise<void> {
   const module = moduleIndex.value.get(moduleId)
   if (!module) return
   const lessonCount = module.lessons.length
-  const message =
-    lessonCount === 0
-      ? `Remove the module "${module.title}"?`
-      : `Remove "${module.title}" and its ${lessonCount} lesson${lessonCount === 1 ? '' : 's'}? Every student's progress on ${lessonCount === 1 ? 'it' : 'them'} is deleted with it. Archiving keeps the record instead.`
-  if (!window.confirm(message)) return
+  const confirmed = await confirm.ask({
+    title: 'Remove module?',
+    message:
+      lessonCount === 0
+        ? `Remove the module "${module.title}"?`
+        : `Remove "${module.title}" and its ${lessonCount} lesson${lessonCount === 1 ? '' : 's'}? Every student's progress on ${lessonCount === 1 ? 'it' : 'them'} is deleted with it. Archiving keeps the record instead.`,
+    confirmText: 'Remove',
+    variant: 'danger',
+  })
+  if (!confirmed) return
   // A removed module changes the module list a student's dashboard reads, and
   // that list is cached per course. Without this the dashboard keeps serving the
   // deleted module until a full reload.
@@ -1068,18 +1081,24 @@ function confirmRemoveModule(moduleId: string): void {
   }, 'Module removed.')
 }
 
-function confirmRemoveLesson(lessonId: string): void {
+async function confirmRemoveLesson(lessonId: string): Promise<void> {
   const lesson = lessonIndex.value.get(lessonId)
   if (!lesson) return
   const message =
     lesson.materials.length > 0
       ? `Remove "${lesson.title}" and its ${lesson.materials.length} material${lesson.materials.length === 1 ? '' : 's'}? Progress students recorded on it is deleted too.`
       : `Remove "${lesson.title}"? Progress students recorded on it is deleted too.`
-  if (!window.confirm(message)) return
+  const confirmed = await confirm.ask({
+    title: 'Remove lesson?',
+    message,
+    confirmText: 'Remove',
+    variant: 'danger',
+  })
+  if (!confirmed) return
   void runRemoval(() => deleteLesson(lessonId), 'Lesson removed.')
 }
 
-function confirmRemoveMaterial(materialId: string): void {
+async function confirmRemoveMaterial(materialId: string): Promise<void> {
   // Confirmed, like its two siblings above.
   //
   // This one had none, so a single stray click on Remove destroyed the material
@@ -1089,7 +1108,13 @@ function confirmRemoveMaterial(materialId: string): void {
   // look alike, and the browser's dialog is the only place to say which one.
   const material = materialIndex.value.get(materialId)
   if (!material) return
-  if (!window.confirm(`Remove "${material.title}"?`)) return
+  const confirmed = await confirm.ask({
+    title: 'Remove material?',
+    message: `Remove "${material.title}"?`,
+    confirmText: 'Remove',
+    variant: 'danger',
+  })
+  if (!confirmed) return
   void runRemoval(() => deleteMaterial(materialId), 'Material removed.')
 }
 

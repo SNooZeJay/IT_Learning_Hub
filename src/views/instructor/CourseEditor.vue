@@ -866,10 +866,12 @@ import { forgetModuleCache } from '@/services/dashboard.service'
 import type { CourseLevel, CourseStatus, Lesson, LessonType } from '@/types'
 import { formatPeso } from '@/types'
 import { useAuthStore } from '@/stores/auth'
+import { useConfirm } from '@/composables/useConfirm'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const confirm = useConfirm()
 
 /**
  * One component, two routes.
@@ -1299,12 +1301,13 @@ async function saveModule(moduleId: string): Promise<void> {
 }
 
 async function removeModule(module: CourseModule): Promise<void> {
-  // A native confirm rather than a modal, because this cascades to lessons and
-  // progress and the browser's own "are you sure" is one click fewer than a
-  // dialog that has to be styled to match the app.
-  if (!window.confirm(`Delete "${module.title}" and its ${module.lessons.length} lesson(s)?`)) {
-    return
-  }
+  const confirmed = await confirm.ask({
+    title: 'Delete module?',
+    message: `Delete "${module.title}" and its ${module.lessons.length} lesson(s)?`,
+    confirmText: 'Delete',
+    variant: 'danger',
+  })
+  if (!confirmed) return
 
   isSavingModule.value = true
   moduleError.value = ''
@@ -1401,7 +1404,13 @@ async function submitLesson(): Promise<void> {
 }
 
 async function removeLesson(lesson: Lesson): Promise<void> {
-  if (!window.confirm(`Delete the lesson "${lesson.title}"?`)) return
+  const confirmed = await confirm.ask({
+    title: 'Delete lesson?',
+    message: `Delete the lesson "${lesson.title}"?`,
+    confirmText: 'Delete',
+    variant: 'danger',
+  })
+  if (!confirmed) return
   isSavingLesson.value = true
   moduleError.value = ''
   try {

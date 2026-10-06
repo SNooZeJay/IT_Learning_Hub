@@ -300,10 +300,12 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { formatPeso } from '@/types'
 import type { Course, Quiz } from '@/types'
+import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const toast = useToast()
 
 const course = ref<Course | null>(null)
 const enrolledHere = ref(false)
@@ -510,6 +512,10 @@ async function handleSubmit(
       ...submitErrors.value,
       [assignmentId]: error instanceof Error ? error.message : 'Could not hand that in.',
     }
+    toast.error(
+      'Submission failed',
+      error instanceof Error ? error.message : 'Could not hand that in.',
+    )
   } finally {
     isSubmitting.value = null
   }
@@ -569,6 +575,7 @@ async function handleEnrol(): Promise<void> {
 
     await enrollInFreeCourse(course.value, auth.profile.id)
     enrolledHere.value = true
+    toast.success('Enrolled', 'You are now enrolled in this course.')
 
     // The curriculum is re-read rather than trusted from the old fetch.
     //
@@ -582,7 +589,9 @@ async function handleEnrol(): Promise<void> {
     // curriculum still "3 modules, 0 lessons" -> after reload, 3/6/6.
     await load()
   } catch (error) {
-    actionError.value = error instanceof Error ? error.message : 'Could not enroll in this course.'
+    const message = error instanceof Error ? error.message : 'Could not enroll in this course.'
+    actionError.value = message
+    toast.error('Enrollment failed', message)
   } finally {
     isActing.value = false
   }

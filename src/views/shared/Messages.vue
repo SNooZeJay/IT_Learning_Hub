@@ -53,8 +53,10 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { useUnreadMessages } from '@/composables/useUnreadMessages'
 import { formatDateTime } from '@/types'
+import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
+const toast = useToast()
 const route = useRoute()
 const router = useRouter()
 const unread = useUnreadMessages()
@@ -175,8 +177,11 @@ async function onSend(): Promise<void> {
     draft.value = ''
     await loadThread(id)
     await load()
+    toast.success('Message sent', 'Your message has been delivered.')
   } catch (error) {
-    sendError.value = error instanceof Error ? error.message : 'That message could not be sent.'
+    const message = error instanceof Error ? error.message : 'That message could not be sent.'
+    sendError.value = message
+    toast.error('Could not send the message', message)
   } finally {
     isSending.value = false
   }

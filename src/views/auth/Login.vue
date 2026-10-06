@@ -120,10 +120,12 @@ import Button from '@/components/ui/Button.vue'
 import { fieldLabelClass, textInputClass } from '@/components/ui/controlClasses'
 import AuthShell from '@/components/auth/AuthShell.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const toast = useToast()
 
 const email = ref('')
 const password = ref('')
@@ -157,6 +159,7 @@ async function handleSubmit(): Promise<void> {
   isSubmitting.value = true
   try {
     await auth.signIn(email.value, password.value)
+    toast.success('Signed in', 'You are back on IT Learning Hub.')
     // Honour the ?redirect= the guard attached, but never bounce someone into a
     // role they cannot use. A guessed path would land on a redirect loop.
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : null
@@ -166,7 +169,9 @@ async function handleSubmit(): Promise<void> {
       await router.replace(auth.homePath)
     }
   } catch (error) {
-    errorMessage.value = describeSupabaseError(error)
+    const message = describeSupabaseError(error)
+    errorMessage.value = message
+    toast.error('Could not sign in', message)
   } finally {
     isSubmitting.value = false
   }

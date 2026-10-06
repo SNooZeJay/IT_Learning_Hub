@@ -288,8 +288,10 @@ import { gradeSubmission, listGradingQueue } from '@/services/instructor.service
 import type { GradingQueueItem } from '@/services/instructor.service'
 import { formatDateTime } from '@/types'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
+const toast = useToast()
 
 const queue = ref<GradingQueueItem[]>([])
 const search = ref('')
@@ -396,12 +398,14 @@ async function submit(submissionId: string): Promise<void> {
     // Showing a value this page invented would be a second source of truth for
     // something the database owns.
     await load()
+    toast.success('Grade recorded', 'The submission is now marked as graded.')
   } catch (error) {
     // InstructorError messages come from the trigger and say what to fix -
     // "this submission has already been graded", "grade 120 exceeds the maximum
     // of 100" - so they are shown as written.
-    gradeErrors.value[submissionId] =
-      error instanceof Error ? error.message : 'Could not record this grade.'
+    const message = error instanceof Error ? error.message : 'Could not record this grade.'
+    gradeErrors.value[submissionId] = message
+    toast.error('Could not record this grade', message)
   } finally {
     isSaving.value = null
   }

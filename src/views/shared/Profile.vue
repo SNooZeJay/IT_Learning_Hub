@@ -134,6 +134,7 @@ import { updateOwnProfile } from '@/services/profile.service'
 import { loadInstructorDashboard, loadStudentDashboard } from '@/services/dashboard.service'
 import { getAdminStats } from '@/services/stats.service'
 import { formatPeso } from '@/types'
+import { useToast } from '@/composables/useToast'
 import type { AdminStats } from '@/services/stats.service'
 import type { InstructorDashboard, StudentDashboard } from '@/services/dashboard.service'
 import type { Profile } from '@/types'
@@ -147,6 +148,7 @@ import type { Profile } from '@/types'
  */
 
 const auth = useAuthStore()
+const toast = useToast()
 
 /** Narrowed once, so the cards below receive a `Profile` and not a `Profile | null`. */
 const profile = computed<Profile | null>(() => auth.profile)
@@ -178,9 +180,12 @@ async function saveDetails(changes: {
     detailsSaved.value = detailsTruncated.value
       ? 'Your details have been updated. Your introduction was longer than this form shows, so it was trimmed to 500 characters.'
       : 'Your details have been updated.'
+    toast.success('Profile saved', 'Your changes have been saved.')
   } catch (error) {
-    detailsError.value =
+    const message =
       error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+    detailsError.value = message
+    toast.error('Could not save your profile', message)
   } finally {
     isSavingDetails.value = false
   }

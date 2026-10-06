@@ -63,7 +63,9 @@ import type {
   QuizDraft,
 } from '@/services/quizAuthoring.service'
 import type { QuestionType, QuizStatus } from '@/types'
+import { useConfirm } from '@/composables/useConfirm'
 
+const confirm = useConfirm()
 const props = withDefaults(
   defineProps<{
     courseId: string
@@ -405,11 +407,14 @@ async function saveQuestion(draft: QuestionDraft): Promise<void> {
  * recorded - which the confirmation says, because a deleted question would
  * otherwise look like it should have changed a result.
  */
-function confirmRemoveQuestion(question: AuthoredQuestion): void {
+async function confirmRemoveQuestion(question: AuthoredQuestion): Promise<void> {
   const prompt = question.prompt.length > 60 ? `${question.prompt.slice(0, 60)}…` : question.prompt
-  const confirmed = window.confirm(
-    `Delete the question "${prompt}"? Its options and any accepted answers go with it. Scores already recorded on past attempts are left as they are.`,
-  )
+  const confirmed = await confirm.ask({
+    title: 'Delete question?',
+    message: `Delete the question "${prompt}"? Its options and any accepted answers go with it. Scores already recorded on past attempts are left as they are.`,
+    confirmText: 'Delete',
+    variant: 'danger',
+  })
   if (!confirmed) return
   void removeQuestion(question)
 }

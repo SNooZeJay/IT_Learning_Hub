@@ -175,6 +175,7 @@ import Button from '@/components/ui/Button.vue'
 import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/types'
 import type { Profile } from '@/types'
+import { useToast } from '@/composables/useToast'
 
 /**
  * The account facts a person can genuinely read about themselves, and the two
@@ -187,6 +188,7 @@ import type { Profile } from '@/types'
 const props = defineProps<{ profile: Profile }>()
 
 const auth = useAuthStore()
+const toast = useToast()
 
 const newPassword = ref('')
 const confirmPassword = ref('')
@@ -285,12 +287,18 @@ async function changePassword(): Promise<void> {
       title: 'Password changed',
       text: 'It applies from now. Any other device already signed in keeps its session until that session expires.',
     }
+    toast.success(
+      'Password changed',
+      'It applies from now. Any other device already signed in keeps its session until that session expires.',
+    )
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Try again in a moment.'
     passwordNotice.value = {
       tone: 'error',
       title: 'The password was not changed',
-      text: error instanceof Error ? error.message : 'Try again in a moment.',
+      text: message,
     }
+    toast.error('The password was not changed', message)
   } finally {
     isChangingPassword.value = false
   }

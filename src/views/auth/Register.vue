@@ -174,8 +174,10 @@ import Button from '@/components/ui/Button.vue'
 import { fieldLabelClass, textInputClass } from '@/components/ui/controlClasses'
 import AuthShell from '@/components/auth/AuthShell.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
+const toast = useToast()
 
 const fullName = ref('')
 const email = ref('')
@@ -230,8 +232,16 @@ async function handleSubmit(): Promise<void> {
   try {
     const result = await auth.signUp(email.value, password.value, fullName.value)
     needsEmailConfirmation.value = result.needsEmailConfirmation
+    toast.success(
+      'Account created',
+      result.needsEmailConfirmation
+        ? 'Check your inbox to confirm your email before signing in.'
+        : 'Your account is ready.',
+    )
   } catch (error) {
-    errorMessage.value = describeSupabaseError(error)
+    const message = describeSupabaseError(error)
+    errorMessage.value = message
+    toast.error('Could not create your account', message)
   } finally {
     isSubmitting.value = false
   }
