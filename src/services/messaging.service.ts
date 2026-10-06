@@ -31,9 +31,6 @@ import { supabase } from './supabase/client'
  * one day produce a notification, and a notification must never become a message.
  */
 
-/** The profile fields needed to render a person in a list. */
-const PERSON_COLUMNS = 'id, full_name'
-
 /**
  * The longest a message may be.
  *
@@ -218,112 +215,53 @@ export async function listMessageablePeople(): Promise<MessagePerson[]> {
 /**
  * Every conversation the signed-in user is a participant in.
  *
- * The unread count is derived from the messages already fetched rather than from a
- * separate `count` query: a count that disagrees with the rows underneath it is worse
- * than a count that describes exactly what is on screen.
+ * One round trip. `conversation_inbox()` returns the subject, the other participant, the
+ * last message's body and the unread count per conversation, so the list and the badge
+ * are computed by the same statement and cannot disagree.
+ *
+ * That matters because the previous version did not. It read every message of every
+ * conversation to build previews and count unread ones, then read the other participant's
+ * profile row one conversation at a time - an N+1 on top of an unbounded fetch. It also
+ * contradicted its own comment two functions down, which claimed the list avoided reading
+ * every message of every conversation.
+ *
+ * Never-messaged conversations sort last, so a thread awaiting a first reply does not
+ * push a thread that needs answering off the top.
  */
 export async function listConversations(): Promise<ConversationSummary[]> {
-  const { data: me, error: meError } = await supabase
-    .from('profiles')
-    .select('id')
-    .single<{ id: string }>()
-  if (meError || !me)
-    throw new MessagingError(messageOf(meError, 'Could not read your account.'), meError)
+  const { data, error } = await supabase.rpc('conversation_inbox')
 
-  const { data: participations, error } = await supabase
-    .from('conversation_participants')
-    .select('conversation_id, last_read_at')
-    .eq('user_id', me.id)
-
-  if (error) throw new MessagingError(messageOf(error, 'Could not load your conversations.'), error)
-
-  const ids = (participations ?? []).map((p) => p.conversation_id as string)
-  if (ids.length === 0) return []
-
-  const { data: conversations, error: convError } = await supabase
-    .from('conversations')
-    .select(
-      'id, subject, created_by, created_at, last_message_at, conversation_participants!inner(user_id)',
-    )
-    .in('id', ids)
-
-  if (convError)
-    throw new MessagingError(messageOf(convError, 'Could not load your conversations.'), convError)
-
-  const { data: allMessages, error: msgError } = await supabase
-    .from('conversation_messages')
-    .select('id, conversation_id, sender_id, body, created_at')
-    .in('conversation_id', ids)
-
-  if (msgError)
-    throw new MessagingError(messageOf(msgError, 'Could not load your messages.'), msgError)
-
-  const readAt = new Map(
-    (participations ?? []).map((p) => [
-      p.conversation_id as string,
-      p.last_read_at as string | null,
-    ]),
-  )
-  const byConversation = new Map<string, typeof allMessages>()
-  for (const message of allMessages ?? []) {
-    const list = byConversation.get(message.conversation_id as string) ?? []
-    list.push(message)
-    byConversation.set(message.conversation_id as string, list)
+  if (error) {
+    throw new MessagingError(messageOf(error, 'Could not load your conversations.'), error)
   }
 
-  const summaries: ConversationSummary[] = []
+  const summaries = (
+    (data ?? []) as unknown as Array<{
+      id: string
+      subject: string
+      with_id: string | null
+      with_name: string | null
+      last_message_at: string
+      last_message_preview: string | null
+      unread_count: number | string | null
+    }>
+  ).map((row) => ({
+    id: row.id,
+    subject: row.subject,
+    // Named by the person rather than by their id: this string is the row's heading, and
+    // an id would be a worse label than no label at all.
+    withName: row.with_name ?? 'Unknown participant',
+    lastMessageAt: row.last_message_at,
+    lastMessagePreview:
+      row.last_message_preview === null || row.last_message_preview === undefined
+        ? 'No messages yet'
+        : previewOf(String(row.last_message_preview)),
+    // The database returns bigint as a string over PostgREST, so this is not a cast
+    // that can be forgotten about: a count arriving as "2" would render as a
+    // concatenation rather than a number.
+    unreadCount: Number(row.unread_count ?? 0),
+  }))
 
-  for (const row of (conversations ?? []) as unknown as Array<{
-    id: string
-    subject: string
-    created_by: string
-    created_at: string
-    last_message_at: string | null
-    conversation_participants: Array<{ user_id: string }>
-  }>) {
-    const others = (row.conversation_participants ?? [])
-      .map((p) => p.user_id)
-      .filter((u) => u !== me.id)
-    const otherId = others[0]
-
-    // The other person's name. Their participant row is visible because
-    // `participants select` admits anyone already in the thread.
-    let withName = 'Unknown participant'
-    if (otherId) {
-      const { data: person } = await supabase
-        .from('profiles')
-        .select(PERSON_COLUMNS)
-        .eq('id', otherId)
-        .maybeSingle<{ id: string; full_name: string }>()
-      if (person) withName = person.full_name
-    }
-
-    const messages = (byConversation.get(row.id) ?? [])
-      .slice()
-      .sort(
-        (a, b) =>
-          new Date(a.created_at as string).getTime() - new Date(b.created_at as string).getTime(),
-      )
-    const last = messages[messages.length - 1]
-    const since = readAt.get(row.id)
-    const unread = since
-      ? messages.filter(
-          (m) => new Date(m.created_at as string) > new Date(since) && m.sender_id !== me.id,
-        ).length
-      : messages.filter((m) => m.sender_id !== me.id).length
-
-    summaries.push({
-      id: row.id,
-      subject: row.subject,
-      withName,
-      lastMessageAt: row.last_message_at ?? last?.created_at ?? row.created_at,
-      lastMessagePreview: last ? previewOf(String(last.body)) : 'No messages yet',
-      unreadCount: unread,
-    })
-  }
-
-  // Most recent first, with never-messaged threads last so they do not crowd out
-  // something that needs answering.
   return summaries.sort((a, b) => {
     const aEmpty = a.lastMessagePreview === 'No messages yet'
     const bEmpty = b.lastMessagePreview === 'No messages yet'
@@ -466,19 +404,36 @@ export async function markConversationRead(conversationId: string): Promise<void
   }
 }
 
-/** Total unread across every conversation, for the sidebar and the header button. */
+/**
+ * Total unread across every conversation, for the sidebar and the header button.
+ *
+ * Unread *messages*, not unopened conversations. The previous version counted
+ * participant rows with a null `last_read_at`, which is a different question with two
+ * wrong answers: a thread stopped counting the moment it was opened once, so replies
+ * arriving later never moved the badge, and a brand-new conversation with no messages
+ * counted as one unread and could not be cleared.
+ *
+ * Measured on a three-message thread after the fix, as the participants:
+ *
+ *     sender of 1 of them, both unread      threads=1 unread=2
+ *     sender of 2 of them, both unread      threads=1 unread=1
+ *     not a participant                     threads=0 unread=0
+ *     after marking read                    threads=1 unread=0
+ *     one more message arrives              threads=1 unread=1
+ *
+ * Shares `conversation_inbox()` with `listConversations` on purpose: the badge and the
+ * list are two renderings of one query, so they cannot report different numbers.
+ */
 export async function countUnreadMessages(): Promise<number> {
-  const { data, error } = await supabase
-    .from('conversation_participants')
-    .select('conversation_id, last_read_at')
-    .is('last_read_at', null)
+  const { data, error } = await supabase.rpc('conversation_inbox')
 
   if (error) {
     throw new MessagingError(messageOf(error, 'Could not count unread messages.'), error)
   }
 
-  // Only rows with a null `last_read_at` can be known-unread without reading the
-  // messages themselves, which is a second round trip per thread. Counting them here
-  // and letting the list do the exact arithmetic keeps one code path for the truth.
-  return (data ?? []).length
+  const rows = (data ?? []) as unknown as Array<{ unread_count: number | string | null }>
+
+  // Summed from the same rows the inbox renders, and Number()d because PostgREST returns
+  // bigint as a string: adding strings here would concatenate "1" and "2" into "12".
+  return rows.reduce((total, row) => total + Number(row.unread_count ?? 0), 0)
 }

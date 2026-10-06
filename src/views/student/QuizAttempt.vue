@@ -49,6 +49,9 @@ import {
   saveAnswer,
   startAttempt,
   submitAttempt,
+  toSubmittedAnswers,
+  draftHasAnswer,
+  type DraftAnswer,
   type SubmittedAnswer,
 } from '@/services/quiz.service'
 import type { QuizResult } from '@/types'
@@ -70,7 +73,7 @@ const alreadyPassed = ref(false)
 
 const attemptId = ref<string | null>(null)
 const attempt = ref<AttemptState | null>(null)
-const answers = ref<Record<string, string>>({})
+const answers = ref<Record<string, DraftAnswer>>({})
 const currentIndex = ref(0)
 const flagged = ref<Set<string>>(new Set())
 
@@ -212,18 +215,18 @@ async function enterAttempt(id: string): Promise<void> {
   for (const question of state.questions) {
     const entry = saved[question.questionId]
     if (!entry) continue
-    if (entry.optionId) answers.value[question.questionId] = entry.optionId
-    else if (entry.text) answers.value[question.questionId] = entry.text
+    if (entry.optionId)
+      answers.value[question.questionId] = { optionId: entry.optionId, text: null }
+    else if (entry.text) answers.value[question.questionId] = { optionId: null, text: entry.text }
   }
 
   // Land on the first unanswered question. A resumed attempt that dropped the
   // student back at question 1 with eleven answered would look like their work was
   // lost.
-  currentIndex.value = Math.max(
-    0,
-    state.questions.findIndex((q) => !answers.value[q.questionId]),
+  const firstUnanswered = state.questions.findIndex(
+    (q) => !draftHasAnswer(answers.value[q.questionId]),
   )
-  if (currentIndex.value === -1) currentIndex.value = 0
+  currentIndex.value = firstUnanswered === -1 ? 0 : firstUnanswered
 
   phase.value = 'running'
 
@@ -238,7 +241,7 @@ async function enterAttempt(id: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 const answeredCount = computed(
-  () => Object.values(answers.value).filter((v) => v !== undefined && v.trim() !== '').length,
+  () => Object.values(answers.value).filter((draft) => draftHasAnswer(draft)).length,
 )
 
 async function handleAnswer(payload: {
@@ -246,7 +249,10 @@ async function handleAnswer(payload: {
   optionId: string | null
   text: string | null
 }): Promise<void> {
-  answers.value = { ...answers.value, [payload.questionId]: payload.optionId ?? payload.text ?? '' }
+  answers.value = {
+    ...answers.value,
+    [payload.questionId]: { optionId: payload.optionId ?? null, text: payload.text ?? null },
+  }
 
   // Persisted as it is made, so a refresh does not lose it. A failure here is
   // deliberately swallowed: the answer is still submitted explicitly at the end,
@@ -354,21 +360,36 @@ const timeExpired = computed(() => clock.expired.value)
  * will happen rather than refusing and leaving the student guessing.
  */
 const blockedReason = computed(() => {
-  if (timeExpired.value) return 'Time is up, so this is being submitted now.'
   if (answeredCount.value === 0) return 'Answer at least one question before submitting.'
   return ''
 })
 
-const canSubmit = computed(() => blockedReason.value === '')
+const canSubmit = computed(() => blockedReason.value === '' && !submitting.value)
+
+/**
+ * Submit the moment the clock runs out.
+ *
+ * The previous version refused to submit once `timeExpired` was true and then called
+ * that "time up submits anyway". Nothing watched the clock, so an attempt that ran out
+ * of time could never be submitted at all: the button stayed enabled and silently did
+ * nothing, the attempt stayed `in_progress` for ever, it kept counting against the
+ * attempts allowed, and `find_open_attempt` kept offering "Resume" into an attempt that
+ * was already over.
+ *
+ * Submitted even with nothing answered. A time limit exists to end the attempt, and an
+ * attempt left open is worse than one closed with a zero: it blocks the student from
+ * starting again. The server grades unanswered questions as wrong either way, which is
+ * the same outcome as submitting a blank paper.
+ */
+watch(timeExpired, async (expired) => {
+  if (!expired) return
+  if (phase.value !== 'running' || submitting.value) return
+  actionError.value = ''
+  await finish('time_expired')
+})
 
 async function handleSubmit(): Promise<void> {
   if (!canSubmit.value || submitting.value) return
-
-  // Time up submits regardless, and says so rather than appearing to refuse.
-  if (answeredCount.value === 0) {
-    actionError.value = 'Answer at least one question before submitting.'
-    return
-  }
   await finish('student_submit')
 }
 
@@ -386,9 +407,7 @@ async function finish(via: string): Promise<void> {
   actionError.value = ''
 
   try {
-    const payload: SubmittedAnswer[] = Object.entries(answers.value)
-      .filter(([, value]) => value !== undefined && value.trim() !== '')
-      .map(([questionId, value]) => ({ questionId, optionId: value }))
+    const payload: SubmittedAnswer[] = toSubmittedAnswers(answers.value)
 
     result.value = await submitAttempt(attemptId.value, payload)
     endedVia.value = via
@@ -512,6 +531,7 @@ onBeforeUnmount(() => {
             :flagged="flagged"
             :submitting="submitting"
             :submitting-blocked="!canSubmit"
+            :submit-blocked-reason="blockedReason"
             @update:current-index="currentIndex = $event"
             @answer="handleAnswer"
             @toggle-flag="toggleFlag"

@@ -1546,6 +1546,18 @@ export type Database = {
           payment_id: string
         }[]
       }
+      conversation_inbox: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          subject: string
+          with_id: string | null
+          with_name: string | null
+          last_message_at: string
+          last_message_preview: string | null
+          unread_count: number
+        }[]
+      }
       refresh_enrollment_completion: {
         Args: { p_enrollment_id: string }
         Returns: boolean

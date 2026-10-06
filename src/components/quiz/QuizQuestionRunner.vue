@@ -15,18 +15,32 @@
  */
 import { computed } from 'vue'
 import { ChevronLeft, ChevronRight, Flag, Send } from 'lucide-vue-next'
-import type { ServedQuestion } from '@/services/quiz.service'
+import { draftHasAnswer, type DraftAnswer, type ServedQuestion } from '@/services/quiz.service'
 import type { QuestionType } from '@/types/enums'
 
 const props = defineProps<{
   questions: ServedQuestion[]
-  /** questionId -> option id, or the typed text for a written answer. */
-  answers: Record<string, string>
+  /**
+   * questionId -> the answer, with its kind attached.
+   *
+   * Not `Record<string, string>`. An option id and a typed answer are both strings, and
+   * a flat map cannot say which is which - so on submit one of them was sent under the
+   * wrong key and written answers were graded as option ids. See `DraftAnswer`.
+   */
+  answers: Record<string, DraftAnswer>
   /** Position of the question on screen. */
   currentIndex: number
   flagged: Set<string>
   submitting: boolean
   submittingBlocked: boolean
+  /**
+   * Why submitting is unavailable, written for the student.
+   *
+   * Passed in rather than derived here because the rules live in the view, which knows
+   * about the clock and the attempt. A button that is disabled with no reason is a
+   * question the interface has decided not to answer.
+   */
+  submitBlockedReason?: string
 }>()
 
 const emit = defineEmits<{
@@ -41,8 +55,7 @@ const current = computed<ServedQuestion | null>(() => props.questions[props.curr
 const answered = computed(() => props.questions.filter((q) => hasAnswer(q.questionId)).length)
 
 function hasAnswer(questionId: string): boolean {
-  const value = props.answers[questionId]
-  return typeof value === 'string' && value.trim() !== ''
+  return draftHasAnswer(props.answers[questionId])
 }
 
 function selectOption(questionId: string, optionId: string): void {
@@ -54,7 +67,7 @@ function typeText(questionId: string, text: string): void {
 }
 
 function isSelected(questionId: string, optionId: string): boolean {
-  return props.answers[questionId] === optionId
+  return props.answers[questionId]?.optionId === optionId
 }
 
 const isLast = computed(() => props.currentIndex === props.questions.length - 1)
@@ -156,7 +169,7 @@ function typeLabel(type: QuestionType): string {
           autocomplete="off"
           class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
           placeholder="Type your answer"
-          :value="answers[current.questionId] ?? ''"
+          :value="answers[current.questionId]?.text ?? ''"
           @input="typeText(current.questionId, ($event.target as HTMLInputElement).value)"
         />
       </div>
@@ -250,13 +263,26 @@ function typeLabel(type: QuestionType): string {
         v-else
         type="button"
         class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-5 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
-        :disabled="submitting"
+        :disabled="submitting || Boolean(submitBlockedReason)"
         @click="emit('submit')"
       >
         <Send class="size-4" aria-hidden="true" />
         {{ submitting ? 'Submitting…' : 'Submit the quiz' }}
       </button>
     </div>
+
+    <!--
+      Always rendered rather than only on failure, and given `role="status"` so it is
+      announced when it appears. A reason that is shown once and then vanishes is no
+      better than none.
+    -->
+    <p
+      v-if="submitBlockedReason"
+      role="status"
+      class="text-center text-sm font-medium text-warning-700 dark:text-warning-400"
+    >
+      {{ submitBlockedReason }}
+    </p>
 
     <p
       v-if="submittingBlocked && answered < questions.length"

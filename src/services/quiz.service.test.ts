@@ -23,12 +23,15 @@ vi.mock('@/services/supabase/client', () => ({
 
 import {
   attemptsRemaining,
+  draftHasAnswer,
   getQuiz,
   listMyAttempts,
   listQuizzesForCourse,
   QuizError,
   startAttempt,
   submitAttempt,
+  toSubmittedAnswers,
+  type DraftAnswer,
 } from '@/services/quiz.service'
 
 /** A thenable chain that resolves to whatever the test queued for that table. */
@@ -360,5 +363,163 @@ describe('reads', () => {
     expect(attempt.score).toBeNull()
     expect(attempt.percentage).toBeNull()
     expect(attempt.passed).toBeNull()
+  })
+})
+
+/**
+ * How a form's answers become the payload the grader reads.
+ *
+ * The `submitAttempt` tests above already prove the service puts a written answer under
+ * `text` on the wire - and they passed while the application scored every written answer
+ * zero. The service was never the broken layer. The bug was one line up, in the view:
+ *
+ *     const answers = ref<Record<string, string>>({})          // option id OR text
+ *     .map(([questionId, value]) => ({ questionId, optionId: value }))
+ *
+ * One map holding both kinds of answer has to flatten them into one key before it can
+ * build a payload, and it flattened everything into `optionId`. A written answer then
+ * reached `submit_quiz_attempt` as `option_id`, the grader read `->>'text'`, found
+ * nothing, and scored the question zero however correct it was.
+ *
+ * Measured on a written question worth 5 points with the accepted answer "4":
+ *
+ *     {question_id, option_id: "4"}   ->  0.00 points
+ *     {question_id, text: "4"}        ->  5.00 points
+ *
+ * So these tests pin the layer that was actually broken: the mapping from a draft, which
+ * keeps the two kinds apart, into the union the service already handled correctly.
+ */
+const Q_CHOICE = '11111111-1111-4111-8111-111111111111'
+const Q_WRITTEN = '22222222-2222-4222-8222-222222222222'
+const OPTION_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+
+describe('toSubmittedAnswers', () => {
+  it('sends a chosen option under option_id', () => {
+    expect(toSubmittedAnswers({ [Q_CHOICE]: { optionId: OPTION_A, text: null } })).toEqual([
+      { questionId: Q_CHOICE, optionId: OPTION_A },
+    ])
+  })
+
+  it('sends a written answer under text, which is the regression this describes', () => {
+    const payload = toSubmittedAnswers({ [Q_WRITTEN]: { optionId: null, text: '4' } })
+
+    expect(payload).toEqual([{ questionId: Q_WRITTEN, text: '4' }])
+    // The failure, stated as an assertion: a written answer must NOT be sent as an
+    // option. Under `option_id` the grader's `->>'text'` is null and the question scores
+    // zero however correct the answer was.
+    expect('optionId' in payload[0]).toBe(false)
+  })
+
+  it('keeps a choice answer and a written answer apart in the same attempt', () => {
+    const payload = toSubmittedAnswers({
+      [Q_CHOICE]: { optionId: OPTION_A, text: null },
+      [Q_WRITTEN]: { optionId: null, text: '4' },
+    })
+
+    expect(payload).toHaveLength(2)
+    expect(payload.find((a) => a.questionId === Q_CHOICE)).toEqual({
+      questionId: Q_CHOICE,
+      optionId: OPTION_A,
+    })
+    expect(payload.find((a) => a.questionId === Q_WRITTEN)).toEqual({
+      questionId: Q_WRITTEN,
+      text: '4',
+    })
+  })
+
+  it('never puts a written answer under option_id, whatever the text looks like', () => {
+    // An option id is a uuid and typed text is arbitrary, so text can be uuid-shaped.
+    // Keying off the shape instead of off which field was set would be the same bug in
+    // a different costume.
+    const payload = toSubmittedAnswers({
+      [Q_WRITTEN]: { optionId: null, text: OPTION_A },
+      [Q_CHOICE]: { optionId: null, text: '4' },
+    })
+
+    for (const entry of payload) {
+      expect('optionId' in entry).toBe(false)
+    }
+  })
+
+  it('drops an empty answer rather than sending a blank', () => {
+    // A blank string satisfies the payload's "present" check while contributing nothing,
+    // so an empty answer would sit in the denominator and lower the percentage.
+    const payload = toSubmittedAnswers({
+      [Q_CHOICE]: { optionId: OPTION_A, text: null },
+      [Q_WRITTEN]: { optionId: null, text: '   ' },
+    })
+
+    expect(payload).toHaveLength(1)
+    expect(payload[0].questionId).toBe(Q_CHOICE)
+  })
+
+  it('trims, so the value sent is the value the student can see', () => {
+    const payload = toSubmittedAnswers({
+      [Q_CHOICE]: { optionId: `  ${OPTION_A}  `, text: null },
+      [Q_WRITTEN]: { optionId: null, text: '  4  ' },
+    })
+
+    expect(payload[0]).toEqual({ questionId: Q_CHOICE, optionId: OPTION_A })
+    expect(payload[1]).toEqual({ questionId: Q_WRITTEN, text: '4' })
+  })
+
+  it('prefers the option when a malformed draft carries both', () => {
+    // The interface cannot produce this - choosing an option clears the text and typing
+    // clears the option - so it is a rule for bad input. An option id is checkable
+    // against the question; free text is not.
+    expect(toSubmittedAnswers({ [Q_CHOICE]: { optionId: OPTION_A, text: '4' } })).toEqual([
+      { questionId: Q_CHOICE, optionId: OPTION_A },
+    ])
+  })
+
+  it('returns nothing for an empty attempt', () => {
+    expect(toSubmittedAnswers({})).toEqual([])
+  })
+
+  it('reaches the wire correctly, composing with submitAttempt', async () => {
+    rpc.mockResolvedValue({ data: { answers: [] }, error: null })
+
+    await submitAttempt(
+      'attempt-1',
+      toSubmittedAnswers({
+        [Q_CHOICE]: { optionId: OPTION_A, text: null },
+        [Q_WRITTEN]: { optionId: null, text: '4' },
+      }),
+    )
+
+    expect(rpc.mock.calls[0][1].p_answers).toEqual([
+      { question_id: Q_CHOICE, option_id: OPTION_A },
+      { question_id: Q_WRITTEN, text: '4' },
+    ])
+  })
+})
+
+describe('draftHasAnswer', () => {
+  it('is false for a missing draft', () => {
+    expect(draftHasAnswer(undefined)).toBe(false)
+    expect(draftHasAnswer(null)).toBe(false)
+  })
+
+  it('is true for a chosen option and for typed text', () => {
+    expect(draftHasAnswer({ optionId: OPTION_A, text: null })).toBe(true)
+    expect(draftHasAnswer({ optionId: null, text: '4' })).toBe(true)
+  })
+
+  it('is false for whitespace, which the student sees as an untouched box', () => {
+    // A progress dot counting a blank box as answered tells the student they have
+    // answered a question they have not.
+    expect(draftHasAnswer({ optionId: null, text: '   ' })).toBe(false)
+    expect(draftHasAnswer({ optionId: '', text: '' })).toBe(false)
+  })
+
+  it('agrees with toSubmittedAnswers, so the button and the badge cannot contradict it', () => {
+    const drafts: Record<string, DraftAnswer> = {
+      [Q_CHOICE]: { optionId: OPTION_A, text: null },
+      [Q_WRITTEN]: { optionId: null, text: '   ' },
+    }
+
+    expect(Object.values(drafts).filter((d) => draftHasAnswer(d)).length).toBe(
+      toSubmittedAnswers(drafts).length,
+    )
   })
 })

@@ -251,6 +251,65 @@ export type SubmittedAnswer =
   { questionId: string; optionId: string } | { questionId: string; text: string }
 
 /**
+ * An answer as the form holds it, before it is submitted.
+ *
+ * This type exists because a single `Record<questionId, string>` cannot carry a quiz
+ * answer. One question is answered by picking an option id and another by typing text,
+ * and `submit_quiz_attempt` reads them from two different keys of the payload:
+ *
+ *     short_text       ->  v_submitted->>'text'
+ *     everything else  ->  nullif(v_submitted->>'option_id','')::uuid
+ *
+ * Flattening both into one string loses which is which, and the flattening has to pick
+ * one key to send. It sent `option_id`, so every written answer was graded as though it
+ * were an option id, `->>'text'` was absent, and the question scored zero for every
+ * student who got it right. Measured against a written question whose accepted answer is
+ * "4":
+ *
+ *     {question_id, option_id: "4"}   ->  0.00 points
+ *     {question_id, text: "4"}        ->  5.00 points
+ *
+ * `optionId` and `text` are kept apart here so that choice is made once, in one place,
+ * and cannot be made wrong again by a component that happens to flatten.
+ */
+export interface DraftAnswer {
+  optionId: string | null
+  text: string | null
+}
+
+/** Whether a draft holds something a student would recognise as an answer. */
+export function draftHasAnswer(draft: DraftAnswer | undefined | null): boolean {
+  if (!draft) return false
+  return (draft.optionId ?? '').trim() !== '' || (draft.text ?? '').trim() !== ''
+}
+
+/**
+ * The payload `submit_quiz_attempt` grades from.
+ *
+ * Empty answers are dropped rather than sent, because a blank string in `text` is
+ * indistinguishable from an unanswered question at grading time and would otherwise sit
+ * in the denominator contributing nothing.
+ *
+ * A draft with both an option and text prefers the option. The interface cannot produce
+ * that combination - picking an option clears any text and typing clears the option - so
+ * this is a rule for malformed input rather than a real case, and the order is the safe
+ * one because an option id is verifiable against the question while free text is not.
+ */
+export function toSubmittedAnswers(drafts: Record<string, DraftAnswer>): SubmittedAnswer[] {
+  const payload: SubmittedAnswer[] = []
+
+  for (const [questionId, draft] of Object.entries(drafts)) {
+    const optionId = (draft?.optionId ?? '').trim()
+    const text = (draft?.text ?? '').trim()
+
+    if (optionId) payload.push({ questionId, optionId })
+    else if (text) payload.push({ questionId, text })
+  }
+
+  return payload
+}
+
+/**
  * Submits and receives the graded result.
  *
  * The score in the return value was computed by Postgres from the answer key.
