@@ -22,7 +22,12 @@ test.describe('Instructor', () => {
   test('cannot reach student or admin screens', async ({ page }) => {
     await signIn(page, 'instructor')
 
-    for (const forbidden of ['/student/dashboard', '/student/grades', '/admin/users', '/admin/settings']) {
+    for (const forbidden of [
+      '/student/dashboard',
+      '/student/grades',
+      '/admin/users',
+      '/admin/settings',
+    ]) {
       await page.goto(forbidden)
       await expect(page).not.toHaveURL(new RegExp(`${forbidden}$`))
       await expect(page).toHaveURL(/\/(instructor|auth)\//)
@@ -80,7 +85,9 @@ test.describe('Instructor', () => {
     await quizzesLink.click()
 
     await expect(page).toHaveURL(/\/instructor\/courses\/[0-9a-f-]{36}\/quiz/)
-    await expect(page.getByRole('button', { name: /add a question|new quiz|add question/i }).first()).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: /add a question|new quiz|add question/i }).first(),
+    ).toBeVisible()
 
     expect(errors, `console errors in the quiz manager:\n${errors.join('\n')}`).toEqual([])
   })

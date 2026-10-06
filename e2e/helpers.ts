@@ -25,10 +25,7 @@ export const ACCOUNTS = {
  * Deliberately not `page.request.post` to the auth endpoint. That would prove the
  * credentials work, not that the form works, and the form is what a person uses.
  */
-export async function signIn(
-  page: Page,
-  who: keyof typeof ACCOUNTS,
-): Promise<void> {
+export async function signIn(page: Page, who: keyof typeof ACCOUNTS): Promise<void> {
   const account = ACCOUNTS[who]
   await page.goto('/auth/login')
 

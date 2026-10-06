@@ -30,7 +30,12 @@ test.describe('Student', () => {
   test('cannot reach an instructor or admin screen', async ({ page }) => {
     await signIn(page, 'student')
 
-    for (const forbidden of ['/instructor/dashboard', '/instructor/courses', '/admin/users', '/admin/payments']) {
+    for (const forbidden of [
+      '/instructor/dashboard',
+      '/instructor/courses',
+      '/admin/users',
+      '/admin/payments',
+    ]) {
       await page.goto(forbidden)
 
       // The guard must send them somewhere a student belongs. Landing on the 404 page
@@ -113,7 +118,11 @@ test.describe('Student', () => {
   test('signing out ends the session', async ({ page }) => {
     await signIn(page, 'student')
 
-    await page.locator('header button').filter({ hasText: /@|audit|garmino|lalamonan|guia/i }).first().click()
+    await page
+      .locator('header button')
+      .filter({ hasText: /@|audit|garmino|lalamonan|guia/i })
+      .first()
+      .click()
     await page.getByRole('button', { name: /sign out/i }).click()
 
     await expect(page).toHaveURL(/\/auth\/login/)
