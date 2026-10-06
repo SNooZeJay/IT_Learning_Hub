@@ -83,7 +83,23 @@ export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'cancel
 
 export type QuizStatus = 'draft' | 'published'
 
-export type QuestionType = 'multiple_choice' | 'true_false' | 'short_text'
+/**
+ * What a quiz question can be.
+ *
+ * Both remaining types are answered the same way: the student picks exactly one option
+ * from two or more. `true_false` is not a separate kind of thing so much as
+ * `multiple_choice` with two options, and it renders through the same control.
+ *
+ * `short_text` - a question the student typed an answer to - was removed. It is absent
+ * here, and absent from the `question_type` enum in the database, so naming it is a
+ * compile error rather than a runtime surprise.
+ *
+ * Removing it from this union is what surfaced the rest of the removal. Every
+ * `questionType === 'short_text'` comparison in the codebase became a type error, and
+ * TypeScript listed them - which is the only way to be sure the dead branches are all
+ * gone instead of merely unreachable.
+ */
+export type QuestionType = 'multiple_choice' | 'true_false'
 
 export type AttemptStatus = 'in_progress' | 'submitted'
 

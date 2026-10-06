@@ -63,10 +63,7 @@ export interface AuthoredQuestion {
   points: number
   position: number
   explanation: string | null
-  caseSensitive: boolean
   options: AuthoredOption[]
-  /** short_text only. The accepted answers are the key and never leave the server otherwise. */
-  acceptedAnswers: string[]
 }
 
 export interface AuthoredQuiz {
@@ -109,14 +106,12 @@ type AnswerKeyPayload = {
     points: number
     position: number
     explanation: string | null
-    case_sensitive: boolean
     options: Array<{
       id: string
       option_text: string
       is_correct: boolean
       position: number
     }>
-    accepted_answers?: string[]
   }>
 }
 
@@ -147,7 +142,6 @@ function toAuthored(payload: AnswerKeyPayload): AuthoredQuiz {
       points: num(question.points),
       position: num(question.position),
       explanation: question.explanation ?? null,
-      caseSensitive: question.case_sensitive === true,
       options: (question.options ?? [])
         .map((o) => ({
           id: o.id,
@@ -156,7 +150,6 @@ function toAuthored(payload: AnswerKeyPayload): AuthoredQuiz {
           position: num(o.position),
         }))
         .sort((a, b) => a.position - b.position),
-      acceptedAnswers: question.accepted_answers ?? [],
     })),
   }
 }
@@ -342,9 +335,7 @@ export interface QuestionDraft {
   prompt: string
   points?: number
   explanation?: string | null
-  caseSensitive?: boolean
   options?: OptionDraft[]
-  acceptedAnswers?: string[]
 }
 
 export async function nextQuestionPosition(quizId: string): Promise<number> {
@@ -414,13 +405,10 @@ export function validateQuestion(
   if (draft.prompt.trim() === '') {
     return { ok: false, reason: 'Give the question some text.' }
   }
-  if (draft.questionType === 'short_text') {
-    const answers = (draft.acceptedAnswers ?? []).filter((a) => a.trim() !== '')
-    if (answers.length === 0) {
-      return { ok: false, reason: 'A written-answer question needs at least one accepted answer.' }
-    }
-    return { ok: true }
-  }
+  // One validation, not two. It used to branch first on the question type: a
+  // written-answer question needed accepted answers, a choice question needed options.
+  // With one type there is one thing to check, and the reason it reports is about
+  // options because that is the only way a question can now be answered.
   return validateChoiceOptions(draft.options ?? [])
 }
 
@@ -439,7 +427,11 @@ export async function createQuestion(quizId: string, draft: QuestionDraft): Prom
       points: draft.points ?? 1,
       position,
       explanation: draft.explanation?.trim() || null,
-      case_sensitive: draft.caseSensitive ?? false,
+      // `case_sensitive` only ever mattered for comparing a typed answer against the key.
+      // The column stays - dropping it is a separate change - and this writes the only
+      // value it can now correctly hold. Writing `false` explicitly rather than leaving
+      // the column out avoids depending on a default nobody has checked.
+      case_sensitive: false,
     })
     .select('id')
     .single()
@@ -448,79 +440,50 @@ export async function createQuestion(quizId: string, draft: QuestionDraft): Prom
 
   const questionId = String((data as { id: string }).id)
 
-  if (draft.questionType === 'short_text') {
-    const accepted = (draft.acceptedAnswers ?? []).map((a) => a.trim()).filter((a) => a !== '')
-    if (accepted.length > 0) {
-      const { error: acceptedError } = await supabase.from('quiz_text_answers').insert(
-        accepted.map((text, index) => ({
-          question_id: questionId,
-          accepted_answer: text,
-          position: index + 1,
-        })),
+  // Every question is answered by choosing an option, so the key is always options.
+  // There used to be a second kind here - accepted answers, written to `quiz_text_answers`
+  // in a follow-up insert - with a compensating delete if that insert failed. It is gone
+  // with the question type it served. The compensating delete stays, because the failure
+  // it covers is unchanged: an insert can still fail, and a question whose key never
+  // landed cannot be published.
+  const options = (draft.options ?? [])
+    .map((o) => ({ ...o, optionText: o.optionText.trim() }))
+    .filter((o) => o.optionText !== '')
+
+  const { error: optionError } = await supabase.from('quiz_options').insert(
+    options.map((o, index) => ({
+      question_id: questionId,
+      option_text: o.optionText,
+      is_correct: coerceMarker(o.isCorrect),
+      position: index + 1,
+    })),
+  )
+
+  // A key that never landed leaves a question that cannot be published. Removing it is
+  // better than leaving a half-built question that fails at publish time with an error
+  // about a different thing.
+  if (optionError) {
+    const { error: cleanupError } = await supabase
+      .from('quiz_questions')
+      .delete()
+      .eq('id', questionId)
+
+    // The cleanup's own error is included rather than discarded. If the compensating
+    // delete also fails, a question with no key survives, and the next thing that happens
+    // is a publish attempt refused with "no option is marked correct" - a message about a
+    // different question at a different moment, from which the real cause is not
+    // recoverable. The two messages are joined so the author is told both things.
+    if (cleanupError) {
+      throw new QuizAuthoringError(
+        `Could not save the options (${messageOf(optionError, 'unknown error')}), ` +
+          `and the incomplete question could not be removed either ` +
+          `(${messageOf(cleanupError, 'unknown error')}). ` +
+          'Delete that question by hand before adding it again.',
+        cleanupError,
       )
-      // The question exists but has no key, so it cannot be published. Removing it
-      // is better than leaving a half-built question that fails at publish time
-      // with an error about a different thing.
-      if (acceptedError) {
-        const { error: cleanupError } = await supabase
-          .from('quiz_questions')
-          .delete()
-          .eq('id', questionId)
-
-        // The cleanup's own error is included rather than discarded. If the
-        // compensating delete also fails, a question with no key survives, and
-        // the next thing that happens is a publish attempt refused with "no
-        // option is marked correct" - a message about a different question at a
-        // different moment, from which the real cause is not recoverable. The
-        // two messages are joined so the author is told both things.
-        if (cleanupError) {
-          throw new QuizAuthoringError(
-            `Could not save the accepted answers (${messageOf(acceptedError, 'unknown error')}), ` +
-              `and the incomplete question could not be removed either ` +
-              `(${messageOf(cleanupError, 'unknown error')}). ` +
-              'Delete that question by hand before adding it again.',
-            cleanupError,
-          )
-        }
-
-        fail(acceptedError, 'Could not save the accepted answers, so the question was not kept.')
-      }
     }
-  } else {
-    const options = (draft.options ?? [])
-      .map((o) => ({ ...o, optionText: o.optionText.trim() }))
-      .filter((o) => o.optionText !== '')
 
-    const { error: optionError } = await supabase.from('quiz_options').insert(
-      options.map((o, index) => ({
-        question_id: questionId,
-        option_text: o.optionText,
-        is_correct: coerceMarker(o.isCorrect),
-        position: index + 1,
-      })),
-    )
-
-    if (optionError) {
-      const { error: cleanupError } = await supabase
-        .from('quiz_questions')
-        .delete()
-        .eq('id', questionId)
-
-      // See the short_text branch above: a cleanup that itself fails leaves a
-      // half-built question, and without its error in the message the failure
-      // surfaces later as an unrelated publish error.
-      if (cleanupError) {
-        throw new QuizAuthoringError(
-          `Could not save the options (${messageOf(optionError, 'unknown error')}), ` +
-            `and the incomplete question could not be removed either ` +
-            `(${messageOf(cleanupError, 'unknown error')}). ` +
-            'Delete that question by hand before adding it again.',
-          cleanupError,
-        )
-      }
-
-      fail(optionError, 'Could not save the options, so the question was not kept.')
-    }
+    fail(optionError, 'Could not save the options, so the question was not kept.')
   }
 
   return questionId
@@ -558,27 +521,23 @@ export async function updateQuestion(questionId: string, draft: QuestionDraft): 
       prompt: draft.prompt.trim(),
       points: draft.points ?? 1,
       explanation: draft.explanation?.trim() || null,
-      case_sensitive: draft.caseSensitive ?? false,
+      // `case_sensitive` only ever mattered for comparing a typed answer against the key.
+      // The column stays - dropping it is a separate change - and this writes the only
+      // value it can now correctly hold. Writing `false` explicitly rather than leaving
+      // the column out avoids depending on a default nobody has checked.
+      case_sensitive: false,
     })
     .eq('id', questionId)
 
   if (error) fail(error, 'Could not save the question.')
 
-  // Both arrays are always sent, with the one that does not apply left empty.
-  // The function reads the question's own type and refuses a payload carrying
-  // the wrong one, so a draft whose type disagrees with the stored question
-  // fails here instead of writing a key the grader cannot read.
-  const accepted =
-    draft.questionType === 'short_text'
-      ? (draft.acceptedAnswers ?? []).map((a) => a.trim()).filter((a) => a !== '')
-      : []
-
-  const options =
-    draft.questionType === 'short_text'
-      ? []
-      : (draft.options ?? [])
-          .map((o) => ({ ...o, optionText: o.optionText.trim() }))
-          .filter((o) => o.optionText !== '')
+  // The key is always options now. The RPC still takes two payloads and still refuses a
+  // question type that does not match, so the empty second one is sent rather than
+  // omitted - omitting it would pass the array check by default and quietly mean
+  // something different from what it means when sent empty.
+  const options = (draft.options ?? [])
+    .map((o) => ({ ...o, optionText: o.optionText.trim() }))
+    .filter((o) => o.optionText !== '')
 
   const { error: replaceError } = await supabase.rpc('replace_quiz_question_answers', {
     p_question_id: questionId,
@@ -586,7 +545,7 @@ export async function updateQuestion(questionId: string, draft: QuestionDraft): 
       optionText: o.optionText,
       isCorrect: coerceMarker(o.isCorrect),
     })),
-    p_text_answers: accepted.map((text) => ({ acceptedAnswer: text })),
+    p_text_answers: [],
   })
 
   if (replaceError) {

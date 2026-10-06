@@ -291,7 +291,6 @@ export interface GradedAnswer {
   explanation?: string | null
   /** What the student chose, so a review can tell their answer from the right one. */
   yourOptionId?: string | null
-  yourText?: string | null
   options?: GradedOption[]
 }
 

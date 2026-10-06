@@ -296,21 +296,6 @@ const percent = computed(() => Number(props.result.percentage ?? 0))
                 </li>
               </ul>
 
-              <!-- A written answer has no options, so the two are shown as text. -->
-              <div
-                v-else-if="answer.yourText !== undefined || answer.questionType === 'short_text'"
-                class="mt-3 flex flex-col gap-2 text-sm"
-              >
-                <div
-                  class="rounded-md border border-gray-200 bg-white px-3 py-2 dark:border-gray-700 dark:bg-white/[0.03]"
-                >
-                  <p class="text-xs text-gray-500 dark:text-gray-400">Your answer</p>
-                  <p class="mt-0.5 text-gray-800 dark:text-gray-200">
-                    {{ answer.yourText || 'You left this blank' }}
-                  </p>
-                </div>
-              </div>
-
               <p
                 v-else-if="answer.yourOptionId === null"
                 class="mt-3 text-sm text-gray-500 dark:text-gray-400"

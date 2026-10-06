@@ -340,8 +340,6 @@ export interface QuizAnswerKeyQuestion {
   position: number
   explanation: string | null
   options: QuizAnswerKeyOption[]
-  /** Accepted answers for a short-text question; empty for the other types. */
-  acceptedAnswers: string[]
 }
 
 export interface QuizAnswerKey {
@@ -784,7 +782,6 @@ export async function getQuizAnswerKey(quizId: string): Promise<QuizAnswerKey> {
     questions: questions.map((entry) => {
       const question = (entry ?? {}) as Record<string, unknown>
       const options = Array.isArray(question.options) ? question.options : []
-      const accepted = Array.isArray(question.accepted_answers) ? question.accepted_answers : []
 
       return {
         id: String(question.id ?? ''),
@@ -804,7 +801,6 @@ export async function getQuizAnswerKey(quizId: string): Promise<QuizAnswerKey> {
             isCorrect: value.is_correct === true,
           }
         }),
-        acceptedAnswers: accepted.map((answer) => String(answer ?? '')),
       }
     }),
   }

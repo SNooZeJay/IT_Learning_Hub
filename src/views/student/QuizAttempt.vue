@@ -211,13 +211,13 @@ async function enterAttempt(id: string): Promise<void> {
 
   // The order comes from the server, in the order this attempt was served. It is
   // not re-derived here, because a client-side shuffle is recomputed on reload.
+  // Restored from the server's saved drafts. One key now, so this is a copy rather
+  // than a choice between two shapes.
   answers.value = {}
   for (const question of state.questions) {
     const entry = saved[question.questionId]
-    if (!entry) continue
-    if (entry.optionId)
-      answers.value[question.questionId] = { optionId: entry.optionId, text: null }
-    else if (entry.text) answers.value[question.questionId] = { optionId: null, text: entry.text }
+    if (!entry?.optionId) continue
+    answers.value[question.questionId] = { optionId: entry.optionId }
   }
 
   // Land on the first unanswered question. A resumed attempt that dropped the
@@ -247,11 +247,10 @@ const answeredCount = computed(
 async function handleAnswer(payload: {
   questionId: string
   optionId: string | null
-  text: string | null
 }): Promise<void> {
   answers.value = {
     ...answers.value,
-    [payload.questionId]: { optionId: payload.optionId ?? null, text: payload.text ?? null },
+    [payload.questionId]: { optionId: payload.optionId ?? null },
   }
 
   // Persisted as it is made, so a refresh does not lose it. A failure here is
@@ -263,7 +262,6 @@ async function handleAnswer(payload: {
       attemptId: attemptId.value!,
       questionId: payload.questionId,
       optionId: payload.optionId,
-      text: payload.text,
     })
   } catch {
     // Intentionally ignored. See above.

@@ -247,15 +247,18 @@ export async function startAttempt(quizId: string): Promise<string> {
 }
 
 /** One answer, as `submit_quiz_attempt` expects it. */
-export type SubmittedAnswer =
-  { questionId: string; optionId: string } | { questionId: string; text: string }
+export interface SubmittedAnswer {
+  questionId: string
+  optionId: string
+}
 
 /**
  * An answer as the form holds it, before it is submitted.
  *
  * This type exists because a single `Record<questionId, string>` cannot carry a quiz
- * answer. One question is answered by picking an option id and another by typing text,
- * and `submit_quiz_attempt` reads them from two different keys of the payload:
+ * answer - it did, and it cost every written answer in every quiz. One question was
+ * answered by picking an option id and another by typing text, and
+ * `submit_quiz_attempt` read them from two different keys of the payload:
  *
  *     short_text       ->  v_submitted->>'text'
  *     everything else  ->  nullif(v_submitted->>'option_id','')::uuid
@@ -269,41 +272,36 @@ export type SubmittedAnswer =
  *     {question_id, option_id: "4"}   ->  0.00 points
  *     {question_id, text: "4"}        ->  5.00 points
  *
- * `optionId` and `text` are kept apart here so that choice is made once, in one place,
- * and cannot be made wrong again by a component that happens to flatten.
+ * Written-answer questions no longer exist, so there is one kind of answer and one key
+ * to send. The named shape stays anyway rather than collapsing back to a bare string,
+ * for two reasons: `optionId` names what the string is, which a `Record<string,string>`
+ * does not; and the mistake this type was introduced to prevent was a component
+ * flattening the draft into something it had to guess the shape of. Keeping the object
+ * means there is nothing left to guess.
  */
 export interface DraftAnswer {
   optionId: string | null
-  text: string | null
 }
 
 /** Whether a draft holds something a student would recognise as an answer. */
 export function draftHasAnswer(draft: DraftAnswer | undefined | null): boolean {
   if (!draft) return false
-  return (draft.optionId ?? '').trim() !== '' || (draft.text ?? '').trim() !== ''
+  return (draft.optionId ?? '').trim() !== ''
 }
 
 /**
  * The payload `submit_quiz_attempt` grades from.
  *
- * Empty answers are dropped rather than sent, because a blank string in `text` is
- * indistinguishable from an unanswered question at grading time and would otherwise sit
- * in the denominator contributing nothing.
- *
- * A draft with both an option and text prefers the option. The interface cannot produce
- * that combination - picking an option clears any text and typing clears the option - so
- * this is a rule for malformed input rather than a real case, and the order is the safe
- * one because an option id is verifiable against the question while free text is not.
+ * Empty answers are dropped rather than sent, because an absent answer and an empty one
+ * are the same thing to the grader, and the question would otherwise sit in the
+ * denominator contributing nothing.
  */
 export function toSubmittedAnswers(drafts: Record<string, DraftAnswer>): SubmittedAnswer[] {
   const payload: SubmittedAnswer[] = []
 
   for (const [questionId, draft] of Object.entries(drafts)) {
     const optionId = (draft?.optionId ?? '').trim()
-    const text = (draft?.text ?? '').trim()
-
     if (optionId) payload.push({ questionId, optionId })
-    else if (text) payload.push({ questionId, text })
   }
 
   return payload
@@ -320,11 +318,14 @@ export async function submitAttempt(
   attemptId: string,
   answers: SubmittedAnswer[],
 ): Promise<QuizResult> {
-  const payload = answers.map((answer) =>
-    'optionId' in answer
-      ? { question_id: answer.questionId, option_id: answer.optionId }
-      : { question_id: answer.questionId, text: answer.text },
-  )
+  // One answer kind, so one shape. This was a conditional over a union - the branch that
+  // sent `text` for a written answer - and the union is gone with the question type that
+  // needed it. `submit_quiz_attempt` still reads both keys from the payload; only one of
+  // them is ever populated now.
+  const payload = answers.map((answer) => ({
+    question_id: answer.questionId,
+    option_id: answer.optionId,
+  }))
 
   const { data, error } = await supabase.rpc('submit_quiz_attempt', {
     p_attempt_id: attemptId,
@@ -390,9 +391,6 @@ function toResult(data: unknown): QuizResult {
         ...(answer.your_option_id === undefined
           ? {}
           : { yourOptionId: (answer.your_option_id as string | null) ?? null }),
-        ...(answer.your_text === undefined
-          ? {}
-          : { yourText: (answer.your_text as string | null) ?? null }),
         ...(options === undefined ? {} : { options }),
       }
     }),
@@ -466,7 +464,13 @@ export interface ServedQuestion {
   prompt: string
   questionType: QuestionType
   points: number
-  /** Always empty for a short_text question: the accepted answers stay on the server. */
+  /**
+   * At least two options, and the ids here are what the answer is graded against.
+   *
+   * It used to say "empty for a written-answer question, whose key stays on the server".
+   * Every question is a choice now, so the server has no reason to withhold anything: it
+   * sends every option and none of the correctness flags.
+   */
   options: QuizOption[]
 }
 
@@ -519,13 +523,16 @@ export async function saveAnswer(input: {
   attemptId: string
   questionId: string
   optionId?: string | null
-  text?: string | null
 }): Promise<void> {
   const { error } = await supabase.rpc('save_attempt_answer', {
     p_attempt_id: input.attemptId,
     p_question_id: input.questionId,
     p_option_id: input.optionId ?? null,
-    p_text: input.text ?? null,
+    // `save_attempt_answer` still takes a text argument, for a question type that no
+    // longer exists. Sent as null rather than omitted: the function's third parameter has
+    // no default, so leaving it out would be a missing-argument error rather than a
+    // draft with nothing typed in it.
+    p_text: null,
   })
   if (error) throw new QuizError(messageOf(error, 'Could not save that answer.'))
 }

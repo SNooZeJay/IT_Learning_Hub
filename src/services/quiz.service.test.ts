@@ -231,25 +231,33 @@ describe('submitAttempt', () => {
       error: null,
     })
 
-    const result = await submitAttempt('a', [{ questionId: 'q1', text: 'subnet' }])
+    const result = await submitAttempt('a', [{ questionId: 'q1', optionId: 'o1' }])
 
     expect(result.passed).toBe(false)
     expect(result.percentage).toBe(25)
     expect(result.revealAnswers).toBe(false)
   })
 
-  it('keeps a text answer and an option answer distinguishable on the wire', async () => {
+  it('sends every answer under option_id, with no second key', async () => {
     rpc.mockResolvedValue({ data: { answers: [] }, error: null })
 
     await submitAttempt('a', [
       { questionId: 'q1', optionId: 'o1' },
-      { questionId: 'q2', text: 'a subnet mask' },
+      { questionId: 'q2', optionId: 'o3' },
     ])
 
-    expect(rpc.mock.calls[0][1].p_answers).toEqual([
+    const sent = rpc.mock.calls[0][1].p_answers
+
+    expect(sent).toEqual([
       { question_id: 'q1', option_id: 'o1' },
-      { question_id: 'q2', text: 'a subnet mask' },
+      { question_id: 'q2', option_id: 'o3' },
     ])
+    // Stated as an assertion rather than left to the equality above: the grader reads
+    // two keys and only one of them is ever written now. A `text` key appearing would
+    // mean a second answer kind had come back without anyone noticing.
+    for (const entry of sent) {
+      expect('text' in entry).toBe(false)
+    }
   })
 
   it('refuses a resubmission instead of quietly regrading', async () => {
@@ -282,7 +290,7 @@ describe('reads', () => {
     respondByTable({
       quizzes: { data: [quizRow] },
       quiz_questions: {
-        data: [questionRow, { ...questionRow, id: 'q2', question_type: 'short_text' }],
+        data: [questionRow, { ...questionRow, id: 'q2' }],
       },
       quiz_options: { data: optionRows },
     })
@@ -291,8 +299,9 @@ describe('reads', () => {
 
     expect(quiz.questions).toHaveLength(2)
     expect(quiz.questions[0].options).toHaveLength(2)
-    // A short-text question legitimately has no options, and must not inherit
-    // the previous question's.
+    // A question with no options of its own - one being written, before the author has
+    // added any - must not inherit the previous question's. The map is keyed by question
+    // id, and a group-by that forgot the key would put o1 and o2 on both questions.
     expect(quiz.questions[1].options).toEqual([])
   })
 
@@ -369,107 +378,94 @@ describe('reads', () => {
 /**
  * How a form's answers become the payload the grader reads.
  *
- * The `submitAttempt` tests above already prove the service puts a written answer under
- * `text` on the wire - and they passed while the application scored every written answer
- * zero. The service was never the broken layer. The bug was one line up, in the view:
+ * These tests used to pin the boundary between two kinds of answer. Written-answer
+ * questions were removed, so there is one kind now, and the interesting property is no
+ * longer "which key" but "is it always the same key".
+ *
+ * The reason this layer is tested at all is worth keeping in mind. When a quiz held both
+ * kinds, the `submitAttempt` tests passed while the application scored every written
+ * answer zero. The service was never the broken layer. The bug was one line up, in the
+ * view, holding both kinds in one flat map:
  *
  *     const answers = ref<Record<string, string>>({})          // option id OR text
- *     .map(([questionId, value]) => ({ questionId, optionId: value }))
+ *       .map(([questionId, value]) => ({ questionId, optionId: value }))
  *
- * One map holding both kinds of answer has to flatten them into one key before it can
- * build a payload, and it flattened everything into `optionId`. A written answer then
- * reached `submit_quiz_attempt` as `option_id`, the grader read `->>'text'`, found
- * nothing, and scored the question zero however correct it was.
- *
- * Measured on a written question worth 5 points with the accepted answer "4":
+ * One map holding both kinds has to flatten them into one key before it can build a
+ * payload, and it flattened everything into `optionId`. A written answer then reached
+ * `submit_quiz_attempt` as `option_id`, the grader read `->>'text'`, found nothing, and
+ * scored the question zero however correct it was. Measured on a written question worth
+ * 5 points with the accepted answer "4":
  *
  *     {question_id, option_id: "4"}   ->  0.00 points
  *     {question_id, text: "4"}        ->  5.00 points
  *
- * So these tests pin the layer that was actually broken: the mapping from a draft, which
- * keeps the two kinds apart, into the union the service already handled correctly.
+ * So the assertions below are the same shape as before and the reason for them is
+ * narrower: there is exactly one payload key now, and a `text` key appearing again would
+ * mean something had reintroduced a second answer kind without saying so.
  */
-const Q_CHOICE = '11111111-1111-4111-8111-111111111111'
-const Q_WRITTEN = '22222222-2222-4222-8222-222222222222'
+const Q_ONE = '11111111-1111-4111-8111-111111111111'
+const Q_TWO = '22222222-2222-4222-8222-222222222222'
 const OPTION_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+const OPTION_B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 
 describe('toSubmittedAnswers', () => {
   it('sends a chosen option under option_id', () => {
-    expect(toSubmittedAnswers({ [Q_CHOICE]: { optionId: OPTION_A, text: null } })).toEqual([
-      { questionId: Q_CHOICE, optionId: OPTION_A },
+    expect(toSubmittedAnswers({ [Q_ONE]: { optionId: OPTION_A } })).toEqual([
+      { questionId: Q_ONE, optionId: OPTION_A },
     ])
   })
 
-  it('sends a written answer under text, which is the regression this describes', () => {
-    const payload = toSubmittedAnswers({ [Q_WRITTEN]: { optionId: null, text: '4' } })
+  it('never sends a text key, which is the regression this layer existed to prevent', () => {
+    const payload = toSubmittedAnswers({
+      [Q_ONE]: { optionId: OPTION_A },
+      [Q_TWO]: { optionId: OPTION_B },
+    })
 
-    expect(payload).toEqual([{ questionId: Q_WRITTEN, text: '4' }])
-    // The failure, stated as an assertion: a written answer must NOT be sent as an
-    // option. Under `option_id` the grader's `->>'text'` is null and the question scores
-    // zero however correct the answer was.
-    expect('optionId' in payload[0]).toBe(false)
+    // `submit_quiz_attempt` still reads `->>'text'`, for a question type that no longer
+    // exists. A payload that started populating it again would grade against a key
+    // nothing writes, which is the failure that cost every written answer its points.
+    for (const entry of payload) {
+      expect('text' in entry).toBe(false)
+    }
   })
 
-  it('keeps a choice answer and a written answer apart in the same attempt', () => {
+  it('keeps each answer attached to its own question', () => {
     const payload = toSubmittedAnswers({
-      [Q_CHOICE]: { optionId: OPTION_A, text: null },
-      [Q_WRITTEN]: { optionId: null, text: '4' },
+      [Q_ONE]: { optionId: OPTION_A },
+      [Q_TWO]: { optionId: OPTION_B },
     })
 
     expect(payload).toHaveLength(2)
-    expect(payload.find((a) => a.questionId === Q_CHOICE)).toEqual({
-      questionId: Q_CHOICE,
+    expect(payload.find((a) => a.questionId === Q_ONE)).toEqual({
+      questionId: Q_ONE,
       optionId: OPTION_A,
     })
-    expect(payload.find((a) => a.questionId === Q_WRITTEN)).toEqual({
-      questionId: Q_WRITTEN,
-      text: '4',
+    expect(payload.find((a) => a.questionId === Q_TWO)).toEqual({
+      questionId: Q_TWO,
+      optionId: OPTION_B,
     })
-  })
-
-  it('never puts a written answer under option_id, whatever the text looks like', () => {
-    // An option id is a uuid and typed text is arbitrary, so text can be uuid-shaped.
-    // Keying off the shape instead of off which field was set would be the same bug in
-    // a different costume.
-    const payload = toSubmittedAnswers({
-      [Q_WRITTEN]: { optionId: null, text: OPTION_A },
-      [Q_CHOICE]: { optionId: null, text: '4' },
-    })
-
-    for (const entry of payload) {
-      expect('optionId' in entry).toBe(false)
-    }
   })
 
   it('drops an empty answer rather than sending a blank', () => {
     // A blank string satisfies the payload's "present" check while contributing nothing,
     // so an empty answer would sit in the denominator and lower the percentage.
     const payload = toSubmittedAnswers({
-      [Q_CHOICE]: { optionId: OPTION_A, text: null },
-      [Q_WRITTEN]: { optionId: null, text: '   ' },
+      [Q_ONE]: { optionId: OPTION_A },
+      [Q_TWO]: { optionId: '   ' },
     })
 
     expect(payload).toHaveLength(1)
-    expect(payload[0].questionId).toBe(Q_CHOICE)
+    expect(payload[0].questionId).toBe(Q_ONE)
+  })
+
+  it('drops a question nobody has answered', () => {
+    expect(toSubmittedAnswers({ [Q_ONE]: { optionId: null } })).toEqual([])
   })
 
   it('trims, so the value sent is the value the student can see', () => {
-    const payload = toSubmittedAnswers({
-      [Q_CHOICE]: { optionId: `  ${OPTION_A}  `, text: null },
-      [Q_WRITTEN]: { optionId: null, text: '  4  ' },
-    })
+    const payload = toSubmittedAnswers({ [Q_ONE]: { optionId: `  ${OPTION_A}  ` } })
 
-    expect(payload[0]).toEqual({ questionId: Q_CHOICE, optionId: OPTION_A })
-    expect(payload[1]).toEqual({ questionId: Q_WRITTEN, text: '4' })
-  })
-
-  it('prefers the option when a malformed draft carries both', () => {
-    // The interface cannot produce this - choosing an option clears the text and typing
-    // clears the option - so it is a rule for bad input. An option id is checkable
-    // against the question; free text is not.
-    expect(toSubmittedAnswers({ [Q_CHOICE]: { optionId: OPTION_A, text: '4' } })).toEqual([
-      { questionId: Q_CHOICE, optionId: OPTION_A },
-    ])
+    expect(payload[0]).toEqual({ questionId: Q_ONE, optionId: OPTION_A })
   })
 
   it('returns nothing for an empty attempt', () => {
@@ -482,14 +478,14 @@ describe('toSubmittedAnswers', () => {
     await submitAttempt(
       'attempt-1',
       toSubmittedAnswers({
-        [Q_CHOICE]: { optionId: OPTION_A, text: null },
-        [Q_WRITTEN]: { optionId: null, text: '4' },
+        [Q_ONE]: { optionId: OPTION_A },
+        [Q_TWO]: { optionId: OPTION_B },
       }),
     )
 
     expect(rpc.mock.calls[0][1].p_answers).toEqual([
-      { question_id: Q_CHOICE, option_id: OPTION_A },
-      { question_id: Q_WRITTEN, text: '4' },
+      { question_id: Q_ONE, option_id: OPTION_A },
+      { question_id: Q_TWO, option_id: OPTION_B },
     ])
   })
 })
@@ -500,22 +496,25 @@ describe('draftHasAnswer', () => {
     expect(draftHasAnswer(null)).toBe(false)
   })
 
-  it('is true for a chosen option and for typed text', () => {
-    expect(draftHasAnswer({ optionId: OPTION_A, text: null })).toBe(true)
-    expect(draftHasAnswer({ optionId: null, text: '4' })).toBe(true)
+  it('is true for a chosen option', () => {
+    expect(draftHasAnswer({ optionId: OPTION_A })).toBe(true)
   })
 
-  it('is false for whitespace, which the student sees as an untouched box', () => {
-    // A progress dot counting a blank box as answered tells the student they have
+  it('is false for nothing chosen', () => {
+    expect(draftHasAnswer({ optionId: null })).toBe(false)
+  })
+
+  it('is false for whitespace, which the student sees as an untouched control', () => {
+    // A progress dot counting a blank control as answered tells the student they have
     // answered a question they have not.
-    expect(draftHasAnswer({ optionId: null, text: '   ' })).toBe(false)
-    expect(draftHasAnswer({ optionId: '', text: '' })).toBe(false)
+    expect(draftHasAnswer({ optionId: '   ' })).toBe(false)
+    expect(draftHasAnswer({ optionId: '' })).toBe(false)
   })
 
   it('agrees with toSubmittedAnswers, so the button and the badge cannot contradict it', () => {
     const drafts: Record<string, DraftAnswer> = {
-      [Q_CHOICE]: { optionId: OPTION_A, text: null },
-      [Q_WRITTEN]: { optionId: null, text: '   ' },
+      [Q_ONE]: { optionId: OPTION_A },
+      [Q_TWO]: { optionId: '   ' },
     }
 
     expect(Object.values(drafts).filter((d) => draftHasAnswer(d)).length).toBe(

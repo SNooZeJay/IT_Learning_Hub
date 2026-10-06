@@ -45,7 +45,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:currentIndex': [index: number]
-  answer: [payload: { questionId: string; optionId: string | null; text: string | null }]
+  answer: [payload: { questionId: string; optionId: string | null }]
   toggleFlag: [questionId: string]
   submit: []
 }>()
@@ -59,11 +59,7 @@ function hasAnswer(questionId: string): boolean {
 }
 
 function selectOption(questionId: string, optionId: string): void {
-  emit('answer', { questionId, optionId, text: null })
-}
-
-function typeText(questionId: string, text: string): void {
-  emit('answer', { questionId, optionId: null, text })
+  emit('answer', { questionId, optionId })
 }
 
 function isSelected(questionId: string, optionId: string): boolean {
@@ -78,9 +74,16 @@ function go(delta: number): void {
   emit('update:currentIndex', next)
 }
 
-/** True/false is still a choice, so it renders like one, but the texts are fixed. */
+/**
+ * Every question is answered by choosing an option.
+ *
+ * The wording is the only thing left that differs between the two types, so this is a
+ * label and not a branch. It was three branches until written-answer questions were
+ * removed; the `Write your answer` case had no way to be reached once the type left the
+ * enum, and keeping it would have meant a function that describes a question this
+ * application cannot contain.
+ */
 function typeLabel(type: QuestionType): string {
-  if (type === 'short_text') return 'Write your answer'
   if (type === 'true_false') return 'True or false'
   return 'Choose one'
 }
@@ -154,30 +157,10 @@ function typeLabel(type: QuestionType): string {
         {{ current.prompt }}
       </p>
 
-      <!-- Written answer. The accepted answers stay on the server, so there is
-           nothing to show but the box. -->
-      <div v-if="current.questionType === 'short_text'" class="mt-5">
-        <label
-          :for="`answer-${current.questionId}`"
-          class="text-sm font-medium text-gray-700 dark:text-gray-300"
-        >
-          Your answer
-        </label>
-        <input
-          :id="`answer-${current.questionId}`"
-          type="text"
-          autocomplete="off"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
-          placeholder="Type your answer"
-          :value="answers[current.questionId]?.text ?? ''"
-          @input="typeText(current.questionId, ($event.target as HTMLInputElement).value)"
-        />
-      </div>
-
       <!-- Choices. Full-width rows, not radios in a line: a long option needs to
            wrap under its own label, and a 16px tap target in a list of five is
            the difference between usable and not on a phone. -->
-      <div v-else class="mt-5">
+      <div class="mt-5">
         <fieldset>
           <legend class="text-sm font-medium text-gray-700 dark:text-gray-300">
             Choose one answer

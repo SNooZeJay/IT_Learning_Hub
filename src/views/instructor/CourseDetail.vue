@@ -261,19 +261,6 @@
                           </li>
                         </ul>
 
-                        <ul v-if="question.acceptedAnswers.length" class="mt-2 space-y-1">
-                          <li
-                            v-for="answer in question.acceptedAnswers"
-                            :key="answer"
-                            class="flex items-center gap-2 text-sm"
-                          >
-                            <Check class="size-4 shrink-0 text-success-600 dark:text-success-400" />
-                            <span class="font-medium text-gray-900 dark:text-white/90">
-                              {{ answer }}
-                            </span>
-                          </li>
-                        </ul>
-
                         <p
                           v-if="question.explanation"
                           class="mt-2 border-s-2 border-hairline ps-3 text-sm text-slate"

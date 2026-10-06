@@ -76,7 +76,6 @@ const props = withDefaults(
 const questionTypeLabels: Record<QuestionType, string> = {
   multiple_choice: 'Multiple choice',
   true_false: 'True or false',
-  short_text: 'Written answer',
 }
 
 // ---------------------------------------------------------------------------
@@ -794,7 +793,6 @@ watch(
                           {{ question.points }}
                           {{ question.points === 1 ? 'point' : 'points' }}
                         </span>
-                        <span v-if="question.caseSensitive">Case sensitive</span>
                         <span v-if="question.explanation">Has an explanation</span>
                       </p>
 
@@ -820,24 +818,6 @@ watch(
                             "
                           >
                             {{ option.optionText }}
-                          </span>
-                        </li>
-                      </ul>
-
-                      <ul
-                        v-if="question.acceptedAnswers.length > 0"
-                        class="mt-2.5 flex flex-col gap-1"
-                      >
-                        <li
-                          v-for="answer in question.acceptedAnswers"
-                          :key="answer"
-                          class="flex items-start gap-2 text-sm"
-                        >
-                          <Check
-                            class="mt-0.5 size-4 shrink-0 text-success-600 dark:text-success-400"
-                          />
-                          <span class="font-medium text-gray-900 dark:text-white/90">
-                            {{ answer }}
                           </span>
                         </li>
                       </ul>

@@ -44,9 +44,8 @@ const MIN_OPTIONS = 2
 const MAX_OPTIONS = 6
 
 const typeLabels: Record<QuestionType, string> = {
-  multiple_choice: 'Multiple choice — pick one from a list',
-  true_false: 'True or false — a statement to judge',
-  short_text: 'Written answer — the student types it',
+  multiple_choice: 'Multiple choice - pick one from a list',
+  true_false: 'True or false - a statement to judge',
 }
 
 const typeHints: Record<QuestionType, string> = {
@@ -54,18 +53,11 @@ const typeHints: Record<QuestionType, string> = {
     'Give the options below. Exactly one of them is marked correct, and that is what the quiz is graded against.',
   true_false:
     'Two fixed options, True and False. The student judges the statement and one of them is the correct answer.',
-  short_text:
-    'The student types an answer, and it is marked against the list you give here. Add every wording you are willing to accept.',
 }
 
 interface OptionRow {
   key: number
   optionText: string
-}
-
-interface AnswerRow {
-  key: number
-  text: string
 }
 
 /** Row keys, so removing one option does not make Vue reuse another input's state. */
@@ -76,11 +68,6 @@ function newOption(optionText = ''): OptionRow {
   return { key: nextKey, optionText }
 }
 
-function newAnswer(text = ''): AnswerRow {
-  nextKey += 1
-  return { key: nextKey, text }
-}
-
 const prompt = ref('')
 const points = ref<number | string>(1)
 const explanation = ref('')
@@ -88,8 +75,6 @@ const questionType = ref<QuestionType>('multiple_choice')
 const options = ref<OptionRow[]>([newOption(), newOption()])
 /** Index of the correct option, or -1 when the author has not chosen one. */
 const correctIndex = ref(-1)
-const answers = ref<AnswerRow[]>([newAnswer()])
-const caseSensitive = ref(false)
 const formError = ref('')
 
 /**
@@ -111,7 +96,6 @@ watch(
     points.value = value?.points ?? 1
     explanation.value = value?.explanation ?? ''
     questionType.value = value?.questionType ?? 'multiple_choice'
-    caseSensitive.value = value?.caseSensitive ?? false
     formError.value = ''
 
     if (questionType.value === 'true_false') {
@@ -123,11 +107,6 @@ watch(
     }
 
     correctIndex.value = value ? value.options.findIndex((option) => option.isCorrect) : -1
-
-    answers.value =
-      value && value.acceptedAnswers.length > 0
-        ? value.acceptedAnswers.map((answer) => newAnswer(answer))
-        : [newAnswer()]
   },
   { immediate: true },
 )
@@ -138,15 +117,12 @@ function onTypeChange(event: Event): void {
   formError.value = ''
   correctIndex.value = -1
 
+  // Both remaining types are answered by choosing an option, so the only thing that
+  // changes when the type does is how many options start out and what they say.
   if (next === 'true_false') {
     options.value = [newOption('True'), newOption('False')]
-    answers.value = [newAnswer()]
-  } else if (next === 'multiple_choice') {
-    options.value = [newOption(), newOption()]
-    answers.value = [newAnswer()]
   } else {
-    options.value = []
-    answers.value = [newAnswer()]
+    options.value = [newOption(), newOption()]
   }
 }
 
@@ -170,14 +146,6 @@ function removeOption(index: number): void {
   else if (correctIndex.value > index) correctIndex.value -= 1
 }
 
-function addAnswer(): void {
-  answers.value = [...answers.value, newAnswer()]
-}
-
-function removeAnswer(index: number): void {
-  answers.value = answers.value.filter((_, position) => position !== index)
-}
-
 /**
  * `points` is `number | string` because an emptied number input emits `''`.
  * Anything that is not a positive number becomes 0 and is refused by the submit
@@ -194,17 +162,14 @@ function buildDraft(): QuestionDraft {
     prompt: prompt.value,
     points: pointValue(),
     explanation: explanation.value.trim() === '' ? null : explanation.value,
-    caseSensitive: caseSensitive.value,
   }
 
-  if (questionType.value === 'short_text') {
-    draft.acceptedAnswers = answers.value.map((row) => row.text.trim()).filter((row) => row !== '')
-  } else {
-    draft.options = options.value.map((row, index) => ({
-      optionText: row.optionText,
-      isCorrect: index === correctIndex.value,
-    }))
-  }
+  // Always options. This was a branch that read the question type and built one of two
+  // shapes; there is one shape now, and `validateQuestion` checks exactly it.
+  draft.options = options.value.map((row, index) => ({
+    optionText: row.optionText,
+    isCorrect: index === correctIndex.value,
+  }))
 
   return draft
 }
@@ -312,7 +277,12 @@ function submit(): void {
         </div>
       </fieldset>
 
-      <fieldset v-else-if="questionType === 'multiple_choice'">
+      <!-- Every remaining type is answered by choosing from options, so this fieldset is
+           what you get for anything that is not true/false. It used to be
+           `v-else-if="questionType === 'multiple_choice'"` with a third fieldset
+           behind it; with two types left, `v-else` says the same thing and cannot
+           fall through to nothing. -->
+      <fieldset v-else>
         <legend class="text-sm font-medium text-gray-700 dark:text-gray-300">Options</legend>
         <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
           Select the one that is correct. Students see these in the order shown here, and the first
@@ -382,70 +352,6 @@ function submit(): void {
           </p>
         </div>
       </fieldset>
-
-      <template v-else>
-        <fieldset>
-          <legend class="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Accepted answers
-          </legend>
-          <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            Every wording you will accept, one per row. A written answer is marked right if it
-            matches one of these. This list is the answer key, so it is never shown to the student.
-          </p>
-
-          <div class="mt-3 flex flex-col gap-2">
-            <div v-for="(row, index) in answers" :key="row.key" class="flex items-center gap-2">
-              <label :for="`${fieldPrefix}-answer-${row.key}`" class="sr-only">
-                Accepted answer {{ index + 1 }}
-              </label>
-              <input
-                :id="`${fieldPrefix}-answer-${row.key}`"
-                v-model="row.text"
-                type="text"
-                maxlength="500"
-                placeholder="200"
-                class="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
-              />
-              <button
-                type="button"
-                :aria-label="`Remove accepted answer ${index + 1}`"
-                class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-error-50 hover:text-error-600 dark:text-gray-400 dark:hover:bg-error-500/10 dark:hover:text-error-400"
-                @click="removeAnswer(index)"
-              >
-                <Trash2 class="size-4" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            class="mt-3 inline-flex min-h-11 items-center gap-1.5 self-start text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-            @click="addAnswer"
-          >
-            <Plus class="size-4" aria-hidden="true" />
-            Add another accepted answer
-          </button>
-        </fieldset>
-
-        <label
-          class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300"
-          :for="`${fieldPrefix}-case`"
-        >
-          <input
-            :id="`${fieldPrefix}-case`"
-            v-model="caseSensitive"
-            type="checkbox"
-            class="mt-0.5 size-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 dark:border-gray-600 dark:bg-white/[0.03]"
-          />
-          <span>
-            Case sensitive
-            <span class="block text-xs text-gray-500 dark:text-gray-400">
-              Off, <span class="font-medium">HTTP</span> and <span class="font-medium">http</span>
-              are the same answer. On, they are not.
-            </span>
-          </span>
-        </label>
-      </template>
 
       <div>
         <label
