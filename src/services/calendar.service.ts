@@ -133,6 +133,31 @@ async function rowsOf(
   }
 }
 
+/**
+ * The courses this viewer holds a live place on.
+ *
+ * `active` and `completed` only. `pending` is a payment in flight - the enrolment exists
+ * so that money has somewhere to land, and it grants nothing until `settle_payment` runs -
+ * and `dropped` is a place the viewer left, which keeps the row for reporting but no longer
+ * grants access. `is_enrolled_in` in the database draws the same line, and this is the same
+ * line written where the calendar can be read.
+ *
+ * No student id is passed in: the viewer is whoever is signed in, and RLS already limits
+ * this to their own enrolments.
+ */
+async function liveCourseIdsForViewer(): Promise<string[]> {
+  const rows = await rowsOf(() =>
+    supabase.from('enrollments').select('course_id').in('status', ['active', 'completed']),
+  )
+
+  const ids = new Set<string>()
+  for (const row of rows) {
+    const id = (row as { course_id?: unknown }).course_id
+    if (typeof id === 'string' && id !== '') ids.add(id)
+  }
+  return [...ids]
+}
+
 export function tenseOf(at: string, now: Date = new Date()): EventTense {
   const date = new Date(at)
   if (Number.isNaN(date.getTime())) return 'past'
@@ -182,9 +207,31 @@ export function tenseOf(at: string, now: Date = new Date()): EventTense {
  * read: enrolments to their own, quiz attempts to their own, lesson progress to
  * their own. Nothing here filters by student id in application code, because doing
  * so would be a second, weaker copy of a rule the database already enforces.
+ *
+ * Assignments and announcements are the two scoped to a *course* rather than to a person,
+ * so they are filtered here as well. Two reasons, in order of importance:
+ *
+ * 1. RLS used not to scope them. `assignments select` granted every published assignment
+ *    to every signed-in account through a disjunct that mentioned nothing about the
+ *    caller, and this query carried no course filter of its own - so a student with only
+ *    a pending enrolment on a paid course was shown that course's assignment deadline.
+ *    The policy is fixed. The fix would be hollow if this query were still trusting it.
+ *
+ * 2. RLS is a boundary, not a filter. It answers "may this person read this row", not
+ *    "which rows belong on this person's calendar". The second question is the
+ *    application's, and the page's own subtitle is "Every dated thing across your
+ *    courses" - so the course list it means is written here, where it can be read.
+ *
+ * A pending enrolment is not a course you hold. `pending` is a payment in flight and
+ * `dropped` is a place you left; neither puts a deadline in front of somebody.
  */
 async function collectStudentEvents(): Promise<CalendarEvent[]> {
   const now = new Date()
+
+  // Fetched first because two of the sources below are filtered by it. `.in([])` is
+  // rejected by PostgREST rather than matching nothing, so an empty result short-circuits
+  // to no course-scoped events instead of sending a query that errors.
+  const liveCourseIds = await liveCourseIdsForViewer()
 
   const [
     assignments,
@@ -198,12 +245,21 @@ async function collectStudentEvents(): Promise<CalendarEvent[]> {
   ] = await Promise.all([
     // A deadline the student can be held to. `due_at is not null` because the
     // column is nullable and an assignment with no date is not a calendar event.
-    rowsOf(() =>
-      supabase
-        .from('assignments')
-        .select('id, title, due_at, courses!inner(id, title, slug)')
-        .not('due_at', 'is', null),
-    ),
+    //
+    // Filtered to the courses this student actually holds a place on. That is redundant
+    // with `assignments select` as it now stands, and deliberately so - see the note on
+    // this function. When the policy is right the filter changes nothing; when the policy
+    // is wrong, the calendar still shows only the viewer's own courses, which is the
+    // difference between a student's calendar and a list of other people's deadlines.
+    liveCourseIds.length === 0
+      ? Promise.resolve([])
+      : rowsOf(() =>
+          supabase
+            .from('assignments')
+            .select('id, title, due_at, courses!inner(id, title, slug)')
+            .in('course_id', liveCourseIds)
+            .not('due_at', 'is', null),
+        ),
     // The only genuinely forward-looking quiz date in the schema: the moment an
     // open attempt's time limit runs out. It is set by `start_quiz_attempt` from
     // the server clock, so it is a real deadline and not a local countdown.
@@ -214,11 +270,25 @@ async function collectStudentEvents(): Promise<CalendarEvent[]> {
         .eq('status', 'in_progress')
         .not('expires_at', 'is', null),
     ),
+    // An announcement is aimed either at everybody - `course_id is null`, which the
+    // policy deliberately grants to every account - or at one course. The course-scoped
+    // ones are filtered to this student's courses for the same reason assignments are: a
+    // site-wide announcement is genuinely for everybody, but an announcement about a
+    // course you are not on is not your news.
+    //
+    // `.is('course_id', null)` rather than `.not(...)`, because "not aimed at a course" is
+    // the case worth being explicit about and the one a reader would otherwise have to
+    // infer from the absence of a filter.
     rowsOf(() =>
       supabase
         .from('announcements')
-        .select('id, title, published_at, courses!inner(title, slug)')
+        .select('id, title, published_at, course_id, courses!inner(title, slug)')
         .not('published_at', 'is', null),
+    ).then((rows) =>
+      rows.filter((row) => {
+        const courseId = (row as { course_id?: string | null }).course_id ?? null
+        return courseId === null || liveCourseIds.includes(courseId)
+      }),
     ),
     rowsOf(() =>
       supabase
