@@ -375,7 +375,22 @@ router.beforeEach(async (to) => {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
 
-  if (to.meta.roles && auth.role && !to.meta.roles.includes(auth.role)) {
+  // A role-gated route, entered with the role still unknown.
+  //
+  // `auth.role` is `profile?.role ?? null`, and `stores/auth.ts` sets `profile = null` when
+  // the profile read throws. The `auth.role &&` clause that used to sit in this condition
+  // made an unknown role evaluate it false, so the guard allowed the navigation: a
+  // signed-in user whose profile failed to load reached the admin shell and saw empty
+  // tables and "your profile has not loaded".
+  //
+  // Not a data leak - RLS is the boundary, as the note at the top of this file says - but
+  // a fail-open in the one place that otherwise tries not to. `layouts/navigation.ts`
+  // returns no items for an unknown role rather than guessing, so the sidebar was careful
+  // while the guard was not.
+  //
+  // `homePath` for a null role is the dashboard, which is not itself role-gated, so this
+  // cannot loop.
+  if (to.meta.roles && (!auth.role || !to.meta.roles.includes(auth.role))) {
     return auth.homePath
   }
 

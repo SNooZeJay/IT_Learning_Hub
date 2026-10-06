@@ -106,7 +106,7 @@
                 notification read in the bell moves this badge too.
               -->
               <span
-                v-if="badgeCount(item) !== null && isKnown && (badgeCount(item) ?? 0) > 0"
+                v-if="badgeCount(item) !== null && badgeKnown(item) && (badgeCount(item) ?? 0) > 0"
                 class="ms-auto shrink-0 rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] leading-none font-semibold text-white tabular-nums"
                 :class="!isExpanded && !isHovered ? 'hidden' : ''"
               >
@@ -150,6 +150,22 @@ function badgeCount(item: { badge?: 'notifications' | 'messages' }): number | nu
   if (item.badge === 'messages') return messages.unreadCount.value
   if (item.badge === 'notifications') return unreadCount.value
   return null
+}
+
+/**
+ * Whether this item's count has actually been read yet.
+ *
+ * Asked per item rather than once for the sidebar. The template used the notifications
+ * singleton's `isKnown` for both badges, so when the notification feed failed to load the
+ * Messages badge was suppressed while the header's message button - which reads the same
+ * number and asks its own `isKnown` - showed a count. The header and the sidebar disagreed
+ * about the same figure, which is the one thing sharing `useUnreadMessages` was for.
+ */
+function badgeKnown(item: { badge?: 'notifications' | 'messages' }): boolean {
+  if (item.badge === 'messages') return messages.isKnown.value
+  // Both are refs and both want `.value`. `useUnreadMessages` narrows its `isKnown` to a
+  // plain readonly ref; the notifications composable does not, hence the asymmetry.
+  return isKnown.value
 }
 
 const route = useRoute()

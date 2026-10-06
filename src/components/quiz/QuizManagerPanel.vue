@@ -194,8 +194,21 @@ async function loadQuizzes(): Promise<void> {
  * A null result is not something the service throws. `getQuizForAuthoring` returns
  * null for a quiz this instructor may not read, and that reads as "not here"
  * rather than as a failure, because a failure would offer a retry that cannot help.
+ *
+ * Guarded by a request token. `select()` fires this without awaiting, so clicking
+ * through two quizzes issues two concurrent reads, and whichever happened to be slower
+ * used to win `quiz.value` while `selectedId` held the newer choice. The instructor then
+ * saw quiz B highlighted in the list with quiz A's questions and answer key - and every
+ * write went to quiz A, because the writes read `quiz.value` rather than the selection.
+ * Adding, editing, deleting, reordering and publishing all did this.
+ *
+ * A counter rather than a boolean, because two loads can be in flight at once and only
+ * the newest may land.
  */
+let loadToken = 0
+
 async function loadQuiz(quizId: string): Promise<void> {
+  const token = ++loadToken
   selectedId.value = quizId
   quiz.value = null
   quizError.value = ''
@@ -203,6 +216,7 @@ async function loadQuiz(quizId: string): Promise<void> {
 
   try {
     const loaded = await getQuizForAuthoring(quizId)
+    if (token !== loadToken) return
     if (!loaded) {
       quizError.value = 'That quiz is not on this course, or it has been deleted.'
       return
@@ -212,11 +226,13 @@ async function loadQuiz(quizId: string): Promise<void> {
     // there too rather than left editing the previous version.
     if (settingsForm.quiz) settingsForm.quiz = loaded
   } catch (error) {
+    if (token !== loadToken) return
     quizError.value = describe(error, 'Could not load this quiz.')
   } finally {
-    isLoadingQuiz.value = false
+    // Only the newest load may clear the spinner. A stale one finishing would hide a
+    // spinner that is still wanted for the load actually in progress.
+    if (token === loadToken) isLoadingQuiz.value = false
   }
-
   void loadAttempts(quizId)
 }
 

@@ -86,6 +86,7 @@
                 <input
                   id="slug"
                   v-model.trim="form.slug"
+                  @input="markSlugTouched"
                   type="text"
                   required
                   maxlength="200"
@@ -1039,12 +1040,21 @@ watch(
     if (isNew.value && !slugTouched.value) form.value.slug = derivedSlug.value
   },
 )
-watch(
-  () => form.value.slug,
-  () => {
-    slugTouched.value = true
-  },
-)
+
+/**
+ * Marked from the slug field's own `@input`, never by watching `form.slug`.
+ *
+ * Watching the slug looked equivalent and was not. This watcher *writes* the slug, so
+ * watching it fired on the instructor's first keystroke and set `slugTouched` before they
+ * had touched it. From the second character onward the title stopped updating the slug, so
+ * typing "Introduction to Web Development" produced the slug "i" - with the "Edited by
+ * hand" warning displayed, because the flag was true and the value no longer matched.
+ *
+ * `admin/Categories.vue` already had this right and says so in a comment there.
+ */
+function markSlugTouched(): void {
+  slugTouched.value = true
+}
 
 const lessonCount = computed(() =>
   modules.value.reduce((total, module) => total + module.lessons.length, 0),

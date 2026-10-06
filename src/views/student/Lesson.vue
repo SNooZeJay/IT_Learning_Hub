@@ -561,7 +561,20 @@ function onTimeUpdate(event: Event): void {
   watchedSeconds.value = Math.max(watchedSeconds.value, Math.floor(media.currentTime))
 }
 
+/**
+ * Incremented per load; a response whose token is stale is discarded.
+ *
+ * Navigating between lessons fires this watcher without awaiting, so two `load()` calls can
+ * be in flight at once. Lesson A's read resolving after lesson B's overwrote `context`, and
+ * `loadOutline`/`loadGaps` then read `context.value.course.id` for the wrong course - so the
+ * URL said one lesson and the page showed another's title, content and progress.
+ *
+ * A counter rather than a boolean because the calls overlap rather than queue.
+ */
+let loadToken = 0
+
 async function load(): Promise<void> {
+  const token = ++loadToken
   isLoading.value = true
   errorMessage.value = ''
   try {
@@ -575,8 +588,15 @@ async function load(): Promise<void> {
       return
     }
 
-    const loaded = await getLessonContext(lessonId.value, studentId)
+    // Read the id once. lessonId.value can change while this is in flight, and
+    // reading it after the await would fetch a different lesson than the one this
+    // load started for.
+    const wanted = lessonId.value
+    const loaded = await getLessonContext(wanted, studentId)
+    // Discard a response the user has already navigated away from.
+    if (token !== loadToken || wanted !== lessonId.value) return
     context.value = loaded
+    if (!loaded) return
     if (!loaded) return
 
     // Opening a lesson is the one moment where recording "in progress" is honest
