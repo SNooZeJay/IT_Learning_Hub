@@ -27,10 +27,18 @@ vi.mock('@/services/supabase/client', () => ({
 
 import {
   LearningError,
+  SUBMISSION_FILE_MAX_BYTES,
+  describeSubmissionFile,
   listStudentAssignments,
   submitAssignment,
-  validateSubmissionText,
+  validateSubmissionContent,
 } from '@/services/learning.service'
+import { materialFileName } from '@/services/material.service'
+
+/** A `File` of a chosen size, without reading `size` bytes into memory. */
+function fileOf(size: number, name: string): File {
+  return { size, name } as File
+}
 
 /** A thenable chain that resolves to whatever the test queued. */
 function chain(result: { data?: unknown; error?: { message: string } | null }) {
@@ -132,24 +140,73 @@ beforeEach(() => {
 // Validation, which mirrors `submission_has_content`
 // ---------------------------------------------------------------------------
 
-describe('validateSubmissionText', () => {
-  it('refuses blank work, because a hand-in with no content is not a hand-in', () => {
+describe('validateSubmissionContent', () => {
+  it('refuses a hand-in with neither text nor a file, because that is not a hand-in', () => {
     // `submission_has_content` is `submission_text is not null or file_path is
-    // not null`. With no upload available the text is the only possible body, so
-    // this is the same rule stated before the round trip.
+    // not null`. This is the same rule stated before the round trip.
     for (const text of ['', '   ', '\n\t']) {
-      const check = validateSubmissionText(text)
+      const check = validateSubmissionContent(text)
       expect(check.ok).toBe(false)
       if (!check.ok) expect(check.reason).toMatch(/before handing/)
     }
-    expect(validateSubmissionText('something').ok).toBe(true)
+    expect(validateSubmissionContent('something').ok).toBe(true)
+  })
+
+  it('accepts blank text when a file is attached, which is the other half of the rule', () => {
+    // The change that made uploads possible. Before, blank text was always a
+    // refusal; now it is only a refusal when there is nothing else either.
+    expect(validateSubmissionContent('', true).ok).toBe(true)
+    expect(validateSubmissionContent('   ', true).ok).toBe(true)
+  })
+
+  it('still refuses blank text with no file', () => {
+    expect(validateSubmissionContent('', false).ok).toBe(false)
+  })
+
+  it('names both ways out, so the refusal tells the student what to do', () => {
+    const check = validateSubmissionContent('')
+    expect(check.ok).toBe(false)
+    if (!check.ok) expect(check.reason).toMatch(/attach a file/i)
   })
 
   it('imposes no length rule, because the schema has none', () => {
     // The column is `text`. A maximum invented here would be a limit only this
     // form enforced, which is the kind of rule that surprises the second student
     // to write a long answer and the first to be told no.
-    expect(validateSubmissionText('x'.repeat(50_000)).ok).toBe(true)
+    expect(validateSubmissionContent('x'.repeat(50_000)).ok).toBe(true)
+  })
+})
+
+describe('describeSubmissionFile', () => {
+  it('accepts a file inside the limit', () => {
+    expect(describeSubmissionFile(fileOf(1024, 'notes.pdf'))).toBeNull()
+  })
+
+  it('accepts a file exactly on the limit', () => {
+    // Off by one either way is a student told the wrong thing about their own file.
+    expect(describeSubmissionFile(fileOf(SUBMISSION_FILE_MAX_BYTES, 'big.pdf'))).toBeNull()
+  })
+
+  it('refuses an empty file, which would otherwise store nothing', () => {
+    expect(describeSubmissionFile(fileOf(0, 'empty.txt'))).toMatch(/empty/i)
+  })
+
+  it('refuses a file over the limit and states the number', () => {
+    // The number is what makes the message actionable. "Too large" is not.
+    const problem = describeSubmissionFile(fileOf(SUBMISSION_FILE_MAX_BYTES + 1, 'big.mp4'))
+    expect(problem).toMatch(/10 MB/)
+  })
+})
+
+describe('materialFileName', () => {
+  it('drops the uuid prefix, which is noise to the person who attached it', () => {
+    const key = 'student/assignment/9f1c2b3d-4e5f-4a6b-8c9d-0e1f2a3b4c5d-report.pdf'
+    expect(materialFileName(key, 'fallback')).toBe('report.pdf')
+  })
+
+  it('falls back when there is no key, rather than rendering an empty name', () => {
+    expect(materialFileName(null, 'Week 1 handout')).toBe('Week 1 handout')
+    expect(materialFileName('', 'Week 1 handout')).toBe('Week 1 handout')
   })
 })
 

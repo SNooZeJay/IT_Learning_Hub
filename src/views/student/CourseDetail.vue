@@ -292,6 +292,7 @@ import { listQuizzesForCourse } from '@/services/quiz.service'
 import {
   listStudentAssignments,
   submitAssignment,
+  uploadSubmissionFile,
   type StudentAssignment,
 } from '@/services/learning.service'
 import { useAuthStore } from '@/stores/auth'
@@ -483,7 +484,11 @@ async function loadAssignments(courseId: string, enrolled: boolean): Promise<voi
  * student. A hand-in that reports success and renders as "not submitted" is
  * worse than an error.
  */
-async function handleSubmit(assignmentId: string, submissionText: string): Promise<void> {
+async function handleSubmit(
+  assignmentId: string,
+  submissionText: string,
+  file: File | null,
+): Promise<void> {
   if (!course.value) return
 
   isSubmitting.value = assignmentId
@@ -492,7 +497,11 @@ async function handleSubmit(assignmentId: string, submissionText: string): Promi
   submitErrors.value = next
 
   try {
-    await submitAssignment(assignmentId, submissionText)
+    // Upload first, then write the row. The reverse order would leave a submission
+    // pointing at a path holding nothing if the insert failed, and an orphan object
+    // is cheaper to reconcile than a hand-in that cannot be opened.
+    const path = file ? await uploadSubmissionFile(assignmentId, file) : null
+    await submitAssignment(assignmentId, submissionText, path)
     await loadAssignments(course.value.id, isEnrolledHere.value)
   } catch (error) {
     submitErrors.value = {

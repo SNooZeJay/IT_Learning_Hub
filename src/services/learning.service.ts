@@ -1368,35 +1368,106 @@ function toStudentSubmission(row: SubmissionRow): StudentSubmission {
   }
 }
 
+/** The bucket student hand-in files live in. Private; read through a signed URL. */
+export const SUBMISSION_BUCKET = 'assignment-submissions'
+
 /**
- * Why this app cannot offer a file upload, in the words a student reads.
+ * The largest hand-in attachment, in bytes.
  *
- * The `assignment-submissions` bucket has exactly one policy,
- * `admins manage submission bucket`, and it is `bucket_id = 'assignment-submissions'
- * and is_admin()` for ALL commands. A student's insert is refused by storage
- * before it reaches the row, and there is no student read policy either. So the
- * form says the hand-in is text and says why, rather than carrying a file input
- * that would fail on every single use.
+ * The same 10 MB the bucket policy enforces, stated once and used by the browser
+ * check and the copy, so the form cannot promise a size that is then refused.
  */
-export const FILE_UPLOAD_UNAVAILABLE =
-  'Hand-in is text only. This site keeps uploaded files in a bucket that only an ' +
-  'administrator can write to, so a student cannot attach one.'
+export const SUBMISSION_FILE_MAX_BYTES = 10 * 1024 * 1024
+
+/**
+ * Why a chosen file cannot be attached, or `null` when it can.
+ *
+ * Specific on purpose. "That file is larger than 10 MB" is something a student can act
+ * on; a generic upload failure is not.
+ */
+export function describeSubmissionFile(file: File): string | null {
+  if (file.size === 0) return 'That file is empty, so there is nothing to attach.'
+  if (file.size > SUBMISSION_FILE_MAX_BYTES) {
+    const mb = Math.round(SUBMISSION_FILE_MAX_BYTES / (1024 * 1024))
+    return `That file is larger than ${mb} MB. Attach a smaller one, or split it.`
+  }
+  return null
+}
+
+/**
+ * Upload one hand-in file and return its object key.
+ *
+ * The key is `<student id>/<assignment id>/<uuid>-<name>` because the bucket's policies
+ * read the first two folder segments: the first must be the caller's own id and the
+ * second the assignment it belongs to. A key not starting with a uuid is refused by
+ * storage before a byte is stored, which is why the lesson-materials bucket has the
+ * same shape and why `course_id_from_object_name` exists.
+ *
+ * The row is written by the caller after this resolves, so a failed upload never leaves
+ * a submission pointing at a path that holds nothing.
+ */
+export async function uploadSubmissionFile(assignmentId: string, file: File): Promise<string> {
+  const studentId = await currentUserId()
+  if (!studentId) {
+    throw new LearningError('You need to be signed in to attach a file.')
+  }
+
+  const problem = describeSubmissionFile(file)
+  if (problem) throw new LearningError(problem)
+
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+  const path = `${studentId}/${assignmentId}/${crypto.randomUUID()}-${safeName}`
+
+  const { error } = await supabase.storage
+    .from(SUBMISSION_BUCKET)
+    .upload(path, file, { upsert: false, contentType: file.type || undefined })
+
+  if (error) {
+    throw new LearningError(messageOf(error, 'That file did not upload. Try attaching it again.'))
+  }
+
+  return path
+}
+
+/**
+ * A short-lived URL for an attachment.
+ *
+ * The bucket is private, and its read policy admits the student who uploaded it, an
+ * instructor of that student's course, or an admin. Signing happens after that policy
+ * has already decided, so a refusal here is the boundary working rather than a fault.
+ */
+export async function createSubmissionFileUrl(path: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from(SUBMISSION_BUCKET)
+    .createSignedUrl(path, 60 * 10)
+
+  if (error || !data?.signedUrl) {
+    throw new LearningError(
+      'That file cannot be opened. It may belong to a submission you cannot see.',
+    )
+  }
+
+  return data.signedUrl
+}
 
 /**
  * Check a hand-in before it is sent.
  *
- * The only rule is `submission_has_content`: `submission_text is not null or
- * file_path is not null`. With no upload available the text is the only possible
- * body, so blank text is a submission with no content - refused here with a
- * sentence rather than by the constraint.
+ * Mirrors the database's `submission_has_content`: `submission_text is not null or
+ * file_path is not null`. Either half satisfies it, so a student may answer in prose,
+ * attach a file, or do both, and only an entirely empty hand-in is refused.
  *
- * No length rule, because the schema has none. Inventing a maximum would be a
- * limit the database does not enforce, and the form would then be the only thing
- * enforcing it.
+ * No length rule, because the schema has none. Inventing a maximum would be a limit the
+ * database does not enforce, and the form would then be the only thing enforcing it.
  */
-export function validateSubmissionText(text: string): { ok: true } | { ok: false; reason: string } {
+export function validateSubmissionContent(
+  text: string,
+  hasFile = false,
+): { ok: true } | { ok: false; reason: string } {
   if (typeof text !== 'string' || text.trim() === '') {
-    return { ok: false, reason: 'Write your answer before handing this in.' }
+    if (!hasFile) {
+      return { ok: false, reason: 'Write an answer or attach a file before handing this in.' }
+    }
   }
   return { ok: true }
 }
@@ -1488,8 +1559,9 @@ export async function listStudentAssignments(courseId: string): Promise<StudentA
 export async function submitAssignment(
   assignmentId: string,
   submissionText: string,
+  filePath: string | null = null,
 ): Promise<StudentSubmission> {
-  const check = validateSubmissionText(submissionText)
+  const check = validateSubmissionContent(submissionText, Boolean(filePath))
   if (!check.ok) throw new LearningError(check.reason)
 
   const studentId = await currentUserId()
@@ -1519,13 +1591,16 @@ export async function submitAssignment(
     )
   }
 
-  const body = submissionText.trim()
+  // `null` rather than `''` when the answer is blank, because `submission_has_content`
+  // tests `submission_text is not null`. An empty string would satisfy the constraint
+  // while storing nothing, which is the exact state the constraint exists to prevent.
+  const body = submissionText.trim() === '' ? null : submissionText.trim()
   const now = new Date().toISOString()
 
   const written = existing
     ? await later
         .from('assignment_submissions')
-        .update({ submission_text: body, submitted_at: now })
+        .update({ submission_text: body, file_path: filePath, submitted_at: now })
         .eq('id', existing.id)
         .eq('student_id', studentId)
         .select(SUBMISSION_COLUMNS)
@@ -1536,6 +1611,7 @@ export async function submitAssignment(
           assignment_id: assignmentId,
           student_id: studentId,
           submission_text: body,
+          file_path: filePath,
           submitted_at: now,
         })
         .select(SUBMISSION_COLUMNS)

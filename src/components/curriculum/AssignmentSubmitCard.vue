@@ -9,15 +9,20 @@
  * been told, by the interface, that they may change a gradeable answer - which is
  * exactly what `protect_graded_submission` refuses.
  *
- * There is no file input. The `assignment-submissions` bucket has one policy and
- * it is administrators only, so a student's upload would be refused by storage
- * before any row was written. `FILE_UPLOAD_UNAVAILABLE` says that in the form
- * rather than the form pretending the option does not exist.
+ * A hand-in is text, a file, or both. That matches `submission_has_content`
+ * (`submission_text is not null or file_path is not null`), so neither box has to
+ * be filled and neither is the "real" answer. The file is chosen here and uploaded
+ * by the page, which is the layer that already owns the write - this component
+ * never touches storage, so a failed upload cannot leave it looking submitted.
  */
 import { ref, watch } from 'vue'
-import { CircleCheck, Clock, FileText } from 'lucide-vue-next'
+import { CircleCheck, Clock, FileText, Paperclip, X } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
-import { FILE_UPLOAD_UNAVAILABLE, type StudentAssignment } from '@/services/learning.service'
+import {
+  SUBMISSION_FILE_MAX_BYTES,
+  describeSubmissionFile,
+  type StudentAssignment,
+} from '@/services/learning.service'
 import { formatDateTime } from '@/types'
 
 const props = defineProps<{
@@ -26,10 +31,15 @@ const props = defineProps<{
   error: string | null
 }>()
 
-const emit = defineEmits<{ submit: [assignmentId: string, submissionText: string] }>()
+const emit = defineEmits<{
+  submit: [assignmentId: string, submissionText: string, file: File | null]
+}>()
 
 const text = ref('')
 const textError = ref('')
+const file = ref<File | null>(null)
+const fileError = ref('')
+const fileInput = ref<HTMLInputElement | null>(null)
 
 watch(
   () => props.assignment.submission?.submissionText,
@@ -40,15 +50,56 @@ watch(
   { immediate: true },
 )
 
+/** The file name as it should read to a human, from the stored key when there is one. */
+function fileNameFrom(path: string | null | undefined): string {
+  if (!path) return ''
+  const last = path.split('/').pop() ?? path
+  // Keys are `<uuid>-<name>`, and the uuid is noise to the person who attached it.
+  return last.replace(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i, '')
+}
+
+const storedFileName = () => fileNameFrom(props.assignment.submission?.filePath)
+
+function onFileChosen(event: Event): void {
+  const input = event.target as HTMLInputElement
+  const chosen = input.files?.[0] ?? null
+  fileError.value = ''
+
+  if (!chosen) {
+    file.value = null
+    return
+  }
+
+  const problem = describeSubmissionFile(chosen)
+  if (problem) {
+    file.value = null
+    fileError.value = problem
+    // Cleared so re-picking the same file fires `change` again. Without this a
+    // student who picks a 40 MB file, reads the error and picks the right one sees
+    // nothing happen.
+    input.value = ''
+    return
+  }
+
+  file.value = chosen
+}
+
+function clearFile(): void {
+  file.value = null
+  fileError.value = ''
+  if (fileInput.value) fileInput.value.value = ''
+}
+
 function submit(): void {
-  if (text.value.trim() === '') {
-    textError.value = 'Write your answer before handing this in.'
+  const hasFile = file.value !== null
+  if (text.value.trim() === '' && !hasFile) {
+    textError.value = 'Write an answer or attach a file before handing this in.'
     return
   }
   textError.value = ''
   // The id travels with the text so one handler serves every card on the page,
   // the same way the outline emits an id rather than an index.
-  emit('submit', props.assignment.id, text.value)
+  emit('submit', props.assignment.id, text.value, file.value)
 }
 </script>
 
@@ -109,6 +160,14 @@ function submit(): void {
       </p>
 
       <p
+        v-if="assignment.submission.filePath"
+        class="mt-3 inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300"
+      >
+        <Paperclip class="size-4 shrink-0" aria-hidden="true" />
+        {{ storedFileName() }}
+      </p>
+
+      <p
         v-if="assignment.submission.feedback"
         class="mt-3 text-sm text-gray-700 dark:text-gray-300"
       >
@@ -145,20 +204,102 @@ function submit(): void {
         :id="`submission-${assignment.id}`"
         v-model="text"
         rows="7"
-        placeholder="Write your answer here."
+        placeholder="Write your answer here, or attach a file below."
         class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
         :aria-invalid="Boolean(textError)"
+        :aria-describedby="textError ? `submission-error-${assignment.id}` : undefined"
       />
 
-      <p v-if="textError" class="mt-1.5 text-sm text-error-600 dark:text-error-400">
+      <!--
+        The attachment. Text and file are both optional and either satisfies
+        `submission_has_content`, so the label says "or" rather than implying the
+        text box is the primary answer.
+      -->
+      <div class="mt-3">
+        <label
+          :for="`submission-file-${assignment.id}`"
+          class="text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
+          Or attach a file
+        </label>
+        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+          Up to {{ Math.round(SUBMISSION_FILE_MAX_BYTES / (1024 * 1024)) }} MB. Handing in again
+          replaces whatever is attached.
+        </p>
+
+        <input
+          :id="`submission-file-${assignment.id}`"
+          ref="fileInput"
+          type="file"
+          class="sr-only"
+          :aria-describedby="fileError ? `submission-file-error-${assignment.id}` : undefined"
+          @change="onFileChosen"
+        />
+
+        <!--
+          A real button rather than styling the input itself. The input is kept in
+          the DOM and visually hidden so the label's `for` still opens the native
+          picker, which is what gives keyboard and screen-reader users the file
+          dialog they expect.
+        -->
+        <div class="mt-1.5 flex flex-wrap items-center gap-2">
+          <label
+            :for="`submission-file-${assignment.id}`"
+            class="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 px-3.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.06]"
+          >
+            <Paperclip class="size-4" aria-hidden="true" />
+            {{ file ? 'Choose a different file' : 'Choose a file' }}
+          </label>
+
+          <span
+            v-if="file"
+            class="inline-flex min-w-0 items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300"
+          >
+            <span class="truncate">{{ file.name }}</span>
+            <button
+              type="button"
+              class="flex size-6 shrink-0 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-white"
+              aria-label="Remove the chosen file"
+              @click="clearFile"
+            >
+              <X class="size-3.5" aria-hidden="true" />
+            </button>
+          </span>
+
+          <!--
+            What is already attached, when a file is stored and none has just been
+            chosen. Hidden once a new one is picked, because at that point the stored
+            name describes something the student is about to replace.
+          -->
+          <span
+            v-else-if="assignment.submission?.filePath"
+            class="inline-flex min-w-0 items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400"
+          >
+            <Paperclip class="size-4 shrink-0" aria-hidden="true" />
+            <span class="truncate">{{ storedFileName() }}</span>
+          </span>
+        </div>
+      </div>
+
+      <p
+        v-if="textError"
+        :id="`submission-error-${assignment.id}`"
+        class="mt-1.5 text-sm text-error-600 dark:text-error-400"
+      >
         {{ textError }}
+      </p>
+      <p
+        v-if="fileError"
+        :id="`submission-file-error-${assignment.id}`"
+        class="mt-1.5 text-sm text-error-600 dark:text-error-400"
+      >
+        {{ fileError }}
       </p>
       <p v-if="error" class="mt-1.5 text-sm text-error-600 dark:text-error-400">{{ error }}</p>
 
-      <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p class="text-xs text-gray-500 dark:text-gray-400">{{ FILE_UPLOAD_UNAVAILABLE }}</p>
+      <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         <Button type="submit" variant="primary" size="sm" :disabled="saving" class="shrink-0">
-          {{ assignment.submission ? 'Replace my hand-in' : 'Hand in' }}
+          {{ saving ? 'Handing in…' : assignment.submission ? 'Replace my hand-in' : 'Hand in' }}
         </Button>
       </div>
     </form>
