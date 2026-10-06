@@ -127,12 +127,37 @@ jobs:
           set -e
           # Belt and braces alongside the .gitignore. A secret in history is the one
           # failure here with no cheap repair, so the cheap check is worth running.
-          if git grep -nIE "(sk_live_|sk_test_|whsec_|sb_secret_|GMAIL_APP_PASSWORD=)" -- \
-             ':!supabase/functions/**/*.test.ts' ':!docs/**' ':!*.example.json'; then
-            echo "a credential-shaped string is committed. Revoke it, then remove it."
+          #
+          # Each pattern requires a value, not just a name. That is the part that took a
+          # rewrite: the first version of this step failed on its own pattern string and
+          # on an error message in `send-email/index.ts` that says
+          #
+          #     GMAIL_APP_PASSWORD is not set. Run: npx supabase secrets set
+          #     GMAIL_APP_PASSWORD=<app password>
+          #
+          # Both are a secret's *name*, and neither is a credential. A check that fails
+          # on every push is a check that gets deleted, so a bare `GMAIL_APP_PASSWORD=`
+          # is wrong however well intentioned: it matches documentation.
+          #
+          # `.github/workflows/` is excluded because this file has to contain the
+          # patterns in order to search for them.
+          PATTERN='(sk_live_[A-Za-z0-9]{8,}|sk_test_[A-Za-z0-9]{8,}|whsec_[A-Za-z0-9]{8,}|sb_secret_[A-Za-z0-9]{8,}|GMAIL_APP_PASSWORD=[A-Za-z0-9]{12,})'
+          if git grep -nIE "$PATTERN" -- . ':!.github/workflows/**' ':!docs/**' ':!*.example.json'; then
+            echo "::error::A credential is committed above. Revoke it first, then remove it."
             exit 1
           fi
-          echo "no credential-shaped strings in tracked files"
+          echo "no credential values in tracked files"
+
+          # The higher-value half of the same worry. Only `.env.example` should be
+          # tracked, and the name is checked as a path suffix rather than by grepping for
+          # the word, so a directory called `.envs/` does not trip it.
+          tracked_envs=$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$' || true)
+          if [ -n "$tracked_envs" ]; then
+            echo "::error::These environment files are tracked and should not be:"
+            echo "$tracked_envs"
+            exit 1
+          fi
+          echo "no environment files tracked beyond .env.example"
 
   # ---------------------------------------------------------------------------
   # End-to-end. Separated from verify because it needs a browser, a preview server
