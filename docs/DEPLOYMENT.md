@@ -278,3 +278,77 @@ confirm for you.
 A school demo uses a tiny fraction of all of these. The one to watch is Edge
 Function invocations, because the PayMongo webhook is called on every payment event
 including retries.
+
+---
+
+## Demo accounts
+
+Six accounts. Every relationship between them is a row - enrolments, teaching links,
+payments - and none of it is written into the application. Signing in as any of them shows
+only what that account is actually related to.
+
+| Role         | Email                             | Password            |
+| ------------ | --------------------------------- | ------------------- |
+| Admin        | `jayzeeb65@gmail.com`             | `Admin0817!!!`      |
+| Instructor A | `bautista.jayzee@ncst.edu.ph`     | `Student0001!!!`    |
+| Instructor B | `instructor.two@ncst.edu.ph`      | `Instructor0002!!!` |
+| Student      | `lalamonan.joren@ncst.edu.ph`     | `Student0001!!!`    |
+| Student      | `garmino.shanleekian@ncst.edu.ph` | `Student0002!!!`    |
+| Student      | `guia.justinejosh@ncst.edu.ph`    | `Student0003!!!`    |
+
+### What each one is attached to
+
+| Account      | Live courses                                                            | Can message                |
+| ------------ | ----------------------------------------------------------------------- | -------------------------- |
+| Joren        | Introduction to Programming, Networking Fundamentals                    | Instructor A               |
+| Shan         | Introduction to Programming, **Advanced Python (paid)**                 | Instructor A, Instructor B |
+| Justine      | IT Support Essentials                                                   | Instructor B               |
+| Instructor A | Introduction to Programming, Networking Fundamentals, Intro to Web APIs | Joren, Shan                |
+| Instructor B | IT Support Essentials, Advanced Python, CompTIA Security+               | Justine, Shan              |
+
+Two students are sitting at checkout on a paid course, so the paid path is visible
+alongside the unlocked one: Joren has requested CompTIA Security+ and Shan has paid for
+Advanced Python.
+
+### Instructor B has to be registered by hand
+
+The migrations deliberately do **not** create that login. An earlier version inserted a row
+into `auth.users` the way Supabase's admin API does - bcrypt hash, correct `aud`, correct
+provider metadata, every column matching an existing account - and GoTrue refused it:
+
+    POST /auth/v1/token?grant_type=password
+    500 {"code":"unexpected_failure","message":"Database error querying schema"}
+
+A known-good account signed in normally on the same request, so it was the row, not the
+service. Hand-building that row is not a supported path whatever the column list suggests.
+
+So on a fresh environment:
+
+1. Open `/auth/register` and create the account with the details above.
+2. Confirm the emailed link. Until then it cannot sign in, and the symptom is a sign-in
+   form that simply stays where it is - no error.
+3. Promote it, as an administrator:
+
+   ```sql
+   do $$
+   begin
+     perform set_config('request.jwt.claims',
+       json_build_object('sub', (select id::text from public.profiles
+                                  where role = 'admin' order by created_at limit 1),
+                         'role', 'authenticated')::text, true);
+
+     update public.profiles set role = 'instructor'
+      where email = 'instructor.two@ncst.edu.ph';
+   end $$;
+   ```
+
+   The claims are not optional. `prevent_role_self_change` asks `public.is_admin()`, which
+   reads `auth.uid()`; a bare session has none, and the update is refused with "Only an
+   administrator can change a role".
+
+4. `npx supabase db push`. Everything after that resolves the account by email and slug, so
+   the teaching links, the announcement and the audit follow automatically.
+
+`auth.users.confirmed_at` is generated (`LEAST(email_confirmed_at, phone_confirmed_at)`)
+and can only be set to DEFAULT, so step 2 goes through the confirmation link rather than
+an UPDATE.
