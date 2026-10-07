@@ -41,36 +41,36 @@
   `slate` is the lightest step that is safe for small text.
 */
 :root {
-  --ith-ink: #1a1a1a;
-  --ith-ink-deep: #000000;
-  --ith-charcoal: #37352f;
-  --ith-slate: #5d5b54;
+  --ith-ink: #17150f;
+  --ith-ink-deep: #0b0a07;
+  --ith-charcoal: #3a362c;
+  --ith-slate: #5c574a;
   --ith-steel: #6f6c66;
   --ith-stone: #8b8880;
-  --ith-muted: #a4a097;
-  --ith-canvas: #ffffff;
-  --ith-surface: #f6f5f4;
-  --ith-surface-soft: #fafaf9;
-  --ith-hairline: #e5e3df;
-  --ith-hairline-soft: #ede9e4;
-  --ith-hairline-strong: #c8c4be;
+  --ith-muted: #8b8474;
+  --ith-canvas: #faf8f3;
+  --ith-surface: #f4f0e6;
+  --ith-surface-soft: #fdfbf7;
+  --ith-hairline: #e7e0d2;
+  --ith-hairline-soft: #f0eade;
+  --ith-hairline-strong: #d6ccb8;
   --ith-inverse-canvas: #1a1a1a;
 }
 
 .dark {
-  --ith-ink: #f4f2ef;
+  --ith-ink: #f6f2e8;
   --ith-ink-deep: #ffffff;
-  --ith-charcoal: #d4d1cb;
-  --ith-slate: #a4a097;
+  --ith-charcoal: #d8d2c4;
+  --ith-slate: #b0a795;
   --ith-steel: #b8b5ae;
   --ith-stone: #8b8880;
-  --ith-muted: #787671;
-  --ith-canvas: #1a1a1a;
-  --ith-surface: #212121;
-  --ith-surface-soft: #262626;
-  --ith-hairline: #37352f;
-  --ith-hairline-soft: #2e2d2a;
-  --ith-hairline-strong: #45443e;
+  --ith-muted: #8b8474;
+  --ith-canvas: #17150f;
+  --ith-surface: #1f1c15;
+  --ith-surface-soft: #221f18;
+  --ith-hairline: #353126;
+  --ith-hairline-soft: #272319;
+  --ith-hairline-strong: #4a4436;
   --ith-inverse-canvas: #f4f2ef;
 }
 
@@ -335,18 +335,18 @@
      inherited components use for links, so forcing blue would mean editing every
      link in the codebase. The purple is used more widely than Notion intends;
      worth revisiting if link contrast against brand CTAs ever becomes an issue. */
-  --color-brand-25: #f7f6fd;
-  --color-brand-50: #efedfa;
-  --color-brand-100: #ddd9f4;
-  --color-brand-200: #c4bdea;
-  --color-brand-300: #a294e0;
-  --color-brand-400: #7c69d8;
-  --color-brand-500: #5645d4;
-  --color-brand-600: #4534b3;
-  --color-brand-700: #3a2a99;
-  --color-brand-800: #2c216b;
-  --color-brand-900: #1f1849;
-  --color-brand-950: #120d26;
+  --color-brand-25: #f4f8f4;
+  --color-brand-50: #e9f1ea;
+  --color-brand-100: #cfe3d2;
+  --color-brand-200: #bcd6c4;
+  --color-brand-300: #9cc7ab;
+  --color-brand-400: #7fc79f;
+  --color-brand-500: #1f6b46;
+  --color-brand-600: #185838;
+  --color-brand-700: #134529;
+  --color-brand-800: #0e331d;
+  --color-brand-900: #0a2213;
+  --color-brand-950: #061509;
 
   /* Notion's warm-charcoal neutrals.
 
