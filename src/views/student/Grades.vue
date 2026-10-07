@@ -61,13 +61,13 @@
         v-if="summary.quizzesAttempted === 0 && summary.assignmentsGraded === 0"
         class="mt-4 rounded-lg border border-hairline bg-surface px-4 py-3 text-sm text-slate"
       >
-        No graded work yet. Quiz percentages come from the database when you submit an attempt, and
-        assignment marks appear once an instructor has graded the submission.
+        No graded work yet. Quiz results appear once you submit an attempt, and assignment marks
+        appear once an instructor has graded the submission.
       </p>
 
       <!-- ============================ QUIZZES ============================ -->
       <section class="mt-6">
-        <div class="flex items-baseline justify-between gap-3">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h2 class="text-title-sm text-ink">Quiz attempts</h2>
           <p class="shrink-0 text-sm text-slate">
             {{ grades.quizAttempts.length }}
@@ -161,7 +161,7 @@
 
       <!-- ========================== ASSIGNMENTS ========================== -->
       <section class="mt-8">
-        <div class="flex items-baseline justify-between gap-3">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h2 class="text-title-sm text-ink">Assignments</h2>
           <p class="shrink-0 text-sm text-slate">
             {{ grades.assignments.length }}
@@ -239,7 +239,7 @@
 
       <!-- ========================= CERTIFICATES ========================= -->
       <section class="mt-8">
-        <div class="flex items-baseline justify-between gap-3">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h2 class="text-title-sm text-ink">Certificates</h2>
           <p class="shrink-0 text-sm text-slate">
             {{ grades.certificates.length }}

@@ -18,12 +18,10 @@
       <div class="grid gap-6 lg:grid-cols-3">
         <!-- Curriculum -->
         <div class="lg:col-span-2">
-          <div
-            class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
-          >
+          <div class="surface-card-shell">
             <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
-              <h2 class="text-title-sm text-gray-900 dark:text-white/90">Curriculum</h2>
-              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              <h2 class="section-heading">Curriculum</h2>
+              <p class="mt-1 section-subheading">
                 {{
                   isEnrolledHere
                     ? 'Course, modules, lessons and materials, in the order you will work through them.'
@@ -89,7 +87,7 @@
                 >
                   Assessments
                 </h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <p class="mt-1 section-subheading">
                   Read the instructions before you start. Each one tells you what to expect.
                 </p>
 
@@ -149,7 +147,7 @@
                 >
                   Assignments
                 </h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <p class="mt-1 section-subheading">
                   Read the brief, then write your answer below. A hand-in can be replaced until it
                   has been marked.
                 </p>
@@ -179,9 +177,7 @@
 
         <!-- Enrolment panel -->
         <div>
-          <div
-            class="sticky top-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
+          <div class="sticky top-6 surface-card">
             <p class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white/90">
               {{ priceLabel }}
             </p>

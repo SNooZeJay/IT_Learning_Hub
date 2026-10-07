@@ -1,5 +1,6 @@
 import { supabase } from '@/services/supabase/client'
 import type { Database } from '@/services/supabase/types'
+import { isSafeUrl } from '@/validation'
 // The dashboard caches module ids per course; a curriculum write invalidates it.
 import { forgetModuleCache } from '@/services/dashboard.service'
 import type {
@@ -825,21 +826,6 @@ export function materialTypeLabel(type: MaterialType): string {
 }
 
 /**
- * The only URL schemes a material link may use.
- *
- * `javascript:` and `data:` are not links, they are script. Put in an `href` they
- * execute in this origin, in the session of whoever clicks, which for a student
- * means the attacker's script runs with their authenticated cookies and can call
- * the API as them. That is stored XSS: the payload is written once by an
- * instructor and fires for every student who opens the lesson.
- *
- * So the allow-list is a positive list of two schemes rather than a blocklist of
- * the obvious ones. `vbscript:` and `file:` exist too, and a blocklist is a
- * list of things nobody has thought of yet.
- */
-const SAFE_URL_SCHEMES = new Set(['http:', 'https:'])
-
-/**
  * A material link that is safe to put in an `href`, or null.
  *
  * Returns the parsed-and-normalised URL rather than the raw string, so what is
@@ -853,19 +839,24 @@ const SAFE_URL_SCHEMES = new Set(['http:', 'https:'])
  * Relative URLs return null. There is no origin-relative link in this data: a
  * material link is a URL somewhere else, and a value with no scheme is more
  * often a typo than an intent.
+ *
+ * Why the allow-list is two schemes and not a blocklist: `javascript:` and `data:`
+ * are not links, they are script. Put in an `href` they execute in this origin, in the
+ * session of whoever clicks, which for a student means the attacker's script runs with
+ * their authenticated cookies and can call the API as them. That is stored XSS: written
+ * once by an instructor, fired for every student who opens the lesson. `vbscript:` and
+ * `file:` exist too, and a blocklist is a list of things nobody has thought of yet.
+ *
+ * The scheme decision now belongs to `isSafeUrl` in the shared validation module, and
+ * this function keeps only the part that is genuinely about materials: returning the
+ * NORMALISED url. It had its own private copy of the allow-list, which is how the same
+ * rule ended up written twice - and `create-checkout` grew a third copy while deciding
+ * where to redirect a paying student.
  */
 export function safeExternalHref(raw: string | null | undefined): string | null {
   const trimmed = (raw ?? '').trim()
-  if (trimmed === '') return null
-
-  let parsed: URL
-  try {
-    parsed = new URL(trimmed)
-  } catch {
-    return null
-  }
-
-  return SAFE_URL_SCHEMES.has(parsed.protocol.toLowerCase()) ? parsed.toString() : null
+  if (!isSafeUrl(trimmed)) return null
+  return new URL(trimmed).toString()
 }
 
 /**

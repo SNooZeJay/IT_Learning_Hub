@@ -52,9 +52,7 @@
 
       <template v-else>
         <dl class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
+          <div class="surface-card">
             <dt class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
               Enrollments
             </dt>
@@ -62,9 +60,7 @@
               {{ filtered.length }}
             </dd>
           </div>
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
+          <div class="surface-card">
             <dt class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
               Distinct students
             </dt>
@@ -72,9 +68,7 @@
               {{ distinctStudents }}
             </dd>
           </div>
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
+          <div class="surface-card">
             <dt class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
               Completed
             </dt>
@@ -82,9 +76,7 @@
               {{ completedCount }}
             </dd>
           </div>
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
+          <div class="surface-card">
             <dt class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
               Average progress
             </dt>
@@ -94,9 +86,7 @@
           </div>
         </dl>
 
-        <div
-          class="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
-        >
+        <div class="overflow-x-auto surface-card-shell">
           <table class="w-full min-w-3xl text-start">
             <thead>
               <tr class="border-b border-gray-200 dark:border-gray-800">
@@ -203,7 +193,7 @@
                   </template>
                 </td>
 
-                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                <td class="px-6 py-4 section-subheading">
                   {{ formatDate(row.enrolledAt) }}
                 </td>
               </tr>

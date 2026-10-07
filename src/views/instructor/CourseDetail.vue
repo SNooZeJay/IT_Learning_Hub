@@ -35,12 +35,10 @@
       <div class="grid gap-6 lg:grid-cols-3">
         <!-- Curriculum -->
         <div class="space-y-6 lg:col-span-2">
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
+          <div class="surface-card">
             <div class="mb-5 border-b border-gray-200 pb-4 dark:border-gray-800">
-              <h2 class="text-title-sm text-gray-900 dark:text-white/90">Curriculum</h2>
-              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              <h2 class="section-heading">Curriculum</h2>
+              <p class="mt-1 section-subheading">
                 Build the course as modules, then lessons, then materials. New content is saved as a
                 draft; publish it when you are ready for students to see it.
               </p>
@@ -115,13 +113,11 @@
           </div>
 
           <!-- Quizzes -->
-          <div
-            class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
-          >
+          <div class="surface-card-shell">
             <div
               class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-6 py-4 dark:border-gray-800"
             >
-              <h2 class="text-title-sm text-gray-900 dark:text-white/90">Quizzes</h2>
+              <h2 class="section-heading">Quizzes</h2>
 
               <!--
                 Building the quizzes is its own page. This list is a read-only
@@ -162,7 +158,7 @@
                     <h3 class="text-theme-sm font-medium text-gray-900 dark:text-white/90">
                       {{ quiz.title }}
                     </h3>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    <p class="mt-1 section-subheading">
                       {{ quiz.questionCount }} question{{ quiz.questionCount === 1 ? '' : 's' }} ·
                       {{ quiz.totalPoints }} point{{ quiz.totalPoints === 1 ? '' : 's' }} ·
                       {{ quiz.passingScore }}% to pass · {{ quiz.attemptsAllowed }} attempt{{
@@ -279,15 +275,13 @@
                list used to sit in: a form with six fields does not belong in a
                third of the page, and it belongs beside the quizzes, which are
                the other thing a student is assessed on. -->
-          <div
-            class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
-          >
+          <div class="surface-card-shell">
             <div
               class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 px-6 py-4 dark:border-gray-800"
             >
               <div class="min-w-0">
-                <h2 class="text-title-sm text-gray-900 dark:text-white/90">Assignments</h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <h2 class="section-heading">Assignments</h2>
+                <p class="mt-1 section-subheading">
                   Work a student hands in. A published assignment is shown to everyone enrolled, and
                   a course that requires hand-ins does not complete until they are marked.
                 </p>
@@ -397,10 +391,8 @@
 
         <!-- Sidebar -->
         <div class="space-y-6">
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Enrollment</h2>
+          <div class="surface-card">
+            <h2 class="section-heading">Enrollment</h2>
 
             <dl class="mt-4 grid grid-cols-2 gap-4">
               <div>
@@ -453,10 +445,8 @@
             </div>
           </div>
 
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Details</h2>
+          <div class="surface-card">
+            <h2 class="section-heading">Details</h2>
 
             <dl class="mt-4 space-y-2.5 text-sm">
               <div class="flex items-center justify-between gap-3">

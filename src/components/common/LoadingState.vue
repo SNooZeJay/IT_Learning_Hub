@@ -1,9 +1,5 @@
 <template>
-  <div
-    class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-    role="status"
-    aria-live="polite"
-  >
+  <div class="surface-card" role="status" aria-live="polite">
     <div class="flex items-center gap-3">
       <LoaderCircle class="size-5 shrink-0 animate-spin text-brand-600 dark:text-brand-400" />
       <div class="flex-1">

@@ -74,7 +74,7 @@ function scoreLabel(attempt: AttemptSummary): string {
     </div>
 
     <template v-else>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      <p class="mt-1 section-subheading">
         <span class="font-medium text-gray-900 dark:text-white/90">{{ studentCount }}</span>
         {{ studentCount === 1 ? 'student has' : 'students have' }} sat this quiz
         <span aria-hidden="true">·</span>

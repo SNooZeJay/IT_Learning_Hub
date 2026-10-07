@@ -29,7 +29,7 @@
           {{ title }}
         </h4>
 
-        <p class="text-sm text-gray-500 dark:text-gray-400">{{ message }}</p>
+        <p class="section-subheading">{{ message }}</p>
 
         <router-link
           v-if="showLink"

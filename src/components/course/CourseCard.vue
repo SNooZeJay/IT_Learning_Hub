@@ -1,7 +1,5 @@
 <template>
-  <article
-    class="flex flex-col rounded-lg border border-gray-200 bg-white p-5 transition-colors hover:border-brand-300 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-brand-700"
-  >
+  <article class="flex flex-col surface-card-interactive flex flex-col">
     <div class="flex items-start justify-between gap-3">
       <span
         class="inline-flex rounded bg-brand-50 px-2 py-1 text-xs font-medium capitalize text-brand-700 dark:bg-brand-500/10 dark:text-brand-400"
@@ -26,7 +24,7 @@
       </router-link>
     </h3>
 
-    <p class="mt-2 line-clamp-3 flex-1 text-sm text-gray-500 dark:text-gray-400">
+    <p class="mt-2 line-clamp-3 flex-1 section-subheading">
       {{ course.description ?? 'No description yet.' }}
     </p>
 

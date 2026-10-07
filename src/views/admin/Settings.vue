@@ -23,8 +23,8 @@
     -->
     <Alert
       variant="info"
-      title="Editable platform settings are not implemented"
-      message="There is no settings table in this schema, so there is nowhere for a preference to be stored and no server that would honour one. Everything below is read-only and computed live from the database. Anything that genuinely can be changed today is changed on the screen named beside it."
+      title="This screen reports, it does not change"
+      message="Everything here is measured live. Anything that genuinely can be changed is changed on the screen named beside it."
       class="mb-6"
     />
 
@@ -137,9 +137,9 @@
             </div>
           </dl>
           <p class="mt-5 text-sm text-slate">
-            Certificates are issued by the database when an enrollment completes. Revoking one is a
-            write the schema allows and this screen does not offer, because it is a decision about a
-            named learner rather than a platform setting.
+            A certificate is issued as soon as an enrollment completes. Revoking one is a decision
+            about a named learner rather than a platform setting, so it is handled on the
+            learner's own record.
           </p>
         </section>
 
@@ -192,9 +192,8 @@
         </ul>
 
         <p class="mt-5 text-sm text-slate">
-          The browser holds only Supabase's publishable key. Every read and write above went through
-          it and was filtered by the database against the signed-in user, which is why these counts
-          reflect what this account is entitled to see rather than what the tables contain.
+          These counts reflect what this account is entitled to see. Anything outside that is never
+          sent to the browser in the first place.
         </p>
       </section>
 
@@ -307,32 +306,36 @@ const editableControls = [
 ]
 
 /**
- * Architectural facts about the deployed schema.
+ * How this installation behaves, in terms an administrator acts on.
  *
- * Not settings, and not editable. Each one was verified against the live
- * database, and each is the reason some control elsewhere in the admin surface is
- * missing rather than merely unfinished.
+ * Not settings, and not editable. Each one explains why a control somewhere in the admin
+ * surface is absent rather than unfinished, so nobody waits for a button that is never
+ * going to appear.
+ *
+ * Written in product language on purpose. An earlier version of this list described the
+ * mechanisms — Row Level Security, `is_admin()`, the service role — and read as a note to
+ * whoever deployed the schema rather than as information about the LMS in front of them.
  */
 const postureFacts = [
   {
-    title: 'Row Level Security is on for every table',
+    title: 'People only see what belongs to them',
     detail:
-      'Visibility is decided by a policy per table, evaluated against the signed-in user id. A caller who is not entitled to a row receives no row, not a filtered copy of one.',
+      'A student sees their own work, an instructor sees their own courses, and an administrator sees the whole school. Nothing is filtered after the fact — an account that is not entitled to a record is not sent it.',
   },
   {
-    title: 'Admin rights come from a database function',
+    title: 'A role is set by an administrator, never by the person holding it',
     detail:
-      'Every admin policy tests is_admin(), which reads the role column the database holds. Editing the role in the browser changes nothing a request can do.',
+      'Changing a role in the browser has no effect on what that account can reach. The change has to be made and confirmed here first.',
   },
   {
-    title: 'Money is settled by a webhook, not by a screen',
+    title: 'Payments are confirmed by the provider, not by this screen',
     detail:
-      'Settling or failing a payment runs through functions that only the service role can execute. No browser session can mark a payment paid, which is why payments are read-only here.',
+      'A payment becomes paid when the provider confirms it. That is why payments are read-only here, and why a payment can take a moment to appear as settled.',
   },
   {
     title: 'The last administrator cannot be removed',
     detail:
-      'A trigger checks the admin count on every path, including the role function itself, so the platform can never be left with nobody able to promote anybody.',
+      'The platform refuses every attempt to remove the final administrator, so it can never be left with nobody able to promote anybody.',
   },
   {
     title: 'Audit rows are written server-side',

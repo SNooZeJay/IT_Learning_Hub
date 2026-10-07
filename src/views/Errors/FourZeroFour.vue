@@ -16,7 +16,7 @@
 
       <h1 class="mt-2 text-title-lg text-gray-900 dark:text-white/90">That page isn't here</h1>
 
-      <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      <p class="mt-2 section-subheading">
         The link may be out of date, or the page may have moved. Nothing has been lost:
         <template v-if="auth.isAuthenticated"
           >your courses and your work are where you left them.</template

@@ -148,3 +148,13 @@ export type NotificationType =
  * recorded as seen and skipped rather than processed twice.
  */
 export type PaymentEventStatus = 'received' | 'processed' | 'ignored' | 'failed'
+
+/**
+ * Whether a payment receipt has been sent.
+ *
+ * `pending` means a receipt is *owed* - the row is claimed but the mail has not been
+ * accepted yet. `failed` is kept rather than folded into `pending` because a receipt a
+ * student never received has to be visible to an operator; an undelivered receipt that
+ * reads as "in progress" forever is indistinguishable from a mailer that is merely slow.
+ */
+export type PaymentReceiptStatus = 'pending' | 'sent' | 'failed'

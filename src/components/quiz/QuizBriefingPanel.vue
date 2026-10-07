@@ -142,7 +142,7 @@ const state = computed<'passed' | 'resume' | 'exhausted' | 'ready'>(() => {
          change, they are something they wrote for this quiz. -->
     <section
       v-if="briefing.instructions"
-      class="mt-6 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
+      class="mt-6 surface-card"
       aria-labelledby="quiz-instructions-heading"
     >
       <h2 id="quiz-instructions-heading" class="text-theme-sm text-gray-900 dark:text-white/90">
@@ -224,10 +224,7 @@ const state = computed<'passed' | 'resume' | 'exhausted' | 'ready'>(() => {
     </section>
 
     <!-- What happens to the answers. -->
-    <section
-      class="mt-6 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
-      aria-labelledby="quiz-results-heading"
-    >
+    <section class="mt-6 surface-card" aria-labelledby="quiz-results-heading">
       <h2 id="quiz-results-heading" class="text-theme-sm text-gray-900 dark:text-white/90">
         After you submit
       </h2>
@@ -333,7 +330,7 @@ const state = computed<'passed' | 'resume' | 'exhausted' | 'ready'>(() => {
           <RefreshCw v-if="starting" class="size-4 animate-spin" aria-hidden="true" />
           Resume attempt {{ briefing.attemptsUsed }}
         </Button>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+        <p class="section-subheading">
           You have an unfinished attempt. Resuming keeps your answers, your place and your time
           limit.
         </p>
@@ -344,7 +341,7 @@ const state = computed<'passed' | 'resume' | 'exhausted' | 'ready'>(() => {
           <Maximize v-if="starting" class="size-4 animate-spin" aria-hidden="true" />
           {{ starting ? 'Opening the quiz…' : 'Start the quiz' }}
         </Button>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+        <p class="section-subheading">
           Starts attempt {{ briefing.attemptsUsed + 1 }} of {{ briefing.attemptsAllowed }}.
         </p>
       </div>

@@ -10,6 +10,8 @@
  */
 import { ref, watch } from 'vue'
 import Button from '@/components/ui/Button.vue'
+import { isSafeUrl } from '@/validation'
+import { UNSAFE_URL_REASON } from '@/services/curriculum.service'
 import type { ContentStatus, Lesson } from '@/types'
 
 const props = defineProps<{
@@ -47,6 +49,7 @@ const isPreview = ref(false)
 const isRequired = ref(true)
 const status = ref<ContentStatus>('draft')
 const titleError = ref('')
+const videoUrlError = ref('')
 
 watch(
   () => props.lesson,
@@ -66,13 +69,25 @@ watch(
 )
 
 function submit(): void {
+  titleError.value = ''
+  videoUrlError.value = ''
+
   const trimmed = title.value.trim()
   if (trimmed === '') {
     titleError.value = 'Give the lesson a title.'
     return
   }
 
+  // The same scheme check `MaterialForm.vue` applies to a material link, and which this
+  // form had no version of at all. `lessons.video_url` is rendered into an iframe or an
+  // anchor on the student lesson page, so a `javascript:` value stored here is the same
+  // stored-XSS primitive the material check was written to close.
   const url = videoUrl.value.trim()
+  if (url !== '' && !isSafeUrl(url)) {
+    videoUrlError.value = `That video address cannot be saved. ${UNSAFE_URL_REASON}`
+    return
+  }
+
   emit('submit', {
     title: trimmed,
     summary: summary.value.trim() === '' ? null : summary.value.trim(),
@@ -161,10 +176,24 @@ function submit(): void {
           id="lesson-video"
           v-model="videoUrl"
           type="url"
+          :aria-invalid="Boolean(videoUrlError)"
+          :aria-describedby="videoUrlError ? 'lesson-video-error' : 'lesson-video-help'"
           placeholder="https://example.com/lesson.mp4"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none dark:bg-white/[0.03] dark:text-white/90"
+          :class="
+            videoUrlError
+              ? 'border-error-500 focus:border-error-500 dark:border-error-500'
+              : 'border-gray-300 focus:border-brand-500 dark:border-gray-700'
+          "
         />
-        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <p
+          v-if="videoUrlError"
+          id="lesson-video-error"
+          class="mt-1.5 text-sm text-error-600 dark:text-error-400"
+        >
+          {{ videoUrlError }}
+        </p>
+        <p v-else id="lesson-video-help" class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
           A direct link to a video file plays on the page. A link to a YouTube page opens in a new
           tab — attach that as a material instead.
         </p>
@@ -201,7 +230,7 @@ function submit(): void {
               placeholder="15"
               class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
             />
-            <span class="shrink-0 text-sm text-gray-500 dark:text-gray-400">minutes</span>
+            <span class="shrink-0 section-subheading">minutes</span>
           </div>
         </div>
 

@@ -69,16 +69,12 @@
     />
 
     <template v-else>
-      <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+      <p class="mb-4 section-subheading">
         {{ pendingCount }} awaiting a grade · {{ filtered.length - pendingCount }} already graded
       </p>
 
       <ul class="space-y-4">
-        <li
-          v-for="item in filtered"
-          :key="item.id"
-          class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
-        >
+        <li v-for="item in filtered" :key="item.id" class="surface-card-shell">
           <!-- Header: who, what, and how long it has been waiting. -->
           <div
             class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 px-6 py-4 dark:border-gray-800"
@@ -87,7 +83,7 @@
               <h2 class="text-theme-sm font-medium text-gray-900 dark:text-white/90">
                 {{ item.assignmentTitle }}
               </h2>
-              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              <p class="mt-1 section-subheading">
                 {{ item.studentName }}
                 <template v-if="item.studentEmail">
                   · <span class="break-all">{{ item.studentEmail }}</span>
@@ -181,9 +177,7 @@
                   >
                     {{ item.feedback }}
                   </p>
-                  <p v-else class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    No written feedback.
-                  </p>
+                  <p v-else class="mt-2 section-subheading">No written feedback.</p>
                   <p v-if="item.gradedAt" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
                     Graded {{ formatDateTime(item.gradedAt) }}
                   </p>

@@ -23,6 +23,28 @@ declare module 'vue-router' {
 
 export type Role = 'admin' | 'instructor' | 'student'
 
+/**
+ * A route parameter that must be a UUID, expressed as a path constraint.
+ *
+ * There was no UUID check anywhere in this project. Seven views read
+ * `String(route.params.id ?? '')` and passed the result straight into a `.eq('id', value)`,
+ * so `/student/lessons/not-a-uuid` reached PostgREST and came back as
+ * `22P02 invalid input syntax for type uuid` - a Postgres data-type error rendered to
+ * somebody who typed nothing wrong and clicked nothing.
+ *
+ * Constraining the path is the right layer for this, above every view: a URL that cannot
+ * match does not render, so it lands on the 404 that already exists rather than mounting
+ * a page that has to explain a database error. Each affected view ALSO validates in its
+ * service call, because a route constraint protects the URL and a service check protects
+ * the function - a caller can reach `findLessonProgress` without going through the router
+ * at all.
+ *
+ * Applied only where the parameter really is a UUID. `student/courses/:id` is a *slug*,
+ * despite the name, and `auth/courses/:slug` is too - constraining those as UUIDs would
+ * have broken every course link in the product.
+ */
+const UUID_PARAM = '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})'
+
 /** Where each role lands after signing in, and after an unauthorised visit. */
 export const ROLE_HOME: Record<Role, string> = {
   admin: '/admin/dashboard',
@@ -104,19 +126,24 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'My courses', roles: ['student'] },
       },
       {
+        // A SLUG, not an id, despite the parameter name. `CourseDetail.vue` looks this
+        // course up with `.eq('slug', ...)` - which is why `checkout.service.ts` has to
+        // build its return URL from the slug rather than the id, or a learner who had
+        // just paid lands on a lookup for a UUID. Deliberately NOT given `UUID_PARAM`:
+        // constraining it would break every course link in the product.
         path: 'courses/:id',
         name: 'student-course-detail',
         component: () => import('@/views/student/CourseDetail.vue'),
         meta: { title: 'Course', roles: ['student'] },
       },
       {
-        path: 'lessons/:id',
+        path: `lessons/:id${UUID_PARAM}`,
         name: 'student-lesson',
         component: () => import('@/views/student/Lesson.vue'),
         meta: { title: 'Lesson', roles: ['student'] },
       },
       {
-        path: 'quizzes/:id',
+        path: `quizzes/:id${UUID_PARAM}`,
         name: 'student-quiz',
         component: () => import('@/views/student/QuizAttempt.vue'),
         meta: { title: 'Quiz', roles: ['student'] },
@@ -170,13 +197,13 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'New course', roles: ['instructor'] },
       },
       {
-        path: 'courses/:id',
+        path: `courses/:id${UUID_PARAM}`,
         name: 'instructor-course-detail',
         component: () => import('@/views/instructor/CourseDetail.vue'),
         meta: { title: 'Course', roles: ['instructor'] },
       },
       {
-        path: 'courses/:id/edit',
+        path: `courses/:id${UUID_PARAM}/edit`,
         name: 'instructor-course-edit',
         component: () => import('@/views/instructor/CourseEditor.vue'),
         meta: { title: 'Edit course', roles: ['instructor'] },
@@ -187,7 +214,7 @@ const routes: RouteRecordRaw[] = [
         // correct answer on the course in one payload, and that should be read on
         // demand in a place reached deliberately, not left loaded on a page an
         // instructor keeps open all day.
-        path: 'courses/:id/quiz',
+        path: `courses/:id${UUID_PARAM}/quiz`,
         name: 'instructor-course-quiz',
         component: () => import('@/views/instructor/QuizManager.vue'),
         meta: { title: 'Quizzes', roles: ['instructor'] },

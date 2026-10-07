@@ -52,7 +52,7 @@
         <section class="rounded-lg border border-hairline bg-canvas p-6">
           <h2 class="text-title-sm font-semibold text-ink">People by role</h2>
           <p class="mt-1 text-sm text-slate">
-            Every account on the platform, by the role the database holds for it.
+            Every account on the platform, by the role it holds.
           </p>
           <div class="mt-6">
             <EmptyState
@@ -190,7 +190,7 @@
       <section class="mt-6 rounded-lg border border-hairline bg-canvas p-6">
         <h2 class="text-title-sm font-semibold text-ink">How assessment is going</h2>
         <p class="mt-1 text-sm text-slate">
-          Every figure is averaged from graded attempts in the database. Nothing here is estimated.
+          Every figure is averaged from graded attempts. Nothing here is estimated.
         </p>
 
         <dl class="mt-6 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
@@ -232,8 +232,8 @@
         number is rather than leaving a reader to assume the window is unbounded.
       -->
       <p class="mt-6 text-sm text-slate">
-        The two monthly panels show the last six calendar months. Older activity is still in the
-        database and still counted in every total above — only the shape over time is shortened.
+        The two monthly panels show the last six calendar months. Older activity still counts in
+        every total above — only the shape over time is shortened.
       </p>
     </template>
   </div>

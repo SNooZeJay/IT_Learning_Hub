@@ -6,7 +6,7 @@
         role="dialog"
         aria-modal="true"
       >
-        <h3 class="text-title-sm text-gray-900 dark:text-white/90">{{ request.title }}</h3>
+        <h3 class="section-heading">{{ request.title }}</h3>
         <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">{{ request.message }}</p>
 
         <div class="mt-6 flex flex-wrap gap-3">

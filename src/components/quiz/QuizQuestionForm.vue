@@ -202,7 +202,7 @@ function submit(): void {
     <h3 class="text-theme-sm text-gray-900 dark:text-white/90">
       {{ question ? 'Edit question' : 'New question' }}
     </h3>
-    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+    <p class="mt-1 section-subheading">
       A question is worth its points, and the quiz is graded by adding up the points it awards.
     </p>
 
@@ -369,9 +369,7 @@ function submit(): void {
             step="0.5"
             class="w-28 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
           />
-          <span class="shrink-0 text-sm text-gray-500 dark:text-gray-400">
-            must be more than zero
-          </span>
+          <span class="shrink-0 section-subheading"> must be more than zero </span>
         </div>
       </div>
 

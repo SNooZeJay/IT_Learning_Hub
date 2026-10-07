@@ -6,11 +6,17 @@
       :crumbs="[{ label: 'Admin', to: '/admin/dashboard' }, { label: 'Dashboard' }]"
     />
 
+    <!--
+      Shown only when this deployment has no data connection at all. It says what is
+      wrong in product terms. It used to name `VITE_SUPABASE_URL`, `.env` and the dev
+      server, which is setup instructions addressed to whoever is deploying, not to the
+      administrator reading the screen.
+    -->
     <Alert
       v-if="!isSupabaseConfigured"
       variant="warning"
-      title="Supabase is not configured"
-      message="Copy .env.example to .env and fill in VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY, then restart the dev server."
+      title="This site cannot reach its data"
+      message="Figures cannot be loaded right now. Try again shortly, and contact the site administrator if it keeps happening."
       class="mb-6"
     />
 

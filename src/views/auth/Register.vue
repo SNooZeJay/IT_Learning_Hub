@@ -15,25 +15,24 @@
         Shown instead of the form when the project requires email confirmation.
         Signing in before confirming would leave a user staring at a form that
         cannot possibly work yet, so this replaces it outright.
+
+        Tinted with the accent rather than white: it now sits inside a white card,
+        and a white panel on white is a border with no surface.
       -->
-    <div
-      v-if="needsEmailConfirmation"
-      class="rounded-lg border border-gray-200 bg-white p-6 text-center dark:border-gray-800 dark:bg-white/[0.03]"
-      role="status"
-    >
+    <div v-if="needsEmailConfirmation" class="rounded-2xl bg-lp-accent-soft p-6 text-center" role="status">
       <span
-        class="mx-auto mb-4 inline-flex size-12 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
+        class="mx-auto mb-4 inline-flex size-12 items-center justify-center rounded-full bg-lp-card text-lp-accent"
       >
         <MailCheck class="size-6" aria-hidden="true" />
       </span>
-      <h2 class="text-base font-medium text-gray-900 dark:text-white/90">Check your email</h2>
-      <p class="mt-1 text-sm text-slate">
-        We sent a confirmation link to <span class="font-medium">{{ email }}</span
+      <h2 class="font-display text-lg font-semibold text-lp-ink">Check your email</h2>
+      <p class="mt-1.5 text-sm leading-relaxed text-lp-slate">
+        We sent a confirmation link to <span class="font-medium text-lp-ink">{{ email }}</span
         >. Open it to activate your account, then sign in.
       </p>
       <router-link
         to="/auth/login"
-        class="mt-5 inline-block text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+        class="mt-5 inline-block text-sm font-medium text-lp-accent hover:underline"
       >
         Back to sign in
       </router-link>
@@ -101,13 +100,13 @@
             :aria-describedby="fieldErrors.password ? 'password-error' : undefined"
           />
           <!--
-            Full-height, 44px wide, corner-matched to the field with `rounded-e-md`.
+            Full-height, 44px wide, corner-matched to the field with `rounded-e-xl`.
             It used to be `px-3` hugging a 20px glyph, which measured about 28px of
             hit area sitting inside a 48px field and left the eye hunting for it.
           -->
           <button
             type="button"
-            class="absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-md text-slate transition-colors hover:text-ink dark:text-gray-400 dark:hover:text-gray-200"
+            class="absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl text-lp-slate transition-colors hover:text-lp-ink"
             :aria-label="showPassword ? 'Hide password' : 'Show password'"
             :aria-pressed="showPassword"
             @click="showPassword = !showPassword"
@@ -147,18 +146,26 @@
         </p>
       </div>
 
-      <Button type="submit" class="w-full justify-center" :disabled="isSubmitting">
+      <!--
+        A native button rather than `Button.vue`. See the note on the sign-in
+        page's submit button: neither variant of that component is legible on this
+        surface, and a conflicting utility passed from a caller cannot be relied on
+        to win. Same element, same `:disabled` behaviour, the landing page's
+        primary button.
+      -->
+      <button
+        type="submit"
+        class="lp-press inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-lp-ink px-7 text-sm font-medium text-lp-ink-inverse shadow-lp-button transition-opacity duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:opacity-90 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50"
+        :disabled="isSubmitting"
+      >
         <LoaderCircle v-if="isSubmitting" class="size-4 animate-spin" aria-hidden="true" />
         {{ isSubmitting ? 'Creating account...' : 'Create account' }}
-      </Button>
+      </button>
     </form>
 
-    <p class="mt-6 text-center text-sm text-slate">
+    <p class="mt-6 text-center text-sm text-lp-slate">
       Already have an account?
-      <router-link
-        to="/auth/login"
-        class="font-medium text-brand-600 hover:underline dark:text-brand-400"
-      >
+      <router-link to="/auth/login" class="font-medium text-lp-accent hover:underline">
         Sign in
       </router-link>
     </p>
@@ -170,8 +177,7 @@ import { describeSupabaseError } from '@/services/supabase/client'
 import { ref } from 'vue'
 import { Eye, EyeOff, LoaderCircle, MailCheck } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
-import Button from '@/components/ui/Button.vue'
-import { fieldLabelClass, textInputClass } from '@/components/ui/controlClasses'
+import { lpFieldLabelClass, lpTextInputClass } from '@/components/ui/controlClasses'
 import AuthShell from '@/components/auth/AuthShell.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
@@ -194,7 +200,8 @@ const fieldErrors = ref<{
   confirmPassword?: string
 }>({})
 
-const inputClass = textInputClass
+const inputClass = lpTextInputClass
+const fieldLabelClass = lpFieldLabelClass
 
 /**
  * The only place a password policy is expressed. Supabase enforces its own

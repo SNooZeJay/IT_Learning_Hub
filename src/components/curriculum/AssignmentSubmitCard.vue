@@ -174,9 +174,7 @@ function submit(): void {
         <span class="font-medium">Feedback</span>
         <span class="mt-0.5 block leading-relaxed">{{ assignment.submission.feedback }}</span>
       </p>
-      <p v-else class="mt-3 text-sm text-gray-500 dark:text-gray-400">
-        No written feedback on this one.
-      </p>
+      <p v-else class="mt-3 section-subheading">No written feedback on this one.</p>
 
       <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
         Marked
@@ -273,7 +271,7 @@ function submit(): void {
           -->
           <span
             v-else-if="assignment.submission?.filePath"
-            class="inline-flex min-w-0 items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400"
+            class="inline-flex min-w-0 items-center gap-1.5 section-subheading"
           >
             <Paperclip class="size-4 shrink-0" aria-hidden="true" />
             <span class="truncate">{{ storedFileName() }}</span>

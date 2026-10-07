@@ -58,11 +58,17 @@ export const ROLE_NAVIGATION: Record<Role, NavItem[]> = {
   instructor: [
     { label: 'Dashboard', to: '/instructor/dashboard', icon: LayoutDashboard },
     { label: 'My Courses', to: '/instructor/courses', icon: Library },
-    { label: 'Students', to: '/instructor/students', icon: Users },
+    { label: 'My Students', to: '/instructor/students', icon: Users },
     { label: 'Grading', to: '/instructor/grading', icon: ListChecks },
     { label: 'Insights', to: '/instructor/analytics', icon: ChartColumn },
     { label: 'Calendar', to: '/instructor/calendar', icon: CalendarDays },
     { label: 'Messages', to: '/messages', icon: MessageSquare, badge: 'messages' },
+    // No Notifications item for this role, and that is a real gap rather than an
+    // oversight: notifications are written for enrolled students, and
+    // `/student/notifications` is `roles: ['student']`. A link here would be refused by
+    // the guard. What an instructor needs instead is a way to reach the notifications
+    // for a course, and no such screen exists yet. Adding a dead item would be worse
+    // than the omission, so the list stays honest and the gap stays visible.
   ],
 
   admin: [

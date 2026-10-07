@@ -13,6 +13,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { handlePreflight, jsonWithCors } from '../_shared/cors.ts'
+import { isSameOriginUrl } from '../_shared/validation.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -43,6 +44,54 @@ interface CheckoutRequest {
   paid?: boolean
 }
 
+/**
+ * The origin a return URL must belong to.
+ *
+ * This is the security boundary, and the two URLs in the request body used to cross it
+ * unchecked: `successUrl` and `cancelUrl` were read straight off the body and forwarded
+ * to PayMongo verbatim. The client builds both from `window.location.origin`, so nothing
+ * in the product was wrong - but the client is not the thing being protected from. Any
+ * caller holding a valid JWT could open a real checkout session whose return trip sent
+ * the learner, and the money, to any host on earth. A payment gateway is a redirector by
+ * design, which is exactly why its return address is worth checking.
+ *
+ * `SITE_URL` is the same value the runbook sets for the password-reset link, so it names
+ * the deployment. When it is absent - a local `supabase start`, or a secret that was
+ * never set - there is no origin to compare against and the check refuses rather than
+ * defaulting to permissive. A validation rule that cannot be evaluated must not pass.
+ */
+function allowedOrigin(): string | null {
+  const configured = (Deno.env.get('SITE_URL') ?? '').trim()
+  return configured === '' ? null : configured
+}
+
+/**
+ * Validate both return URLs before anything else in the body is trusted.
+ *
+ * Returns the reason so the caller can distinguish "you sent me a bad URL" from "the
+ * provider is down", which are very different problems for whoever is debugging.
+ */
+function validateReturnUrls(successUrl: unknown, cancelUrl: unknown): string | null {
+  const origin = allowedOrigin()
+  if (!origin) {
+    return 'This deployment has no SITE_URL set, so checkout cannot verify where to return you.'
+  }
+
+  for (const [name, value] of [
+    ['success', successUrl],
+    ['cancel', cancelUrl],
+  ] as const) {
+    if (typeof value !== 'string' || value.trim() === '') {
+      return `The ${name} URL is required.`
+    }
+    if (!isSameOriginUrl(value, origin)) {
+      return `The ${name} URL must point back to this site (${origin}).`
+    }
+  }
+
+  return null
+}
+
 Deno.serve(async (request) => {
   // Answered first, and before the method check: a preflight is an OPTIONS, and
   // letting it fall through to the 405 below is what made the browser give up.
@@ -65,6 +114,11 @@ Deno.serve(async (request) => {
 
   const courseId = String(body.courseId ?? '')
   if (!courseId) return json({ error: 'courseId is required' }, 400, request)
+
+  // Before the course lookup, and before anything is written. A return URL that points
+  // off this deployment is refused while the request has still cost nothing.
+  const urlProblem = validateReturnUrls(body.successUrl, body.cancelUrl)
+  if (urlProblem) return json({ error: urlProblem }, 400, request)
 
   const course = await loadPublishedCourse(courseId)
   if (!course) return json({ error: 'no such published course' }, 404, request)
@@ -137,8 +191,11 @@ Deno.serve(async (request) => {
     amountCentavos,
     courseTitle: course.title,
     description: course.description ?? course.title,
-    successUrl: body.successUrl,
-    cancelUrl: body.cancelUrl,
+    // Both URLs were checked against SITE_URL above, so by this point they are known
+    // to point back at this deployment. The cast records that the narrowing happened
+    // at the boundary rather than being repeated here.
+    successUrl: body.successUrl as string,
+    cancelUrl: body.cancelUrl as string,
   })
 
   if (!checkout.checkout_url) {

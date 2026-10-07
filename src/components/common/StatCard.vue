@@ -1,15 +1,18 @@
 <template>
-  <div
-    class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-  >
+  <!--
+    One headline figure.
+
+    `surface-card` rather than the class string this used to carry, so the card language
+    is one decision in `main.css` instead of twenty-two copies of it across the three
+    role dashboards.
+  -->
+  <div class="surface-card">
     <div class="flex items-center gap-3">
-      <span
-        class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
-      >
-        <component :is="icon" class="size-5" />
+      <span class="icon-chip-lg">
+        <component :is="icon" class="size-5" aria-hidden="true" />
       </span>
       <div class="min-w-0">
-        <p class="text-sm text-gray-500 dark:text-gray-400">{{ label }}</p>
+        <p class="section-subheading">{{ label }}</p>
         <!-- font-semibold, not the font-light this used to carry. A dashboard
              figure at weight 300 is the first thing that reads as unfinished,
              and it is the number a learner came to see. -->
@@ -31,6 +34,10 @@ import type { Component } from 'vue'
  * The value is a formatted string rather than a number so the caller decides
  * formatting, and so the component never has to guess between pesos, counts and
  * percentages.
+ *
+ * `icon` is typed as `Component` and decorated `aria-hidden` here rather than by each
+ * caller: the label is always rendered as text beside it, so an announced icon would
+ * be a second, redundant name for the same figure.
  */
 withDefaults(
   defineProps<{

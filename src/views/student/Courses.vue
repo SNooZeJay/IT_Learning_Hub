@@ -32,7 +32,7 @@
             :class="searchClass"
           />
         </div>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+        <p class="section-subheading">
           {{ filtered.length }} of {{ courses.length }} course{{ courses.length === 1 ? '' : 's' }}
         </p>
       </div>

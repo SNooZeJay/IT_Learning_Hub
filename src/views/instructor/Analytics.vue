@@ -58,13 +58,9 @@
       <!-- Enrolments per course. Bar rather than pie: the question is "which
            course is biggest", and a pie makes that harder to read than its own
            legend suggests. -->
-      <div
-        class="mt-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-      >
-        <h2 class="text-title-sm text-gray-900 dark:text-white/90">Enrollments per course</h2>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Live places, excluding dropped enrollments.
-        </p>
+      <div class="mt-6 surface-card">
+        <h2 class="section-heading">Enrollments per course</h2>
+        <p class="mt-1 section-subheading">Live places, excluding dropped enrollments.</p>
 
         <!-- isMounted, per AGENTS.md: ApexCharts reads the DOM on init. -->
         <div v-if="isMounted && hasEnrolments" class="mt-6">
@@ -84,11 +80,9 @@
       </div>
 
       <!-- Completion rate and average quiz score, side by side. -->
-      <div
-        class="mt-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-      >
-        <h2 class="text-title-sm text-gray-900 dark:text-white/90">Completion and quiz scores</h2>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      <div class="mt-6 surface-card">
+        <h2 class="section-heading">Completion and quiz scores</h2>
+        <p class="mt-1 section-subheading">
           A course with no quiz attempts has no score to plot, and is left out of the series rather
           than shown as a zero.
         </p>
@@ -106,9 +100,7 @@
 
       <!-- The figures themselves. The charts answer "which course"; this answers
            "by how much", which a bar height alone does not. -->
-      <div
-        class="mt-6 overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
-      >
+      <div class="mt-6 overflow-x-auto surface-card-shell">
         <table class="w-full min-w-3xl text-start">
           <thead>
             <tr class="border-b border-gray-200 dark:border-gray-800">

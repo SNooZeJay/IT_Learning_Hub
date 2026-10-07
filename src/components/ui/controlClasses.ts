@@ -60,6 +60,51 @@ export const searchInputClass = `${textInputClass} ps-9 pe-3`
 export const selectClass =
   'w-full rounded-md border border-hairline-strong bg-canvas px-3 py-2 text-sm text-ink transition-colors focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/[0.03]'
 
+/*
+  The same two controls, on the public pages' palette.
+
+  Sign-in and registration are public surfaces now, so they render on the
+  landing page's warm cream and speak the `lp-` tokens rather than the app-wide
+  `ink` / `hairline` / `canvas` ones. These are declared here rather than
+  written into each view because that is this file's whole job, and two views
+  restating the same string is the problem its header describes.
+
+  Additive only: `fieldLabelClass` and `textInputClass` are unchanged, because
+  every dashboard and filter bar in the product uses them and the auth pages do
+  not get to repaint the app.
+
+  `focus:border-lp-accent` replaces the old `focus:ring-2 focus:ring-brand-500/20`.
+  That ring was a 2px purple wash, which on a cream card is close to invisible;
+  a border colour change plus the 2px `focus-visible` outline `main.css` already
+  declares for every interactive element gives two clear signals instead of none.
+*/
+export const lpFieldLabelClass = 'mb-2 block text-sm font-medium text-lp-ink'
+
+/**
+ * The landing-page input, used by the auth forms and the course pages.
+ *
+ * The border and background carry `transition-[border-color,background-color,box-shadow]`
+ * rather than the shorthand `transition-colors`, so the focus ring's shadow fades in
+ * with the border instead of appearing instantly against a still background - the
+ * input's only transition, and the only one an auth form needs.
+ *
+ * The focus ring is written `rgba(31,107,70,0.12)`, NOT `rgb(31_107_70/0.12)`. Tailwind
+ * reads `/` inside an arbitrary value as the start of an opacity MODIFIER, so the
+ * slash syntax silently resolves the whole shadow to `rgba(0,0,0,0) 0 0 0 0` - no
+ * error, no ring, and the input's only focus affordance beyond its border colour gone.
+ * Measured: the computed `box-shadow` was a transparent zero-length shadow.
+ *
+ * The ring is here in addition to the 2px `focus-visible` outline `main.css` declares
+ * for every interactive element, and they are not redundant: the outline is the
+ * project's accessibility signal, this one is the accent tint that ties the field to
+ * the palette.
+ *
+ * Deliberately NOT given an entrance animation. A field that flies in is a field
+ * someone is trying to type into; the form card arriving is enough.
+ */
+export const lpTextInputClass =
+  'w-full rounded-xl border border-lp-line-strong bg-lp-canvas px-4 py-3 text-sm text-lp-ink placeholder:text-lp-slate transition-[border-color,background-color,box-shadow] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus:border-lp-accent focus:shadow-[0_0_0_3px_rgba(31,107,70,0.12)] motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-60'
+
 /** Select sitting inside a table cell, at the row's density. */
 export const cellSelectClass =
   'rounded-md border border-hairline-strong bg-canvas py-1.5 ps-2.5 pe-2 text-xs font-medium transition-colors focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/[0.03]'

@@ -70,7 +70,7 @@ function submit(): void {
     <h3 class="text-theme-sm text-gray-900 dark:text-white/90">
       {{ module ? 'Edit module' : 'New module' }}
     </h3>
-    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+    <p class="mt-1 section-subheading">
       A module is one section of the course. Order it by adding modules in the sequence you want
       learners to work through them.
     </p>

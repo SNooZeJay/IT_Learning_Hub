@@ -15,19 +15,7 @@
         `/images/user/owner.png`, TailAdmin's bundled photograph of an actual
         person, so every account in the system wore the same stranger's face.
       -->
-      <span
-        class="relative inline-flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold"
-        :class="avatarFallbackClass"
-      >
-        <img
-          v-if="showAvatarImage"
-          :src="avatarUrl"
-          alt=""
-          class="size-full object-cover"
-          @error="avatarFailed = true"
-        />
-        <span v-else aria-hidden="true">{{ initials }}</span>
-      </span>
+      <UserAvatar :name="auth.profile?.fullName ?? ''" :src="avatarUrl" size="md" />
 
       <!-- `max-w-40` so a long name truncates instead of pushing the header wider
            than a 390px viewport. -->
@@ -114,6 +102,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { ChevronDown, LogOut, Settings, UserRound } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -121,54 +110,10 @@ const router = useRouter()
 const dropdownOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 
-/** Set once an `avatar_url` 404s, so the dead URL is not rendered again. */
-const avatarFailed = ref(false)
-
 const firstName = computed(() => auth.profile?.fullName?.split(' ')[0]?.trim() || 'Account')
 
 /** `undefined` rather than `null`, so `:src` accepts it directly. */
 const avatarUrl = computed<string | undefined>(() => auth.profile?.avatarUrl ?? undefined)
-
-const showAvatarImage = computed(() => avatarUrl.value !== undefined && !avatarFailed.value)
-
-/**
- * Two letters, or one when the name only has one word.
- *
- * Mirrors the `initials()` helper in `views/admin/Users.vue` so the same person
- * reads the same way in the header and in the users table.
- */
-const initials = computed(() => {
-  const source = auth.profile?.fullName?.trim() || auth.profile?.email?.trim() || ''
-  const parts = source.split(/\s+/).filter(Boolean).slice(0, 2)
-  if (parts.length === 0) return '?'
-  return parts.map((part) => part.charAt(0).toUpperCase()).join('')
-})
-
-/**
- * A stable colour per person.
- *
- * Six pairs, chosen by a hash of the name, so two different accounts do not
- * land on the same swatch and the same account lands on the same one every
- * visit. Every pair is a theme token rather than a literal colour, so the dark
- * variants come from the same decision as the rest of the app.
- */
-const AVATAR_SWATCHES = [
-  'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400',
-  'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',
-  'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-400',
-  'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400',
-  'bg-brand-100 text-brand-800 dark:bg-brand-500/25 dark:text-brand-200',
-  'bg-surface text-charcoal dark:bg-white/[0.08] dark:text-gray-200',
-] as const
-
-const avatarFallbackClass = computed(() => {
-  const source = auth.profile?.fullName ?? auth.profile?.email ?? ''
-  let hash = 0
-  for (let index = 0; index < source.length; index += 1) {
-    hash = (hash * 31 + source.charCodeAt(index)) >>> 0
-  }
-  return AVATAR_SWATCHES[hash % AVATAR_SWATCHES.length]
-})
 
 /**
  * Two language controls are gone from this menu.

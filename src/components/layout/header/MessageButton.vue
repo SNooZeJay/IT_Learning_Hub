@@ -20,6 +20,7 @@ import { MessageSquare } from 'lucide-vue-next'
 import { countUnreadMessages } from '@/services/messaging.service'
 import { useUnreadMessages } from '@/composables/useUnreadMessages'
 import { useAuthStore } from '@/stores/auth'
+import HeaderIconButton from '@/components/layout/HeaderIconButton.vue'
 
 const auth = useAuthStore()
 const unread = useUnreadMessages()
@@ -55,12 +56,14 @@ onMounted(async () => {
 </script>
 
 <template>
-  <router-link
-    to="/messages"
-    :aria-label="label"
-    :title="label"
-    class="relative flex size-10 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-500"
-  >
+  <!--
+    The same header control treatment as every other icon button here, wrapping a link
+    rather than a button: `as="router-link"`. It was the odd one out at `rounded-full`
+    with no border while the bell beside it was `rounded-full` with one.
+
+    A link rather than a dropdown, deliberately: see the script block.
+  -->
+  <HeaderIconButton :label="label" as="router-link" to="/messages">
     <MessageSquare class="size-5" aria-hidden="true" />
 
     <!--
@@ -74,7 +77,5 @@ onMounted(async () => {
     >
       {{ count }}
     </span>
-
-    <span class="sr-only">{{ label }}</span>
-  </router-link>
+  </HeaderIconButton>
 </template>

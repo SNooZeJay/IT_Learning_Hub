@@ -290,13 +290,24 @@ async function loadUpcomingQuizzes(limit: number): Promise<UpcomingQuiz[]> {
   const quizRows = await rowsOf(() =>
     supabase
       .from('quizzes')
-      .select('id, title, course_id, attempts_allowed')
+      // `courses!inner(title)` because `courseTitle` is rendered under every quiz name
+      // in the "Quizzes to do" card. This select carried only `course_id` and the mapper
+      // wrote `courseTitle: ''`, so the panel showed a bare quiz title followed by a blank
+      // line. A placeholder that reaches the interface is a lie about data being absent,
+      // which is the rule this whole file is written against.
+      .select('id, title, course_id, attempts_allowed, courses!inner(title)')
       .eq('status', 'published'),
   )
 
   if (quizRows.length === 0) return []
 
-  type QuizRow = { id: string; title: string; course_id: string; attempts_allowed: number }
+  type QuizRow = {
+    id: string
+    title: string
+    course_id: string
+    attempts_allowed: number
+    courses: { title: string } | null
+  }
   const quizzes = quizRows as unknown as QuizRow[]
 
   const [attemptRows, questionRows] = await Promise.all([
@@ -345,7 +356,10 @@ async function loadUpcomingQuizzes(limit: number): Promise<UpcomingQuiz[]> {
         row: {
           quizId: quiz.id,
           title: quiz.title,
-          courseTitle: '',
+          // Resolved from the join. An unknown course is stated as one rather than
+          // rendered as blank, because a blank line reads as "no course" and an
+          // unreadable row is a different fact.
+          courseTitle: quiz.courses?.title ?? 'Unknown course',
           questionCount: questionsByQuiz.get(quiz.id) ?? 0,
           attemptsUsed: graded.length,
           attemptsAllowed,

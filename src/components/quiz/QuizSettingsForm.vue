@@ -118,7 +118,7 @@ function submit(): void {
     <h3 class="text-theme-sm text-gray-900 dark:text-white/90">
       {{ quiz ? 'Edit quiz settings' : 'New quiz' }}
     </h3>
-    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+    <p class="mt-1 section-subheading">
       A new quiz starts as a draft. Publishing is a separate step on the quiz itself, once it has
       questions that can actually be answered.
     </p>
@@ -201,7 +201,7 @@ function submit(): void {
               step="1"
               class="w-28 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
             />
-            <span class="shrink-0 text-sm text-gray-500 dark:text-gray-400">%</span>
+            <span class="shrink-0 section-subheading">%</span>
           </div>
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
             From 1 to 100. A pass mark of 0 is not allowed.
@@ -247,7 +247,7 @@ function submit(): void {
               placeholder="No limit"
               class="w-28 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
             />
-            <span class="shrink-0 text-sm text-gray-500 dark:text-gray-400">minutes</span>
+            <span class="shrink-0 section-subheading">minutes</span>
           </div>
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
             Blank means no limit. The time is enforced on the server, not in the browser.

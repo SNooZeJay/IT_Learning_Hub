@@ -9,7 +9,7 @@
       <CircleAlert class="size-6" />
     </span>
     <h3 class="text-base font-medium text-gray-900 dark:text-white/90">{{ title }}</h3>
-    <p class="mt-1 max-w-md text-sm text-gray-500 dark:text-gray-400">
+    <p class="mt-1 max-w-md section-subheading">
       {{ message }}
     </p>
     <div class="mt-5">

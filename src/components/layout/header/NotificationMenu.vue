@@ -1,33 +1,33 @@
 <template>
   <div ref="dropdownRef" class="relative">
-    <button
-      type="button"
-      class="relative flex size-11 items-center justify-center rounded-full border border-hairline bg-canvas text-slate transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:bg-white/[0.03] dark:text-gray-400 dark:hover:bg-white/[0.08] dark:hover:text-gray-200"
-      aria-haspopup="true"
-      :aria-expanded="dropdownOpen"
-      aria-controls="notification-menu-dropdown"
-      @click="toggleDropdown"
+    <!--
+      The bell. Shape and size come from `HeaderIconButton`, like every other control in
+      this row. It used to be `rounded-full` + border at `size-11`, while the message
+      button beside it was `rounded-full` with no border at `size-10`.
+    -->
+    <HeaderIconButton
+      :label="buttonLabel"
+      :expanded="dropdownOpen"
+      controls="notification-menu-dropdown"
+      :active="dropdownOpen"
+      @activate="toggleDropdown"
     >
       <!--
         The unread dot used to be `const notifying = ref(true)` — a red pulse
         from first paint, on an account with no notifications at all. It is now
         the real count from the `notifications` table, and it is absent at zero.
+
+        The ping is gone with the rest of the motion budget: it animated forever, on
+        every screen, and a badge that pulses continuously stops being read as urgent
+        within a day. The dot itself carries the state.
       -->
       <span
         v-if="unreadCount > 0"
         class="absolute end-1.5 top-1.5 z-1 size-2 rounded-full bg-error-500"
-      >
-        <span
-          class="absolute -z-1 inline-flex size-full animate-ping rounded-full bg-error-500 opacity-75"
-        ></span>
-      </span>
-
-      <!-- The dot carries no text, so the state is named here for a screen
-           reader. "Loading" is distinguished from "nothing" on purpose. -->
-      <span class="sr-only">{{ buttonLabel }}</span>
+      />
 
       <Bell class="size-5" aria-hidden="true" />
-    </button>
+    </HeaderIconButton>
 
     <!-- Dropdown Start -->
     <!--
@@ -261,6 +261,7 @@ import {
   School,
   X,
 } from 'lucide-vue-next'
+import HeaderIconButton from '@/components/layout/HeaderIconButton.vue'
 import {
   listNotifications,
   markAllNotificationsRead,

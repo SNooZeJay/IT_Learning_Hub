@@ -2,9 +2,25 @@
   <div class="min-h-screen xl:flex">
     <AppSidebar />
     <Backdrop />
+    <!--
+      The content column.
+
+      The offset comes from the same two tokens the sidebar sizes itself from
+      (`--sidebar-width`, `--sidebar-rail-width`), so the two cannot disagree. They were
+      `ms-[290px]` / `ms-[90px]` literals against the sidebar's `w-[290px]` / `w-[90px]`,
+      and the agreement between them was a coincidence two files had to maintain.
+
+      Only `isExpanded` drives this now. `isHovered` used to be part of it, which meant
+      hovering a collapsed rail pushed every dashboard sideways by the difference between
+      the two widths - the whole page moving because a pointer crossed a 72px strip.
+
+      No transition on the margin. The sidebar animates its own width over 200ms, and a
+      margin transition on top of that made the content lag behind the rail it was
+      clearing, which read as the layout sliding twice.
+    -->
     <div
-      class="flex-1 transition-all duration-300 ease-in-out"
-      :class="[isSidebarWide ? 'xl:ms-[290px]' : 'xl:ms-[90px]']"
+      class="flex-1 transition-[margin] duration-200 ease-out"
+      :class="isSidebarWide ? 'xl:ms-(--sidebar-width)' : 'xl:ms-(--sidebar-rail-width)'"
     >
       <AppHeader />
       <main class="mx-auto max-w-(--breakpoint-2xl) p-4 pb-20 md:p-6 md:pb-6">
@@ -26,17 +42,14 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import Backdrop from '@/components/layout/Backdrop.vue'
 import { useSidebar } from '@/composables/useSidebar'
 
-const { isExpanded, isHovered } = useSidebar()
+const { isExpanded } = useSidebar()
 
 /**
  * Must match the sidebar's own width calculation exactly.
  *
- * AppLayout offsets the content by the sidebar's width, and if the two disagree
- * the content either overlaps the sidebar or leaves a gap beside it.
- *
- * `isMobileOpen` is deliberately absent. Below the xl breakpoint the sidebar is
- * a full-screen overlay and these `xl:` offsets do not apply at all, so
- * including it would change nothing above xl and cannot help below it.
+ * `isMobileOpen` is deliberately absent. Below the xl breakpoint the sidebar is a
+ * full-screen overlay and these `xl:` offsets do not apply at all, so including it would
+ * change nothing above xl and cannot help below it.
  */
-const isSidebarWide = isExpanded || isHovered
+const isSidebarWide = isExpanded
 </script>

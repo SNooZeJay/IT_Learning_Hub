@@ -91,7 +91,7 @@
               :class="inputClass"
             />
             <p class="mt-1 text-xs text-slate">
-              Unique. The database refuses a duplicate name, and says so.
+              Unique. A name already in use is refused.
             </p>
           </div>
 

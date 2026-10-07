@@ -145,7 +145,7 @@ function submit(): void {
     <h3 class="text-theme-sm text-gray-900 dark:text-white/90">
       {{ assignment ? 'Edit assignment' : 'New assignment' }}
     </h3>
-    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+    <p class="mt-1 section-subheading">
       An assignment is one piece of work a student hands in. Published assignments count towards a
       student's course completion, so publishing one starts expecting an answer from everyone
       enrolled.
@@ -228,10 +228,10 @@ function submit(): void {
               class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
               :aria-invalid="Boolean(pointsError)"
             />
-            <span class="shrink-0 text-sm text-gray-500 dark:text-gray-400">points</span>
+            <span class="shrink-0 section-subheading">points</span>
           </div>
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-            Must be more than zero. A grade above this is refused by the database.
+            Must be more than zero. A grade above this is refused.
           </p>
           <p v-if="pointsError" class="mt-1 text-sm text-error-600 dark:text-error-400">
             {{ pointsError }}

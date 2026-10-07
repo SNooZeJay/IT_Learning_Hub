@@ -2,7 +2,7 @@
   <div>
     <PageHeader
       title="Instructors"
-      subtitle="Everyone who can teach, and exactly which courses the database has assigned them to."
+      subtitle="Everyone who can teach, and which courses each one is assigned to."
       :crumbs="[{ label: 'Admin', to: '/admin/dashboard' }, { label: 'Instructors' }]"
     >
       <template #actions>
@@ -167,9 +167,7 @@
             <h3 class="text-xs font-medium tracking-wide text-slate uppercase">Teaching</h3>
 
             <p v-if="instructor.courses.length === 0" class="mt-2 text-sm text-slate">
-              Not assigned to any course yet. An instructor with no assignment cannot edit anything,
-              because the database checks
-              <code class="font-mono text-xs">course_instructors</code> before every course write.
+              Not assigned to any course yet. Assign them to a course before they can edit it.
             </p>
 
             <ul v-else class="mt-2 flex flex-wrap gap-2">

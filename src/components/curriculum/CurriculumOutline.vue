@@ -158,7 +158,7 @@ function onRemoveMaterial(materialId: string): void {
       v-if="summary"
       class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-4 dark:border-gray-800"
     >
-      <p class="text-sm text-gray-500 dark:text-gray-400">
+      <p class="section-subheading">
         <span class="font-medium text-gray-900 dark:text-white/90">{{ summary.moduleCount }}</span>
         {{ summary.moduleCount === 1 ? 'module' : 'modules' }}
         <span aria-hidden="true">·</span>
@@ -173,7 +173,7 @@ function onRemoveMaterial(materialId: string): void {
 
       <p
         v-if="summary.completionPercent !== null"
-        class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
+        class="flex items-center gap-2 section-subheading"
       >
         <span class="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500"
           >Progress</span
@@ -230,7 +230,7 @@ function onRemoveMaterial(materialId: string): void {
             </span>
           </div>
 
-          <p v-if="module.description" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p v-if="module.description" class="mt-1 section-subheading">
             {{ module.description }}
           </p>
 
@@ -281,7 +281,7 @@ function onRemoveMaterial(materialId: string): void {
         class="divide-y divide-gray-200 dark:divide-gray-800"
       >
         <li v-if="module.lessons.length === 0" class="px-5 py-5">
-          <p class="text-sm text-gray-500 dark:text-gray-400">
+          <p class="section-subheading">
             <template v-if="editable">No lessons in this module yet.</template>
             <template v-else>No published lessons in this module yet.</template>
           </p>
@@ -432,7 +432,7 @@ function onRemoveMaterial(materialId: string): void {
       <p class="mt-3 text-sm font-medium text-gray-900 dark:text-white/90">
         {{ editable ? 'No modules yet' : 'No modules published yet' }}
       </p>
-      <p class="mx-auto mt-1 max-w-md text-sm text-gray-500 dark:text-gray-400">
+      <p class="mx-auto mt-1 max-w-md section-subheading">
         <template v-if="editable">
           A module is a section of the course. Add one, then fill it with lessons.
         </template>

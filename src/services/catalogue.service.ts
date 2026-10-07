@@ -246,6 +246,40 @@ export const LEVEL_LABELS: Record<CourseLevel, string> = {
   advanced: 'Advanced',
 }
 
+/**
+ * "Free" or a peso amount, and never a decimal peso.
+ *
+ * The stored value is integer centavos, so rounding happens once, here, rather
+ * than at each call site. Every surface showing a price - the catalogue card,
+ * the landing page's featured card - spells ₱1,500 the same way, and no
+ * floating-point peso can reach a screen.
+ *
+ * This was a private helper duplicated in two components before it was lifted
+ * here, which is the exact "one decision written twice" problem this file's
+ * read-model comments keep warning about.
+ */
+export function formatPrice(priceCentavos: number): string {
+  if (priceCentavos <= 0) return 'Free'
+  return `₱${(priceCentavos / 100).toLocaleString('en-PH', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })}`
+}
+
+/**
+ * A course's runtime, phrased the way a person would say it.
+ *
+ * "3 hr 30 min" rather than "210 minutes", and never "0 hr" - a course under an
+ * hour reads as minutes, which is the unit the number is actually in.
+ */
+export function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  if (hours === 0) return `${rest} min`
+  if (rest === 0) return `${hours} hr`
+  return `${hours} hr ${rest} min`
+}
+
 export type PriceFilter = 'all' | 'free' | 'paid'
 
 /**

@@ -25,8 +25,8 @@
     -->
     <Alert
       variant="info"
-      title="This screen is read-only, and that is a database fact"
-      message="payments grants signed-in users SELECT and DELETE but no UPDATE, and the functions that settle or fail a payment run with the service role only. A refund has to be issued in the payment provider and confirmed by its webhook, so there is nothing on this page that could safely claim to do it."
+      title="Payments are recorded here, not changed here"
+      message="A refund is issued by the payment provider and takes effect once the provider confirms it. Nothing on this screen can move money, so nothing here will claim to."
       class="mb-6"
     />
 
@@ -113,7 +113,7 @@
         v-if="paymentsTruncated"
         variant="warning"
         title="Older payments are not shown"
-        :message="`This view reads the ${ADMIN_PAYMENT_LIMIT} most recent payments. Anything older exists in the table but is not on this page. Use the provider's dashboard for the full history.`"
+        :message="`Showing the ${ADMIN_PAYMENT_LIMIT} most recent payments. For the complete payment history, use the payment provider's own dashboard.`"
         class="mt-4"
       />
 

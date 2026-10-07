@@ -10,6 +10,7 @@ import type {
   MaterialType,
   NotificationType,
   PaymentEventStatus,
+  PaymentReceiptStatus,
   PaymentStatus,
   ProgressStatus,
   QuestionType,
@@ -446,6 +447,24 @@ export type Database = {
           paid_at: string | null
           created_at: string
           updated_at: string
+          enrollment_id: string | null
+          provider_checkout_url: string | null
+          /**
+           * The single payee, snapshotted from `courses.created_by` when the payment was
+           * created. NOT `course_instructors`: a course has one seller however many
+           * instructors teach it. Read-only to the browser - INSERT and UPDATE on payments
+           * are revoked from every client role.
+           */
+          instructor_id: string | null
+          /**
+           * The fee rate this payment was priced at. A snapshot, so changing the configured
+           * rate afterwards does not restate this sale.
+           */
+          platform_fee_pct: number | null
+          /** round(amount_centavos * platform_fee_pct / 100). The platform's share. */
+          platform_fee_centavos: number | null
+          /** amount_centavos - platform_fee_centavos. What the instructor earned. */
+          instructor_share_centavos: number | null
         }
         Insert: {
           id?: string
@@ -461,6 +480,12 @@ export type Database = {
           paid_at?: string | null
           created_at?: string
           updated_at?: string
+          enrollment_id?: string | null
+          provider_checkout_url?: string | null
+          instructor_id?: string | null
+          platform_fee_pct?: number | null
+          platform_fee_centavos?: number | null
+          instructor_share_centavos?: number | null
         }
         Update: {
           status?: Database['public']['Enums']['payment_status']
@@ -468,12 +493,25 @@ export type Database = {
           provider_checkout_id?: string | null
           paid_at?: string | null
           updated_at?: string
+          provider_checkout_url?: string | null
         }
         Relationships: [
           {
             foreignKeyName: 'payments_course_id_fkey'
             columns: ['course_id']
             referencedRelation: 'courses'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'payments_enrollment_id_fkey'
+            columns: ['enrollment_id']
+            referencedRelation: 'enrollments'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'payments_instructor_id_fkey'
+            columns: ['instructor_id']
+            referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
@@ -1382,9 +1420,122 @@ export type Database = {
           },
         ]
       }
+
+      payment_receipts: {
+        Row: {
+          id: string
+          /**
+           * UNIQUE. This constraint is the deduplication mechanism for the whole receipt
+           * feature: PayMongo redelivers a webhook until it gets a 200, and a second email
+           * to a paying student is a real failure. No browser role holds any privilege on
+           * this table - service_role only.
+           */
+          payment_id: string
+          /** The address the receipt went to, recorded so a support question is answerable. */
+          recipient: string
+          status: Database['public']['Enums']['payment_receipt_status']
+          sent_at: string | null
+          /** Why a send failed, kept because a receipt stuck in 'failed' is invisible otherwise. */
+          failure_reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          payment_id: string
+          recipient: string
+          status?: Database['public']['Enums']['payment_receipt_status']
+          sent_at?: string | null
+          failure_reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          recipient?: string
+          status?: Database['public']['Enums']['payment_receipt_status']
+          sent_at?: string | null
+          failure_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'payment_receipts_payment_id_fkey'
+            columns: ['payment_id']
+            isOneToOne: true
+            referencedRelation: 'payments'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+
+      platform_settings: {
+        Row: {
+          /** Pinned to 1: this table holds exactly one row. */
+          id: number
+          /** Percentage, not a fraction. 20.00 means the platform keeps 20%. */
+          platform_fee_pct: number
+          updated_at: string
+          /** The administrator who last changed the rate. Null on the seeded row. */
+          updated_by: string | null
+        }
+        Insert: {
+          id?: number
+          platform_fee_pct: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          platform_fee_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'platform_settings_updated_by_fkey'
+            columns: ['updated_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
 
-    Views: Record<never, never>
+    Views: {
+      /**
+       * What each instructor has earned from settled sales, summed from the split stored
+       * on each payment.
+       *
+       * Never re-applies the current platform fee, so changing the rate does not restate
+       * history. Created `security_invoker` in the database, so the payments read policy
+       * still applies to whoever queries it.
+       */
+      instructor_earnings: {
+        Row: {
+          instructor_id: string
+          full_name: string
+          sales_count: number
+          gross_centavos: number
+          earnings_centavos: number
+          platform_fee_centavos: number
+          first_sale_at: string | null
+          last_sale_at: string | null
+        }
+        Relationships: []
+      }
+      /**
+       * The platform's retained revenue, summed from the fee stored on each settled
+       * payment rather than recomputed from the configured rate.
+       */
+      platform_revenue: {
+        Row: {
+          platform_fee_centavos: number
+          gross_centavos: number
+          instructor_share_centavos: number
+          settled_count: number
+          first_sale_at: string | null
+          last_sale_at: string | null
+        }
+        Relationships: []
+      }
+    }
 
     Functions: {
       current_role: {
@@ -1608,6 +1759,62 @@ export type Database = {
         }
         Returns: string
       }
+
+      /**
+       * Computes the marketplace split for one sale: the single payee
+       * (`courses.created_by`), the platform fee and the instructor share.
+       *
+       * Callers pass a gross amount and receive the four snapshot columns. There is no
+       * parameter to pass a fee through, which is what makes "the client cannot choose
+       * the platform's cut" a property of the signature rather than a promise.
+       */
+      price_a_payment: {
+        Args: { in_course_id: string; in_gross_centavos: number }
+        Returns: {
+          instructor_id: string
+          platform_fee_pct: number
+          platform_fee_centavos: number
+          instructor_share_centavos: number
+        }[]
+      }
+
+      /**
+       * Claims the right to send the receipt for one payment.
+       *
+       * `already_claimed: false` is returned only to the first caller, which is the one
+       * that should send. A redelivered webhook gets `true` and sends nothing.
+       */
+      claim_payment_receipt: {
+        Args: { in_payment_id: string; in_recipient: string }
+        Returns: {
+          payment_id: string
+          status: Database['public']['Enums']['payment_receipt_status']
+          already_claimed: boolean
+        }[]
+      }
+
+      /** Records that the receipt was accepted by the mail server. Idempotent. */
+      mark_payment_receipt_sent: { Args: { in_payment_id: string }; Returns: undefined }
+
+      /** Records that a receipt could not be sent, with the reason. */
+      mark_payment_receipt_failed: {
+        Args: { in_payment_id: string; in_reason: string }
+        Returns: undefined
+      }
+
+      /**
+       * Sets the platform fee and records who set it. Does not touch existing payments:
+       * each one carries the rate it was priced at, so changing this is prospective only.
+       */
+      admin_set_platform_fee: {
+        Args: { in_platform_fee_pct: number }
+        Returns: {
+          id: number
+          platform_fee_pct: number
+          updated_at: string
+          updated_by: string | null
+        }[]
+      }
     }
 
     Enums: {
@@ -1621,6 +1828,8 @@ export type Database = {
       material_type: MaterialType
       progress_status: ProgressStatus
       payment_status: PaymentStatus
+      payment_receipt_status: PaymentReceiptStatus
+
       quiz_status: QuizStatus
       question_type: QuestionType
       attempt_status: AttemptStatus

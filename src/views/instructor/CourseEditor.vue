@@ -36,10 +36,8 @@
       <form class="grid gap-6 lg:grid-cols-3" @submit.prevent="save">
         <!-- ======================= DETAILS ======================= -->
         <div class="space-y-6 lg:col-span-2">
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Course details</h2>
+          <div class="surface-card">
+            <h2 class="section-heading">Course details</h2>
 
             <Alert
               v-if="saveError"
@@ -276,15 +274,13 @@
           </div>
 
           <!-- ======================= CURRICULUM ======================= -->
-          <div
-            class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
-          >
+          <div class="surface-card-shell">
             <div
-              class="flex items-baseline justify-between gap-3 border-b border-gray-200 px-6 py-4 dark:border-gray-800"
+              class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-gray-200 px-6 py-4 dark:border-gray-800"
             >
               <div>
-                <h2 class="text-title-sm text-gray-900 dark:text-white/90">Curriculum</h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <h2 class="section-heading">Curriculum</h2>
+                <p class="mt-1 section-subheading">
                   {{ modules.length }} module{{ modules.length === 1 ? '' : 's' }} ·
                   {{ lessonCount }} lesson{{ lessonCount === 1 ? '' : 's' }}
                 </p>
@@ -400,7 +396,7 @@
 
                 <!-- Read view -->
                 <div v-else>
-                  <div class="flex items-baseline justify-between gap-3">
+                  <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                     <h3 class="text-theme-sm font-medium text-gray-900 dark:text-white/90">
                       {{ module.position }}. {{ module.title }}
                     </h3>
@@ -423,10 +419,7 @@
                       </button>
                     </div>
                   </div>
-                  <p
-                    v-if="module.description"
-                    class="mt-1 text-sm text-gray-500 dark:text-gray-400"
-                  >
+                  <p v-if="module.description" class="mt-1 section-subheading">
                     {{ module.description }}
                   </p>
 
@@ -497,11 +490,8 @@
         <!-- ======================= SIDEBAR FORMS ======================= -->
         <div class="space-y-6">
           <!-- New / edit module -->
-          <div
-            v-if="moduleMode === 'new'"
-            class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">New module</h2>
+          <div v-if="moduleMode === 'new'" class="surface-card">
+            <h2 class="section-heading">New module</h2>
 
             <Alert
               v-if="moduleFormError"
@@ -565,11 +555,8 @@
           </div>
 
           <!-- Lesson form, for both adding and editing -->
-          <div
-            v-if="lessonMode"
-            class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">
+          <div v-if="lessonMode" class="surface-card">
+            <h2 class="section-heading">
               {{ lessonMode === 'new' ? 'New lesson' : 'Edit lesson' }}
             </h2>
 
@@ -723,10 +710,8 @@
           </div>
 
           <!-- Summary -->
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Summary</h2>
+          <div class="surface-card">
+            <h2 class="section-heading">Summary</h2>
             <dl class="mt-4 space-y-2.5 text-sm">
               <div class="flex items-center justify-between gap-3">
                 <dt class="text-gray-500 dark:text-gray-400">Status</dt>
@@ -759,7 +744,7 @@
             v-if="!isNew && courseId"
             class="rounded-lg border border-error-200 bg-white p-6 dark:border-error-500/20 dark:bg-white/[0.03]"
           >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Remove course</h2>
+            <h2 class="section-heading">Remove course</h2>
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
               Deleting a course removes its modules, lessons and every student's progress record.
               This cannot be undone.
@@ -785,9 +770,7 @@
             role="dialog"
             aria-modal="true"
           >
-            <h3 class="text-title-sm text-gray-900 dark:text-white/90">
-              Delete “{{ form.title }}”?
-            </h3>
+            <h3 class="section-heading">Delete “{{ form.title }}”?</h3>
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
               {{ modules.length }} module{{ modules.length === 1 ? '' : 's' }},
               {{ lessonCount }} lesson{{ lessonCount === 1 ? '' : 's' }} and all enrolled students'

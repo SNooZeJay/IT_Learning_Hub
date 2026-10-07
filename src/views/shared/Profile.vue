@@ -236,7 +236,7 @@ const activitySubtitle = computed(() => {
     case 'admin':
       return 'Whole-school counts, read from the same queries the admin dashboard uses.'
     case 'instructor':
-      return 'Scoped to the courses you own, by Row Level Security rather than by a filter here.'
+      return 'Scoped to the courses you own. Other instructors’ courses are not counted here.'
     case 'student':
       return 'Your own enrollments, lessons and graded quizzes.'
     default:

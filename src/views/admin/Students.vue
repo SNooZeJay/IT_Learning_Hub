@@ -45,7 +45,7 @@
           label="Completed"
           :value="String(completedEnrolments)"
           :icon="CircleCheck"
-          hint="Enrollments the database marks completed"
+          hint="Enrollments recorded as completed"
         />
         <StatCard
           label="Suspended"

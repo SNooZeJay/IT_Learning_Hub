@@ -201,7 +201,7 @@ const isTextType = computed(() => materialIsInlineText(materialType.value))
         on {{ lessonTitle }}
       </span>
     </h3>
-    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+    <p class="mt-1 section-subheading">
       Materials belong to one lesson and stay there, so a learner reading that lesson finds it
       without hunting.
     </p>

@@ -566,11 +566,7 @@ watch(
         @retry="loadQuizzes"
       />
 
-      <section
-        v-else
-        class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
-        aria-labelledby="quiz-list-heading"
-      >
+      <section v-else class="surface-card-shell" aria-labelledby="quiz-list-heading">
         <div
           class="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800"
         >
@@ -613,7 +609,7 @@ watch(
                 </span>
               </span>
 
-              <span class="mt-1 block text-sm text-gray-500 dark:text-gray-400">
+              <span class="mt-1 block section-subheading">
                 {{ row.summary.questionCount }}
                 {{ row.summary.questionCount === 1 ? 'question' : 'questions' }}
                 <span aria-hidden="true">·</span>
@@ -647,17 +643,14 @@ watch(
 
         <template v-else-if="quiz">
           <section
-            class="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+            class="overflow-hidden surface-card-shell"
             :aria-labelledby="`quiz-heading-${quiz.id}`"
           >
             <div class="border-b border-gray-200 px-5 py-4 sm:px-6 dark:border-gray-800">
               <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div class="min-w-0">
                   <div class="flex flex-wrap items-center gap-2">
-                    <h2
-                      :id="`quiz-heading-${quiz.id}`"
-                      class="text-title-sm text-gray-900 dark:text-white/90"
-                    >
+                    <h2 :id="`quiz-heading-${quiz.id}`" class="section-heading">
                       {{ quiz.title }}
                     </h2>
                     <span
@@ -668,10 +661,7 @@ watch(
                     </span>
                   </div>
 
-                  <p
-                    v-if="quiz.description"
-                    class="mt-1.5 text-sm text-gray-500 dark:text-gray-400"
-                  >
+                  <p v-if="quiz.description" class="mt-1.5 section-subheading">
                     {{ quiz.description }}
                   </p>
                 </div>
@@ -741,10 +731,7 @@ watch(
             <div class="px-5 py-5 sm:px-6">
               <div class="flex flex-wrap items-baseline justify-between gap-2">
                 <h3 class="text-theme-sm text-gray-900 dark:text-white/90">Questions</h3>
-                <p
-                  v-if="quiz.questions.length > 0"
-                  class="text-sm text-gray-500 dark:text-gray-400"
-                >
+                <p v-if="quiz.questions.length > 0" class="section-subheading">
                   {{ quiz.questions.length }}
                   {{ quiz.questions.length === 1 ? 'question' : 'questions' }}, worth
                   {{ totalPoints }} {{ totalPoints === 1 ? 'point' : 'points' }}
@@ -762,7 +749,7 @@ watch(
                 <p class="mt-2 text-sm font-medium text-gray-900 dark:text-white/90">
                   No questions yet
                 </p>
-                <p class="mx-auto mt-1 max-w-sm text-sm text-gray-500 dark:text-gray-400">
+                <p class="mx-auto mt-1 max-w-sm section-subheading">
                   A quiz cannot be published with no questions, and every choice question needs two
                   options with exactly one of them marked correct.
                 </p>

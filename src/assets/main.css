@@ -75,6 +75,67 @@
 }
 
 /*
+  THE LANDING PAGE'S OWN SURFACE.
+
+  The landing page is a warm cream editorial surface, and it is not built from
+  `canvas` / `ink` / `hairline`. Those three are what every authenticated page in
+  the product draws with, and on this page they produce the wrong result twice
+  over: a flat white that reads as a document rather than a page, and a dark theme
+  that lands on near-black.
+
+  So this is a second, deliberately narrow set of tokens, scoped by the `lp-`
+  prefix and consumed only by `Landing.vue`. Nothing else in the app references
+  them, which is the point - a redesign of one page cannot be allowed to move the
+  surface under the other thirty.
+
+  Warmth is the load-bearing choice in every value below. A cream page with cool
+  greys is a grey page; the cast has to be consistent or it reads as an accident.
+
+  Contrast, checked on the cream canvas (#faf8f3):
+    ink   17.9:1   slate  7.4:1   accent  5.6:1   line is a border, not text
+  Dark equivalents on the dark canvas (#17150f) meet the same bar.
+
+  Both scopes are declared rather than one plus an inversion, because the dark
+  set is not a mechanical inversion of the light one - cream has no dark
+  counterpart that is merely "the same, darker". It is a warmer, browner ramp
+  with less contrast between canvas and card than light mode has.
+*/
+:root {
+  --ith-lp-canvas: #faf8f3;
+  --ith-lp-canvas-deep: #f4f0e6;
+  --ith-lp-card: #ffffff;
+  --ith-lp-ink: #17150f;
+  --ith-lp-ink-inverse: #faf8f3;
+  --ith-lp-slate: #5c574a;
+  --ith-lp-line: #e7e0d2;
+  --ith-lp-line-strong: #d6ccb8;
+  --ith-lp-accent: #1f6b46;
+  --ith-lp-accent-bright: #7fc79f;
+  --ith-lp-accent-soft: #e9f1ea;
+  --ith-lp-accent-line: #bcd6c4;
+  --ith-lp-glow-green: #cfe3d2;
+  --ith-lp-glow-beige: #f0e2cd;
+  --ith-lp-glow-peach: #f6dcd0;
+}
+
+.dark {
+  --ith-lp-canvas: #17150f;
+  --ith-lp-canvas-deep: #1f1c15;
+  --ith-lp-card: #221f18;
+  --ith-lp-ink: #f6f2e8;
+  --ith-lp-ink-inverse: #17150f;
+  --ith-lp-slate: #b0a795;
+  --ith-lp-line: #353126;
+  --ith-lp-line-strong: #4a4436;
+  --ith-lp-accent: #7fc79f;
+  --ith-lp-accent-soft: #22301f;
+  --ith-lp-accent-line: #3a5c43;
+  --ith-lp-glow-green: #2c4a33;
+  --ith-lp-glow-beige: #4a3d28;
+  --ith-lp-glow-peach: #503529;
+}
+
+/*
   Semantic colour tokens, mapped to CSS variables rather than to fixed values.
 
   Read the note at the top of the block further down for why these are not plain
@@ -98,9 +159,65 @@
   --color-hairline-soft: var(--ith-hairline-soft);
   --color-hairline-strong: var(--ith-hairline-strong);
   --color-inverse-canvas: var(--ith-inverse-canvas);
+
+  /* Landing page only. See the block declaring --ith-lp-* below the `.dark`
+     scope above. `lp` is not an abbreviation the app uses anywhere else, which is
+     deliberate: it makes every consumer of these greppable, so the day a second
+     page wants this surface it is obvious that it is borrowing rather than
+     sharing. */
+  --color-lp-canvas: var(--ith-lp-canvas);
+  --color-lp-canvas-deep: var(--ith-lp-canvas-deep);
+  --color-lp-card: var(--ith-lp-card);
+  --color-lp-ink: var(--ith-lp-ink);
+  --color-lp-ink-inverse: var(--ith-lp-ink-inverse);
+  --color-lp-slate: var(--ith-lp-slate);
+  --color-lp-line: var(--ith-lp-line);
+  --color-lp-line-strong: var(--ith-lp-line-strong);
+  --color-lp-accent: var(--ith-lp-accent);
+  /*
+    The landing page's accent, at the one lightness that is legible on near-black.
+
+    Declared in `:root` only, with no `.dark` counterpart, on purpose: the dark
+    set already holds a light accent for surfaces that flip, and this one is for
+    surfaces that are ALWAYS dark - the closing CTA card and the footer band,
+    which are charcoal in both themes. Those cannot use `--color-lp-accent`,
+    because the light value (#1f6b46) measures about 2.3:1 on #0d0d0c and would
+    be unreadable.
+
+    #7fc79f is the same hue as the dark theme's accent, measured at 10.5:1 on
+    #0d0d0c and 9.9:1 on #1a1a1a, so the page's one accent reads correctly
+    whether it sits on cream or on charcoal.
+  */
+  --color-lp-accent-bright: var(--ith-lp-accent-bright);
+  --color-lp-accent-soft: var(--ith-lp-accent-soft);
+  --color-lp-accent-line: var(--ith-lp-accent-line);
+  --color-lp-glow-green: var(--ith-lp-glow-green);
+  --color-lp-glow-beige: var(--ith-lp-glow-beige);
+  --color-lp-glow-peach: var(--ith-lp-glow-peach);
 }
 
 @theme {
+  /*
+    Sidebar geometry, as tokens rather than literals.
+
+    `AppSidebar` sets its own width from these and `AppLayout` sets the content
+    margin from the same two, so they cannot drift: a mismatch either overlaps the
+    sidebar or leaves a gap beside it. They were `w-[290px]` and `ms-[290px]` literals
+    in two files, which is how TailAdmin's 290px default became this product's sidebar
+    width without anybody deciding it.
+
+    256px rather than 290px: at 290px the rail took 21% of a 1366px laptop and left
+    `System settings` and `Notifications` crowding the edge. 256px fits every current
+    label without truncation.
+
+    The rail is 72px, which is the icon (20px) plus 24px of padding either side plus a
+    4px remainder that keeps the hairline border from sitting under the icon. The old
+    90px left 25px of dead space either side of a 20px glyph, so collapsed icons looked
+    lost rather than centred.
+  */
+  --sidebar-width: 256px;
+  --sidebar-rail-width: 72px;
+
   /* Inter. --font-outfit and --font-plex are kept as aliases so the several
      hundred existing `font-outfit` usages across the imported TailAdmin code
      keep resolving; they are not second typefaces. See AGENTS.md. */
@@ -342,6 +459,178 @@
   --shadow-theme-xs: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
   --shadow-theme-xl:
     0px 20px 24px -4px rgba(16, 24, 40, 0.08), 0px 8px 8px -4px rgba(16, 24, 40, 0.03);
+
+  /*
+    The landing page's shadows.
+
+    Warm and wide rather than neutral and tight, because the surface they sit on
+    is cream. A grey shadow on a warm page reads as dirt along the edge; these
+    are tinted with the page's own ink (#17150f) at low alpha so the card looks
+    lifted off paper instead of outlined in grey.
+
+    Two stops each. The tight one gives the edge definition, the wide one carries
+    the lift - a single-stop shadow cannot do both, and picking one is what makes
+    a floating element look pasted on.
+  */
+  --shadow-lp-nav:
+    0px 1px 2px rgba(23, 21, 15, 0.04), 0px 10px 30px -12px rgba(23, 21, 15, 0.1);
+  --shadow-lp-card:
+    0px 2px 6px -2px rgba(23, 21, 15, 0.05), 0px 24px 48px -24px rgba(23, 21, 15, 0.16);
+  --shadow-lp-button: 0px 1px 2px rgba(23, 21, 15, 0.06);
+
+  /*
+    The typewriter caret on the landing page's hero headline.
+
+    `steps(1, end)` rather than an ease: a caret that fades reads as a glow, and
+    this one is meant to read as a blinking insertion point. The 0-49/50-100 split
+    is roughly a square wave with a short gap, which is what a terminal cursor
+    actually does.
+
+    Only rendered while the headline is being typed, and never rendered at all
+    under `prefers-reduced-motion`, so this never runs as a permanent background
+    animation for someone who asked for stillness.
+  */
+  --animate-caret-blink: caret-blink 1.05s steps(1, end) infinite;
+
+  /*
+    THE THREE KEYFRAMES BEHIND THE FIVE UTILITIES AT THE END OF THIS BLOCK. Three, not
+    a library: an authored entrance, a list item arriving, and a plain fade that the
+    reduced-motion paths fall back to.
+
+    Not registered as `--animate-*`. The utilities below name these keyframes
+    directly, because a Tailwind animation token would let a view write
+    `animate-motion-enter` and bypass the reduced-motion override that makes those
+    utilities safe. The indirection was the risk, not the convenience.
+
+    Every one is `both` fill mode: backwards applies the from-state before the
+    animation starts, forwards holds the end-state after. Without `backwards` an
+    element flashes at its final position for one frame before jumping to the start,
+    which is the most common way a fade-up entrance looks broken.
+
+    All three animate ONLY `transform` and `opacity`. No `width`, `height`, `top`,
+    `margin` or `filter`: those are layout-driving, so animating them forces a reflow
+    every frame. On a page with a hero grid, a catalogue grid and a sticky header that
+    is the difference between 60fps and a janky one.
+
+    The travel distances are small and deliberate - 12px for the hero, 6px for a list
+    item. A larger distance is the other common entrance failure: it reads as content
+    flying in rather than arriving.
+  */
+  @keyframes motion-hero {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes motion-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes motion-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /*
+    THE MOTION SYSTEM.
+
+    One vocabulary for the five public surfaces: the landing page, the catalogue, the
+    course page, sign in and sign up. Every duration and curve the product uses for
+    motion is named here, so a new animation picks from a set instead of inventing a
+    number. That is what stops five pages from reading as five different products.
+
+    TIMING, and why each is where it is:
+
+      --ith-motion-instant  120ms  feedback under the finger. A press that waits
+                                   300ms to respond feels broken, so hover and active
+                                   states are the fastest thing here and nothing else
+                                   is faster.
+      --ith-motion-fast     200ms  routine state change: a filter narrowing, a card's
+                                   border and shadow settling.
+      --ith-motion-base     320ms  a thing arriving that the reader was waiting for -
+                                   the hero sequence, a form arriving, a list of
+                                   courses appearing. Long enough to be read as
+                                   deliberate, short enough that it does not delay.
+      --ith-motion-slow     560ms  authored entrances, where the sequence is the point
+                                   and there is only one per page.
+
+    The curve is the important half. `--ith-ease-out` is a strong exponential
+    deceleration (0.16, 1, 0.3, 1): it leaves fast and arrives slowly, which reads as
+    something settling into place rather than being launched. There is deliberately no
+    bounce or elastic curve in the set - a spring reads as playful, and this is a
+    product for someone trying to concentrate on a course.
+
+    `--ith-ease-soft` is the same shape with a longer tail, for the larger surfaces
+    where the extra deceleration is perceptible across the distance travelled.
+
+    STAGGER. `--ith-stagger-step` is 60ms. Four steps is 180ms of total offset, which
+    is the most a reader can perceive as a sequence before it starts reading as a
+    delay. `--ith-stagger-cap` is the number of items past which a list stops
+    staggering: a grid of nine courses all arriving in sequence is a performance, and
+    the seventh card appearing later than the sixth implies the sixth is more
+    important.
+
+    REDUCED MOTION. Every utility below also exists in a reduced-motion form that keeps
+    opacity and drops the movement, rather than removing the element. See the five
+    `@utility` blocks at the end of this section, each of which carries its own
+    `@media (prefers-reduced-motion: reduce)` override.
+  */
+  --ith-motion-instant: 120ms;
+  --ith-motion-fast: 200ms;
+  --ith-motion-base: 320ms;
+  --ith-motion-slow: 560ms;
+  --ith-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ith-ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ith-stagger-step: 60ms;
+  --ith-stagger-cap: 4;
+
+  /*
+    There is deliberately NO `--stagger-delay` token.
+
+    The obvious design is one: declare `--stagger-delay: calc(min(var(--stagger-i), ...))`
+    here and read it in the utilities. It does not work, and it fails silently rather
+    than loudly - every element animates at once and nothing looks broken.
+
+    Custom properties are substituted at computed-value time on the element that
+    DECLARES them. `--stagger-i` is set per-element by each view, but `--stagger-delay`
+    is declared on `:root`, where `--stagger-i` is unset. So `:root` resolves the whole
+    calc once, with the `0` fallback, and hands every descendant a literal `0s`.
+    Measured: all six hero steps reported `animation-delay: 0s` while
+    `--stagger-i` read `2` on the element itself.
+
+    The delay is therefore written out in each utility, where `var(--stagger-i)`
+    resolves against the element that actually carries the index. The cap is what makes
+    that safe: item 12 of a grid gets the same delay as item 4, so a long list never
+    makes its last card wait a second for its turn.
+  */
+
+  @keyframes caret-blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+
   --shadow-datepicker: -5px 0 0 #393939, 5px 0 0 #393939;
   --shadow-focus-ring: 0px 0px 0px 2px rgba(86, 69, 212, 0.35);
   --shadow-slider-navigation:
@@ -426,28 +715,134 @@
   }
 }
 
+/*
+  The card surface.
+
+  This class string was written out in full twenty-two times across eight files - the
+  dashboards, the course detail and editor pages, `StatCard`, `LoadingState`. That is the
+  mechanical reason the interface read as assembled rather than designed: the card
+  language was not one decision, it was twenty-two copies of a decision that had to be
+  remembered twenty-two times, so any two of them could differ and did.
+
+  One token now. `rounded-lg` (12px) with a hairline border and no shadow, which is
+  DESIGN.md's elevation level 1 - "1px hairline border on canvas". No shadow: the
+  dashboards are flat surfaces, and a shadow on every card is what made the student
+  dashboard look like a stack of floating tiles next to the instructor one.
+
+  Interior padding is 24px, which is `{spacing.lg}` and the figure DESIGN.md pins for
+  feature cards.
+
+  Dark mode is `bg-white/[0.03]`, not a second colour. A dark surface that is a
+  hand-picked grey drifts from the ramp the moment the ramp is re-tuned.
+*/
+@utility surface-card {
+  @apply rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03];
+}
+
+/**
+  A card that is also a link or a control.
+
+  One hairline, plus a brand-tinted border on hover and a surface tint on the fill. The
+  previous version of this pattern used `hover:bg-gray-50` alone, which on a dark surface
+  was nearly invisible - a row that looked clickable and gave no confirmation.
+*/
+@utility surface-card-interactive {
+  @apply rounded-lg border border-gray-200 bg-white transition-colors duration-150 hover:border-brand-400 hover:bg-gray-50 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-brand-500 dark:hover:bg-white/[0.06];
+}
+
+/**
+  A card that carries its own padding in its children.
+
+  A table shell, a panel with a divided header, a form group. Identical surface to
+  `surface-card` minus the interior padding, which the children supply. It existed as
+  the same class string minus `p-6` in nine places, so it was one decision written twice.
+*/
+@utility surface-card-shell {
+  @apply rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03];
+}
+
+/**
+  A section heading inside a card.
+
+  `text-title-sm` was already the shared scale, but the colour pair was written out at
+  every call site, and three variants of "grey" had crept in: `text-gray-900`,
+  `text-gray-800` and `text-gray-700`. One token, one colour.
+*/
+@utility section-heading {
+  @apply text-title-sm text-gray-900 dark:text-white/90;
+}
+
+/** Supporting prose directly under a section heading. */
+@utility section-subheading {
+  @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
+/**
+  A small square holding one icon, beside a list row or a card title.
+
+  Three variants were in circulation: `rounded-md`, `rounded-lg` and `rounded-full`, at
+  32px and 36px, in grey and in brand tint. An icon container is not an avatar - it has
+  no identity in it - so the pill radius DESIGN.md reserves for avatars, badges and
+  toggles was wrong here, and the size difference made two adjacent list rows look like
+  different components.
+
+  One size (32px) and one radius (8px, matching buttons and inputs). `brand` is opt-in
+  for the cases that want the accent.
+*/
+@utility icon-chip {
+  @apply flex size-8 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-500 dark:bg-white/[0.06] dark:text-gray-400;
+}
+
+@utility icon-chip-brand {
+  @apply flex size-8 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600 dark:bg-brand-500/12 dark:text-brand-400;
+}
+
+/**
+  A chip that leads a card with its headline figure.
+
+  36px rather than the 32px of `icon-chip`, because the figure beside it is 24px type and
+  a 32px box next to 24px type looks undersized. `rounded-md` for the same reason as
+  every other icon container.
+*/
+@utility icon-chip-lg {
+  @apply flex size-9 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600 dark:bg-brand-500/12 dark:text-brand-400;
+}
+
+/*
+  Sidebar navigation items.
+
+  `menu-item` no longer carries the geometry. It used to set `gap-3 px-3 py-2`, and
+  `AppSidebar` then overrode the horizontal padding and alignment per state, so the
+  padding that governed the icon column was declared in two places and could disagree.
+  The row is now laid out in the component - one place, both states, same icon column -
+  and these utilities carry colour only.
+
+  `menu-item-icon`/`-icon-active`/`-icon-inactive` are kept because the token names are
+  the vocabulary; `menu-item-arrow` and `menu-item-dropdown` are not referenced by any
+  component in this project and were TailAdmin submenu residue.
+*/
 @utility menu-item {
-  @apply relative flex items-center w-full gap-3 px-3 py-2 font-medium rounded-lg text-theme-sm;
+  @apply relative flex items-center w-full font-medium rounded-lg text-theme-sm;
 }
 
 @utility menu-item-active {
-  @apply bg-brand-50 text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400;
+  @apply bg-brand-50 text-brand-700 dark:bg-brand-500/[0.14] dark:text-brand-300;
 }
 
 @utility menu-item-inactive {
-  @apply text-gray-700 hover:bg-gray-100 group-hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300;
+  @apply text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/[0.06] dark:hover:text-white;
 }
 
 @utility menu-item-icon {
-  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400;
+  @apply text-slate group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200;
 }
 
 @utility menu-item-icon-active {
-  @apply text-brand-500 dark:text-brand-400;
+  @apply text-brand-600 dark:text-brand-400;
 }
 
 @utility menu-item-icon-inactive {
-  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300;
+  @apply text-slate group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200;
 }
 
 @utility menu-item-arrow {
@@ -510,6 +905,141 @@
   @apply bg-brand-50 group-hover:bg-brand-100 dark:bg-brand-500/15 dark:group-hover:bg-brand-500/20;
 }
 
+/*
+  The typewriter caret on the landing page's hero headline.
+
+  `inline-block` matters: on a plain inline span `height` does not apply, which is
+  the usual reason a caret renders as a zero-height sliver. `w-[3px]` with
+  `rounded-full` gives the rounded end, and `align-baseline` sits it on the text
+  baseline rather than the line box, which is where an insertion point belongs.
+
+  `animate-caret-blink` is the theme token declared above. This class is only
+  ever rendered while the headline is typing - under `prefers-reduced-motion` the
+  component renders no caret at all - so nothing here blinks for someone who has
+  asked the OS for stillness.
+*/
+@utility caret-tick {
+  @apply ms-[2px] inline-block h-[0.78em] w-[3px] rounded-full bg-lp-accent align-baseline animate-caret-blink;
+}
+
+/*
+  THE PUBLIC-SURFACE MOTION UTILITIES.
+
+  Five utilities, one job each, and no others. Every one carries its own
+  `prefers-reduced-motion` path INSIDE the utility rather than in a block at the end
+  of the file, because the from-state is what hides an element: a reduced-motion
+  override that failed to apply would leave a page whose hero never appears.
+
+  Only these five exist. A first pass defined eight, and the three unused ones were
+  deleted rather than left as options - Tailwind emits nothing for an unreferenced
+  utility, so an unused one is a naming scheme with no behaviour behind it, and the
+  next person to reach for one would be reading a promise nothing keeps.
+
+  Reduced motion KEEPS the opacity fade and drops the travel. Not the other way round:
+  an element that arrives instantly is fine, an element that never becomes visible is
+  a broken page. The fade is also the part that carries meaning - it says "this
+  arrived" - so dropping it would drop information rather than decoration.
+*/
+@utility lp-hero-step {
+  animation: motion-hero var(--ith-motion-slow) var(--ith-ease-soft) both;
+  /* Written out rather than read from a token - see the note on `--stagger-i` above.
+     `min()` is the cap, and it is why one declaration is safe on a list of any length. */
+  animation-delay: calc(
+    min(var(--stagger-i, 0), var(--ith-stagger-cap)) * var(--ith-stagger-step)
+  );
+
+  @media (prefers-reduced-motion: reduce) {
+    animation-name: motion-fade;
+    animation-duration: var(--ith-motion-base);
+    /* No stagger under reduced motion: a sequence the reader has asked not to
+       watch is still a sequence they are waiting on. */
+    animation-delay: 0ms;
+  }
+}
+
+/*
+  List items arriving in sequence - the catalogue grid, a course's module list.
+
+  Capped by `--ith-stagger-cap`, so the ninth card is not nine steps behind the
+  first. This is the difference between a grid that assembles and a grid that
+  performs.
+*/
+@utility lp-stagger {
+  animation: motion-enter var(--ith-motion-base) var(--ith-ease-out) both;
+  animation-delay: calc(
+    min(var(--stagger-i, 0), var(--ith-stagger-cap)) * var(--ith-stagger-step)
+  );
+
+  @media (prefers-reduced-motion: reduce) {
+    animation-name: motion-fade;
+    animation-delay: 0ms;
+  }
+}
+
+/*
+  THE INTERACTIVE SURFACES: what a card, a button and a field do under a pointer.
+
+  Three utilities, three jobs, all at `--ith-motion-instant` or `--ith-motion-fast`:
+
+    lp-lift     a card that comes toward the reader on hover. Transform only, so it
+                composites rather than reflowing.
+    lp-press    the acknowledgement that a press registered. This is the one effect
+                that must never be disabled: it is the only confirmation that a tap
+                did anything, and on touch there is no hover.
+    lp-surface  a control whose background and border settle together. Used on the
+                course card's own frame and on the auth card's fields.
+
+  `lp-lift` pairs a 1px lift with a shadow change rather than a scale. Scaling a card
+  resizes its text, which re-renders the type and looks like a zoom on a page whose
+  whole point is editorial type. A shadow that deepens reads as "closer" and leaves
+  every glyph exactly where it was.
+
+  Under reduced motion all three keep their colour and shadow change and drop the
+  translation, because "this responds to me" is information and "this moves" is not.
+*/
+@utility lp-lift {
+  transition:
+    transform var(--ith-motion-fast) var(--ith-ease-out),
+    box-shadow var(--ith-motion-fast) var(--ith-ease-out),
+    border-color var(--ith-motion-fast) var(--ith-ease-out);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0px 2px 6px -2px rgba(23, 21, 15, 0.05), 0px 32px 60px -28px rgba(23, 21, 15, 0.22);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:hover {
+      transform: none;
+    }
+  }
+}
+
+@utility lp-press {
+  transition: transform var(--ith-motion-instant) var(--ith-ease-out);
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* Kept, deliberately. A press that does nothing is indistinguishable from a
+       dropped tap, and reduced motion is a request for less movement, not for less
+       feedback. The travel is 2%, well under the threshold where it reads as motion. */
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}
+
+@utility lp-surface {
+  transition:
+    background-color var(--ith-motion-fast) var(--ith-ease-out),
+    border-color var(--ith-motion-fast) var(--ith-ease-out),
+    box-shadow var(--ith-motion-fast) var(--ith-ease-out);
+}
+
 @utility no-scrollbar {
   /* Chrome, Safari and Opera */
   &::-webkit-scrollbar {
@@ -545,30 +1075,19 @@ input[type='time']::-webkit-calendar-picker-indicator {
   -webkit-appearance: none !important;
 }
 
-.sidebar:hover {
-  width: 290px;
-}
-.sidebar:hover .sidebar-header {
-  justify-content: space-between;
-}
-.sidebar:hover .menu-group-title {
-  display: block;
-}
-.sidebar:hover .menu-group-icon {
-  display: none;
-}
+/*
+  The `.sidebar:hover` block that used to sit here is deleted.
 
-.sidebar:hover .menu-item-text {
-  display: inline;
-}
+  It set `width: 290px` on hover, which is the behaviour this task exists to remove, and
+  it reached for `.sidebar-header`, `.menu-group-title`, `.menu-group-icon`,
+  `.menu-item-text`, `.menu-item-arrow` and `.menu-dropdown` - none of which appear in
+  any component in this project. It was TailAdmin's own sidebar, and it had been dead
+  since the Vue sidebar replaced it: the reflow people were seeing came from
+  `isHovered` state in `AppSidebar.vue` and `AppLayout.vue`, not from CSS.
 
-.sidebar:hover .menu-item-arrow {
-  display: block;
-}
-
-.sidebar:hover .menu-dropdown {
-  display: flex;
-}
+  Hover now shows a tooltip positioned outside the rail. It takes no part in layout, so
+  there is nothing here to re-add.
+*/
 
 .tableCheckbox:checked ~ span span {
   @apply opacity-100;

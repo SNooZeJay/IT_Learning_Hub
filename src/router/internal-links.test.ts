@@ -84,12 +84,23 @@ const LINK_PATTERN =
 /**
  * A stand-in for an interpolated value.
  *
- * Vue Router matches a `:param` segment against any run of non-slash characters, so
- * the value is irrelevant to whether the route exists - only the surrounding literal
- * segments decide that. A slash-free token is used so it cannot invent an extra path
- * segment and resolve a route the real link would have missed.
+ * A real UUID, not the `'x'` this used to be, and the change is not cosmetic.
+ *
+ * The old comment argued that "Vue Router matches a `:param` segment against any run of
+ * non-slash characters, so the value is irrelevant to whether the route exists". That was
+ * true of this route table and is no longer: five routes now constrain their `:id` to a
+ * UUID in the path pattern, so a value that cannot be one no longer matches. The premise
+ * was sound and the route table moved underneath it.
+ *
+ * Substituting a canonical UUID keeps the test doing what it was written to do - deciding
+ * whether the SURROUNDING literal segments name a real route - while producing a value
+ * that satisfies the constraints a real link would satisfy. `'x'` would now report twenty-one
+ * false failures for links that are entirely correct.
+ *
+ * The slug routes (`/student/courses/:id`, `/courses/:slug`) are deliberately
+ * unconstrained, and a UUID resolves against them exactly as a slug does.
  */
-const PARAM_STUB = 'x'
+const PARAM_STUB = 'e4070e42-8608-4702-acf9-f5265615fb51'
 
 /** The path to hand to the router: interpolations replaced by a stub. */
 function resolvable(target: string): string {
@@ -174,8 +185,40 @@ describe('internal links resolve', () => {
     // If the stub ever stopped being a valid `:param` value the suite would start
     // reporting every interpolated link as broken, which would be noticed - but the
     // opposite failure, silently resolving to something real, would not.
-    const resolved = router.resolve(resolvable('/student/lessons/abc123'))
+    //
+    // `abc123` used to be the value here, and it is a UUID now: five routes constrain
+    // their `:id` to one, so a stub that is not a UUID would report twenty-one false
+    // failures and drown the real signal this file exists to raise.
+    const resolved = router.resolve(`/student/lessons/${PARAM_STUB}`)
     expect(resolved.name).toBe('student-lesson')
+  })
+
+  it('a parameter that is not a UUID reaches the 404 rather than a broken page', () => {
+    // The other direction, and the one worth asserting explicitly: a malformed
+    // identifier must NOT match a route that declares a real id.
+    //
+    // Before the constraint, `/student/lessons/abc123` rendered the lesson page, which
+    // then sent `abc123` to PostgREST and received `22P02 invalid input syntax for type
+    // uuid` - a Postgres data-type error rendered to somebody who clicked a link. Now the
+    // path does not match and the user gets the 404 that already exists.
+    for (const bad of ['abc123', 'not-a-uuid', '1', '%27%20OR%201=1--']) {
+      const { matched, name } = router.resolve(`/student/lessons/${bad}`)
+      const fellThrough =
+        matched.length === 0 || matched.every((record) => record.path.includes('*'))
+
+      expect(
+        fellThrough,
+        `/student/lessons/${bad} matched ${String(name)} instead of falling through`,
+      ).toBe(true)
+    }
+  })
+
+  it('a slug parameter is not constrained, because it is not a UUID', () => {
+    // `student/courses/:id` is named `id` and carries a SLUG. Constraining it as a UUID
+    // would break every course link in the product, which is why the constraint was
+    // applied per route rather than globally.
+    const { name } = router.resolve('/student/courses/intro-to-programming')
+    expect(name).toBe('student-course-detail')
   })
 
   it.each(links.map((l) => [l.target, l] as const))(

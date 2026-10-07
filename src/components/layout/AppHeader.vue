@@ -1,69 +1,86 @@
 <template>
+  <!--
+    The application header.
+
+    Sticky, one row, one height. Below the sidebar breakpoint the left cluster (toggle,
+    search) and the right cluster (account) share the row; above it they stay on one line
+    with the search growing to fill.
+
+    `xl:border-b` rather than a border at every width: the toggle's own row below xl draws
+    its own separator, so an unconditional border double-drawn it.
+  -->
   <header
-    class="sticky top-0 z-99999 flex w-full border-gray-200 bg-canvas xl:border-b dark:border-gray-800"
+    class="sticky top-0 z-99999 w-full border-b border-gray-200 bg-canvas/95 backdrop-blur-sm xl:border-b dark:border-gray-800"
   >
-    <div class="flex grow flex-col items-center justify-between xl:flex-row xl:px-6">
-      <div
-        class="flex w-full items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 sm:gap-4 dark:border-gray-800 xl:justify-normal xl:border-b-0 xl:px-0 lg:py-4"
+    <div class="flex items-center gap-3 px-3 py-2.5 sm:gap-4 sm:px-4 lg:py-3 xl:px-6">
+      <!--
+        Sidebar toggle.
+
+        An icon-only control, so the accessible name is not optional: without
+        `aria-label` a screen reader announces "button" and the expanded state has
+        nothing to attach itself to. The label follows the state, because a control
+        named "Open the navigation menu" while the menu is open is worse than no
+        label at all.
+
+        `aria-expanded` reports the DRAWER below the breakpoint and the RAIL above it.
+        Both are "is the navigation showing its labels and its content", which is the
+        same question the user is asking of the control, so one attribute answers it in
+        both modes.
+      -->
+      <HeaderIconButton
+        :label="isMobileOpen ? 'Close the navigation menu' : 'Open the navigation menu'"
+        :expanded="isSidebarShowing"
+        controls="app-sidebar"
+        :active="isMobileOpen"
+        @activate="handleToggle"
       >
-        <!--
-          Sidebar toggle.
+        <X v-if="isMobileOpen" class="size-5" aria-hidden="true" />
+        <Menu v-else class="size-5" aria-hidden="true" />
+      </HeaderIconButton>
 
-          An icon-only control, so the accessible name is not optional: without
-          `aria-label` a screen reader announces "button" and the expanded state has
-          nothing to attach itself to. The label follows the state, because a control
-          named "Open the navigation menu" while the menu is open is worse than no
-          label at all.
+      <HeaderLogo />
 
-          `type="button"` because this element has no business submitting anything,
-          and a `<button>` with no type attribute inside a form submits that form.
+      <!--
+        The search field is the only element between the toggle and the right cluster,
+        so it takes the slack. Below the sidebar breakpoint the right cluster collapses
+        into an overflow button, which is why this is `xl:order-last` here and the
+        account menu drops below.
+      -->
+      <SearchBar class="min-w-0 flex-1" />
 
-          Lucide rather than the three hand-inlined TailAdmin SVGs this replaced, so
-          the hamburger, the close and the overflow glyph share one stroke weight and
-          one optical size with every other icon in the app.
-        -->
-        <button
-          type="button"
-          :aria-label="isMobileOpen ? 'Close the navigation menu' : 'Open the navigation menu'"
-          :aria-expanded="isMobileOpen"
-          aria-controls="app-sidebar"
-          class="z-99999 flex size-10 cursor-pointer items-center justify-center rounded-md border border-gray-200 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 lg:size-11 dark:border-gray-800 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-          :class="isMobileOpen ? 'bg-gray-100 dark:bg-gray-800' : ''"
-          @click="handleToggle"
-        >
-          <X v-if="isMobileOpen" class="size-5" aria-hidden="true" />
-          <Menu v-else class="size-5" aria-hidden="true" />
-        </button>
+      <!--
+        Overflow toggle for the right-hand cluster on small screens.
 
-        <HeaderLogo />
+        Named and given `aria-expanded` for the same reason as the toggle above.
+        `xl:hidden` because at xl that cluster is permanently on screen and this button
+        would then control nothing.
+      -->
+      <HeaderIconButton
+        class="xl:hidden"
+        :label="isAccountMenuOpen ? 'Hide account menu' : 'Show account menu'"
+        :expanded="isAccountMenuOpen"
+        controls="app-header-account"
+        :active="isAccountMenuOpen"
+        @activate="toggleAccountMenu"
+      >
+        <MoreVertical class="size-5" aria-hidden="true" />
+      </HeaderIconButton>
 
-        <!--
-          Overflow toggle for the right-hand cluster: theme, notifications, account.
+      <!--
+        The account cluster.
 
-          Named and given `aria-expanded` for the same reason as the toggle above.
-          `xl:hidden` because at xl that cluster is permanently on screen and this
-          button would then control nothing.
-        -->
-        <button
-          type="button"
-          :aria-label="isApplicationMenuOpen ? 'Hide account menu' : 'Show account menu'"
-          :aria-expanded="isApplicationMenuOpen"
-          aria-controls="app-header-account"
-          class="z-99999 flex size-10 cursor-pointer items-center justify-center rounded-md text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 xl:hidden"
-          @click="toggleApplicationMenu"
-        >
-          <MoreVertical class="size-5" aria-hidden="true" />
-        </button>
-
-        <SearchBar />
-      </div>
-
+        `shadow-theme-md` used to be here, on a full-width block, below the breakpoint
+        only. It was the one decorative shadow in the header, on a surface that already
+        has a background and sits directly under a sticky bar - it read as a card floating
+        under the header rather than as part of it. The bar's own bottom border does the
+        separating.
+      -->
       <div
         id="app-header-account"
-        :class="[isApplicationMenuOpen ? 'flex' : 'hidden']"
-        class="w-full items-center justify-between gap-4 px-5 py-4 shadow-theme-md xl:flex xl:justify-end xl:px-0 xl:shadow-none"
+        :class="isAccountMenuOpen ? 'flex' : 'hidden'"
+        class="w-full flex-col items-stretch gap-3 border-t border-gray-200 px-3 pb-3 pt-3 sm:px-4 xl:flex xl:w-auto xl:flex-row xl:items-center xl:gap-3 xl:border-0 xl:p-0 dark:border-gray-800"
       >
-        <div class="flex items-center gap-2 2xsm:gap-3">
+        <div class="flex items-center gap-1">
           <ThemeToggleButton />
           <!--
             Messages sits immediately before the bell rather than after it.
@@ -83,35 +100,50 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Menu, MoreVertical, X } from 'lucide-vue-next'
 import { useSidebar } from '@/composables/useSidebar'
-import ThemeToggleButton from '../common/ThemeToggleButton.vue'
+import HeaderIconButton from '@/components/layout/HeaderIconButton.vue'
+import ThemeToggleButton from '@/components/common/ThemeToggleButton.vue'
 import SearchBar from './header/SearchBar.vue'
 import HeaderLogo from './header/HeaderLogo.vue'
 import NotificationMenu from './header/NotificationMenu.vue'
 import MessageButton from './header/MessageButton.vue'
 import UserMenu from './header/UserMenu.vue'
 
-const { toggleSidebar, toggleMobileSidebar, isMobileOpen } = useSidebar()
+const { toggleSidebar, toggleMobileSidebar, isMobileOpen, isExpanded, isMobile } = useSidebar()
 
 /**
- * Below xl the sidebar is an overlay drawer, so the same button opens and closes
- * it. At xl and above it is a persistent rail and the button collapses or expands
- * it instead. Reading `window.innerWidth` keeps one control doing both jobs without
- * duplicating it into two elements a keyboard user would have to discover twice.
+ * One control doing both jobs.
+ *
+ * `isMobile` rather than reading `window.innerWidth` at click time: the composable's
+ * value is the same one the sidebar's own classes respond to, and reading the window
+ * separately is how a click ends up doing the opposite of what the user sees.
  */
 const handleToggle = () => {
-  if (window.innerWidth >= 1280) {
-    toggleSidebar()
-  } else {
+  if (isMobile.value) {
     toggleMobileSidebar()
+    return
   }
+  toggleSidebar()
 }
 
-const isApplicationMenuOpen = ref(false)
+/**
+ * Whether the navigation is currently showing what it has to show: the drawer below the
+ * breakpoint, the expanded rail above it. One boolean for `aria-expanded`, because the
+ * user is asking the same question in both modes.
+ */
+const isSidebarShowing = computed(() => (isMobile.value ? isMobileOpen.value : isExpanded.value))
 
-const toggleApplicationMenu = () => {
-  isApplicationMenuOpen.value = !isApplicationMenuOpen.value
+const isAccountMenuOpen = ref(false)
+
+function toggleAccountMenu(): void {
+  isAccountMenuOpen.value = !isAccountMenuOpen.value
 }
+
+// Growing past the breakpoint reveals the account cluster permanently, so an open
+// overflow menu would be a control controlling something that is already visible.
+watch(isMobile, (mobile) => {
+  if (!mobile) isAccountMenuOpen.value = false
+})
 </script>

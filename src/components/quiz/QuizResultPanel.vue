@@ -180,13 +180,13 @@ const percent = computed(() => Number(props.result.percentage ?? 0))
     <!-- Review. Only when the server sent it. -->
     <section
       v-if="result.revealAnswers && result.answers.length > 0"
-      class="mt-6 rounded-lg border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
+      class="mt-6 surface-card"
       aria-labelledby="quiz-review-heading"
     >
       <h2 id="quiz-review-heading" class="text-theme-sm text-gray-900 dark:text-white/90">
         Review
       </h2>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      <p class="mt-1 section-subheading">
         Each question with the right answer marked, and yours beside it.
       </p>
 
@@ -296,10 +296,7 @@ const percent = computed(() => Number(props.result.percentage ?? 0))
                 </li>
               </ul>
 
-              <p
-                v-else-if="answer.yourOptionId === null"
-                class="mt-3 text-sm text-gray-500 dark:text-gray-400"
-              >
+              <p v-else-if="answer.yourOptionId === null" class="mt-3 section-subheading">
                 You did not answer this question.
               </p>
 
@@ -342,7 +339,7 @@ const percent = computed(() => Number(props.result.percentage ?? 0))
         <RefreshCw v-if="retaking" class="size-4 animate-spin" aria-hidden="true" />
         Try again ({{ result.attemptsRemaining }} left)
       </Button>
-      <p v-else-if="!result.passed" class="text-sm text-gray-500 dark:text-gray-400">
+      <p v-else-if="!result.passed" class="section-subheading">
         You have used every attempt. Your best result stands.
       </p>
     </div>

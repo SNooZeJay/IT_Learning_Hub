@@ -269,7 +269,7 @@ function typeLabel(type: QuestionType): string {
 
     <p
       v-if="submittingBlocked && answered < questions.length"
-      class="text-center text-sm text-gray-500 dark:text-gray-400"
+      class="text-center section-subheading"
     >
       {{ questions.length - answered }}
       {{ questions.length - answered === 1 ? 'question is' : 'questions are' }} still unanswered.

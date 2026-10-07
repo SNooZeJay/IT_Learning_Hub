@@ -272,10 +272,8 @@
       </div>
 
       <p class="mt-4 text-sm text-slate">
-        Role changes go through the database function
-        <code class="font-mono text-xs">set_user_role</code>, which refuses to remove the last
-        administrator. That refusal is shown above rather than hidden, because it is a rule the
-        platform enforces rather than one this screen invented.
+        The last administrator cannot be removed or demoted. That refusal is shown on the row that
+        caused it rather than hidden, so nobody is left wondering why a change did not save.
       </p>
     </template>
   </div>
