@@ -1,112 +1,150 @@
 <template>
-  <AuthShell title="Welcome back" description="Sign in to continue your learning.">
-    <Alert
-      v-if="errorMessage"
-      variant="error"
-      title="Could not sign in"
-      :message="errorMessage"
-      class="mb-5"
+  <AuthShell
+    :title="challenge ? 'Check your email' : 'Welcome back'"
+    :description="
+      challenge
+        ? 'Enter the six-digit code we sent you to finish signing in.'
+        : 'Sign in to continue your learning.'
+    "
+  >
+    <!--
+      Step two of sign-in. The code step is its own component rather than a second form
+      in this file: it has its own submitting state, its own countdown and its own error
+      vocabulary, and folding it in here is what made a previous version of this page
+      unreadable.
+    -->
+    <VerifyCodeStep
+      v-if="challenge"
+      :challenge="challenge"
+      :email="email"
+      @verified="completeSignIn"
+      @back="challenge = null"
     />
 
-    <form class="flex flex-col gap-5" novalidate @submit.prevent="handleSubmit">
-      <div>
-        <label :for="email" :class="fieldLabelClass">Email address</label>
-        <input
-          id="email"
-          v-model.trim="email"
-          type="email"
-          name="email"
-          autocomplete="email"
-          required
-          placeholder="you@school.edu.ph"
-          :class="inputClass"
-          :aria-invalid="Boolean(fieldErrors.email)"
-          :aria-describedby="fieldErrors.email ? 'email-error' : undefined"
-        />
-        <p
-          v-if="fieldErrors.email"
-          id="email-error"
-          class="mt-1.5 text-xs text-error-600 dark:text-error-400"
-        >
-          {{ fieldErrors.email }}
-        </p>
-      </div>
+    <template v-else>
+      <Alert
+        v-if="errorMessage"
+        variant="error"
+        title="Could not sign in"
+        :message="errorMessage"
+        class="mb-5"
+      />
 
-      <div>
-        <div class="mb-1.5 flex items-center justify-between">
-          <label :for="password" class="block text-sm font-medium text-charcoal dark:text-gray-300">
-            Password
-          </label>
-          <router-link
-            to="/auth/forgot-password"
-            class="text-xs text-brand-600 hover:underline dark:text-brand-400"
-          >
-            Forgot password?
-          </router-link>
-        </div>
-        <div class="relative">
+      <form class="flex flex-col gap-5" novalidate @submit.prevent="handleSubmit">
+        <div>
+          <label :for="email" :class="fieldLabelClass">Email address</label>
           <input
-            id="password"
-            v-model="password"
-            :type="showPassword ? 'text' : 'password'"
-            name="password"
-            autocomplete="current-password"
+            id="email"
+            v-model.trim="email"
+            type="email"
+            name="email"
+            autocomplete="email"
             required
-            :class="[inputClass, 'pe-12']"
-            :aria-invalid="Boolean(fieldErrors.password)"
-            :aria-describedby="fieldErrors.password ? 'password-error' : undefined"
+            placeholder="you@school.edu.ph"
+            :class="inputClass"
+            :aria-invalid="Boolean(fieldErrors.email)"
+            :aria-describedby="fieldErrors.email ? 'email-error' : undefined"
           />
-          <!--
+          <p
+            v-if="fieldErrors.email"
+            id="email-error"
+            class="mt-1.5 text-xs text-error-600 dark:text-error-400"
+          >
+            {{ fieldErrors.email }}
+          </p>
+        </div>
+
+        <div>
+          <div class="mb-2 flex items-center justify-between gap-3">
+            <label :for="password" class="block text-sm font-medium text-lp-ink"> Password </label>
+            <router-link
+              to="/auth/forgot-password"
+              class="text-xs font-medium text-lp-accent hover:underline"
+            >
+              Forgot password?
+            </router-link>
+          </div>
+          <div class="relative">
+            <input
+              id="password"
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              name="password"
+              autocomplete="current-password"
+              required
+              :class="[inputClass, 'pe-12']"
+              :aria-invalid="Boolean(fieldErrors.password)"
+              :aria-describedby="fieldErrors.password ? 'password-error' : undefined"
+            />
+            <!--
             44px wide and the full height of the field beside it, because this is a
             tap target on a phone and `px-3` around a 20px glyph measured about 28px
             with the hit area hugging the glyph rather than the field.
+            `rounded-e-xl` matches the field's own corner.
           -->
-          <button
-            type="button"
-            class="absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-md text-slate transition-colors hover:text-ink dark:text-gray-400 dark:hover:text-gray-200"
-            :aria-label="showPassword ? 'Hide password' : 'Show password'"
-            :aria-pressed="showPassword"
-            @click="showPassword = !showPassword"
+            <button
+              type="button"
+              class="absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl text-lp-slate transition-colors hover:text-lp-ink"
+              :aria-label="showPassword ? 'Hide password' : 'Show password'"
+              :aria-pressed="showPassword"
+              @click="showPassword = !showPassword"
+            >
+              <EyeOff v-if="showPassword" class="size-5" aria-hidden="true" />
+              <Eye v-else class="size-5" aria-hidden="true" />
+            </button>
+          </div>
+          <p
+            v-if="fieldErrors.password"
+            id="password-error"
+            class="mt-1.5 text-xs text-error-600 dark:text-error-400"
           >
-            <EyeOff v-if="showPassword" class="size-5" aria-hidden="true" />
-            <Eye v-else class="size-5" aria-hidden="true" />
-          </button>
+            {{ fieldErrors.password }}
+          </p>
         </div>
-        <p
-          v-if="fieldErrors.password"
-          id="password-error"
-          class="mt-1.5 text-xs text-error-600 dark:text-error-400"
+
+        <!--
+        `accent-lp-accent` rather than `text-brand-600` + `focus:ring-brand-500`.
+        A checkbox takes its checked colour from `accent-color`, so one utility
+        does the work of four, and it lands on the public pages' green rather
+        than the app's purple.
+      -->
+        <label class="flex cursor-pointer items-center gap-2.5 text-sm text-lp-slate">
+          <input
+            v-model="rememberMe"
+            type="checkbox"
+            class="size-4 rounded-sm border-lp-line-strong accent-lp-accent"
+          />
+          Keep me signed in
+        </label>
+
+        <!--
+        A native button rather than `Button.vue`.
+
+        That component's `primary` variant is `bg-brand-500` and its `outline`
+        variant carries `text-canvas`, which resolves to near-black in dark mode -
+        so there was no variant to reuse on this surface, and no safe way to
+        override one from a caller: Tailwind resolves two conflicting background
+        utilities by their order in the generated stylesheet, not by their order
+        in the class attribute. This renders the same element, keeps the same
+        `:disabled` behaviour, and wears the landing page's primary button.
+      -->
+        <button
+          type="submit"
+          class="lp-press inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-lp-ink px-7 text-sm font-medium text-lp-ink-inverse shadow-lp-button transition-opacity duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:opacity-90 motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="isSubmitting"
         >
-          {{ fieldErrors.password }}
-        </p>
-      </div>
+          <LoaderCircle v-if="isSubmitting" class="size-4 animate-spin" aria-hidden="true" />
+          {{ isSubmitting ? 'Signing in...' : 'Sign in' }}
+        </button>
+      </form>
 
-      <label
-        class="flex cursor-pointer items-center gap-2.5 text-sm text-charcoal dark:text-gray-300"
-      >
-        <input
-          v-model="rememberMe"
-          type="checkbox"
-          class="size-4 rounded-sm border-hairline-strong text-brand-600 focus:ring-brand-500 dark:border-gray-600"
-        />
-        Keep me signed in
-      </label>
-
-      <Button type="submit" class="w-full justify-center" :disabled="isSubmitting">
-        <LoaderCircle v-if="isSubmitting" class="size-4 animate-spin" />
-        {{ isSubmitting ? 'Signing in...' : 'Sign in' }}
-      </Button>
-    </form>
-
-    <p class="mt-6 text-center text-sm text-slate">
-      New to IT Learning Hub?
-      <router-link
-        to="/auth/register"
-        class="font-medium text-brand-600 hover:underline dark:text-brand-400"
-      >
-        Create an account
-      </router-link>
-    </p>
+      <p class="mt-6 text-center text-sm text-lp-slate">
+        New to IT Learning Hub?
+        <router-link to="/auth/register" class="font-medium text-lp-accent hover:underline">
+          Create an account
+        </router-link>
+      </p>
+    </template>
   </AuthShell>
 </template>
 
@@ -116,11 +154,17 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Eye, EyeOff, LoaderCircle } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
-import Button from '@/components/ui/Button.vue'
-import { fieldLabelClass, textInputClass } from '@/components/ui/controlClasses'
+import { lpFieldLabelClass, lpTextInputClass } from '@/components/ui/controlClasses'
 import AuthShell from '@/components/auth/AuthShell.vue'
+import VerifyCodeStep from '@/views/auth/VerifyCodeStep.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
+import {
+  OTP_MESSAGES,
+  requestSignInCode,
+  SignInOtpError,
+  type SignInChallenge,
+} from '@/services/otp.service'
 
 const router = useRouter()
 const route = useRoute()
@@ -135,7 +179,16 @@ const isSubmitting = ref(false)
 const errorMessage = ref('')
 const fieldErrors = ref<{ email?: string; password?: string }>({})
 
-const inputClass = textInputClass
+/**
+ * Non-null once the password has been accepted and a code is on its way. This is the
+ * whole state of "half signed in": a challenge id and nothing else. No session exists
+ * until `verifySignInCode` returns one, so there is no window in which the router guard
+ * would let this person through.
+ */
+const challenge = ref<SignInChallenge | null>(null)
+
+const inputClass = lpTextInputClass
+const fieldLabelClass = lpFieldLabelClass
 
 /** Client-side checks for a fast response. Supabase remains the real authority. */
 function validate(): boolean {
@@ -158,22 +211,36 @@ async function handleSubmit(): Promise<void> {
 
   isSubmitting.value = true
   try {
-    await auth.signIn(email.value, password.value)
-    toast.success('Signed in', 'You are back on IT Learning Hub.')
-    // Honour the ?redirect= the guard attached, but never bounce someone into a
-    // role they cannot use. A guessed path would land on a redirect loop.
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : null
-    if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
-      await router.replace(redirect)
-    } else {
-      await router.replace(auth.homePath)
-    }
+    // Deliberately not `auth.signIn`. That mints a session immediately, which would make
+    // the code step decorative: the tokens would already exist in the browser and the
+    // router guard would admit this person before a code was ever asked for. Going
+    // through `requestSignInCode` means the password is checked server-side and that
+    // session is discarded, so `verify` is the only route to a signed-in state.
+    challenge.value = await requestSignInCode(email.value, password.value)
+    toast.info('Code sent', `We emailed a six-digit code to ${email.value}.`)
   } catch (error) {
-    const message = describeSupabaseError(error)
+    const message =
+      error instanceof SignInOtpError ? OTP_MESSAGES[error.reason] : describeSupabaseError(error)
     errorMessage.value = message
     toast.error('Could not sign in', message)
   } finally {
     isSubmitting.value = false
+  }
+}
+
+/**
+ * Called once the code has been verified and the session written into the Supabase
+ * client. The redirect honours the guard's `?redirect=` for the same reason it always
+ * did: a guessed path would land somebody in a role they cannot use.
+ */
+async function completeSignIn(): Promise<void> {
+  await auth.ensureReady()
+  toast.success('Signed in', 'You are back on IT Learning Hub.')
+  const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : null
+  if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+    await router.replace(redirect)
+  } else {
+    await router.replace(auth.homePath)
   }
 }
 </script>

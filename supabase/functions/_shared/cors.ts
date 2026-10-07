@@ -49,9 +49,37 @@ const ALLOWED_HEADERS = 'authorization, x-client-info, apikey, content-type, pay
  * another. Without it, a response computed for the Vercel origin could be replayed
  * to a different caller.
  */
+/**
+ * Whether this origin may be echoed back.
+ *
+ * The deployed origin always. A loopback origin is also allowed, and that is safe in a
+ * way a wildcard is not: `http://localhost:5173` and `http://127.0.0.1:5173` are the
+ * developer's own machine, and a page on some other site cannot cause the browser to send
+ * an `Origin` of `localhost` for it. What it buys is that `localhost` and `127.0.0.1`
+ * can call these functions directly, which is the whole point of `curl` working from the
+ * terminal and the browser still refusing - the preflight was rejected and the browser
+ * reported `Failed to fetch`, naming nothing.
+ */
+function originAllowed(requested: string | null): boolean {
+  if (!requested) return false
+  if (requested === ALLOWED_ORIGIN) return true
+  try {
+    const url = new URL(requested)
+    return url.hostname === 'localhost' || url.hostname === '127.0.0.1'
+  } catch {
+    return false
+  }
+}
+
+function allowHeader(request?: Request): string {
+  const requested = request?.headers.get('Origin') ?? null
+  return requested && originAllowed(requested) ? requested : ALLOWED_ORIGIN
+}
+
 export function corsHeaders(origin?: string | null): Record<string, string> {
+  const allow = origin && originAllowed(origin) ? origin : ALLOWED_ORIGIN
   return {
-    'Access-Control-Allow-Origin': origin ?? ALLOWED_ORIGIN,
+    'Access-Control-Allow-Origin': allow,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': ALLOWED_HEADERS,
     'Access-Control-Max-Age': '86400',
@@ -73,21 +101,15 @@ export function handlePreflight(request: Request): Response | null {
 
   // Echo the caller's origin only when it is one we expect. Echoing an arbitrary
   // Origin would make the function an open relay for anyone holding a valid JWT.
-  const requested = request.headers.get('Origin')
-  const allow = requested && requested === ALLOWED_ORIGIN ? requested : ALLOWED_ORIGIN
-
-  return new Response(null, { status: 204, headers: corsHeaders(allow) })
+  return new Response(null, { status: 204, headers: corsHeaders(allowHeader(request)) })
 }
 
 /** A JSON response that a browser can actually read. */
 export function jsonWithCors(body: unknown, status = 200, request?: Request): Response {
-  const requested = request?.headers.get('Origin')
-  const allow = requested && requested === ALLOWED_ORIGIN ? requested : ALLOWED_ORIGIN
-
   return new Response(JSON.stringify(body), {
     status,
     headers: {
-      ...corsHeaders(allow),
+      ...corsHeaders(allowHeader(request)),
       'Content-Type': 'application/json',
     },
   })
