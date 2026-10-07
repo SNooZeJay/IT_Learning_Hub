@@ -40,6 +40,8 @@ import StatCard from '@/components/common/StatCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
+import TrendChart from '@/components/common/TrendChart.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 import Button from '@/components/ui/Button.vue'
 import { useAuthStore } from '@/stores/auth'
 import { loadInstructorDashboard, type InstructorDashboard } from '@/services/dashboard.service'
@@ -164,13 +166,11 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
         <div class="lg:col-span-2">
           <!-- Quiz activity first: it is the only panel on this page that can
                contain something an instructor needs to act on. -->
-          <div
-            class="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
-          >
+          <div class="surface-card-shell">
             <div class="flex flex-wrap items-baseline justify-between gap-3 p-6 pb-4">
               <div>
-                <h2 class="text-title-sm text-gray-900 dark:text-white/90">Recent quiz activity</h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <h2 class="section-heading">Recent quiz activity</h2>
+                <p class="mt-1 section-subheading">
                   The most recent graded attempts across your courses.
                 </p>
               </div>
@@ -184,8 +184,18 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
             </div>
 
             <div v-if="dashboard.recentQuizAttempts.length > 0">
+              <!--
+                The scroll container stays - below this width the four columns cannot
+                compress without wrapping every date - but the floor drops from `min-w-3xl`
+                (48rem) to 34rem.
+
+                At 48rem the table was always wider than this two-thirds column, so it was
+                permanently half-scrolled and the "Ended" column was cut mid-value with
+                nothing to suggest it moved. A control that is always scrolled reads as
+                broken; one that scrolls only when it must does not.
+              -->
               <div class="overflow-x-auto">
-                <table class="w-full min-w-3xl border-collapse text-start text-sm">
+                <table class="w-full min-w-[34rem] border-collapse text-start text-sm">
                   <caption class="sr-only">
                     The most recent graded quiz attempts across your courses, with the score,
                     whether it passed, and how the attempt ended.
@@ -255,7 +265,7 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                         >
                           <template v-if="attempt.percentage !== null">
                             {{ attempt.percentage }}%
-                            <span class="ml-1 text-xs font-normal">
+                            <span class="ms-1 text-xs font-normal">
                               {{ attempt.passed ? 'pass' : 'fail' }}
                             </span>
                           </template>
@@ -301,11 +311,8 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
 
           <!-- Recently published material. The question an instructor actually asks
                is "what have I put up lately". -->
-          <div
-            v-if="dashboard.recentMaterials.length > 0"
-            class="mt-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Recently added materials</h2>
+          <div v-if="dashboard.recentMaterials.length > 0" class="mt-6 surface-card">
+            <h2 class="section-heading">Recently added materials</h2>
 
             <ul role="list" class="mt-4 divide-y divide-gray-200 dark:divide-gray-800">
               <li
@@ -313,9 +320,7 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                 :key="material.materialTitle + material.createdAt"
               >
                 <div class="flex items-start gap-3 py-3.5">
-                  <span
-                    class="flex size-8 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-500 dark:bg-white/[0.06] dark:text-gray-400"
-                  >
+                  <span class="icon-chip">
                     <FileText class="size-4" aria-hidden="true" />
                   </span>
                   <span class="min-w-0 flex-1">
@@ -337,11 +342,9 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
 
         <div>
           <!-- Who arrived lately. The shape of the week, without opening a report. -->
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <div class="flex items-baseline justify-between gap-3">
-              <h2 class="text-title-sm text-gray-900 dark:text-white/90">Recent enrollments</h2>
+          <div class="surface-card">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <h2 class="section-heading">Recent enrollments</h2>
               <router-link
                 to="/instructor/students"
                 class="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
@@ -361,18 +364,13 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                 :key="entry.enrolledAt + entry.courseTitle"
               >
                 <div class="flex items-start gap-3 py-3.5">
-                  <span
-                    class="flex size-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-600 dark:bg-white/[0.06] dark:text-gray-300"
-                  >
-                    {{
-                      (entry.studentName ?? '?')
-                        .split(' ')
-                        .map((part) => part.charAt(0))
-                        .slice(0, 2)
-                        .join('')
-                        .toUpperCase()
-                    }}
-                  </span>
+                  <!--
+                    The shared avatar rather than a fourth copy of the initials
+                    expression. It was `rounded-full` in grey - a pill, on a person -
+                    and it recomputed initials inline, so this person could be a
+                    different colour here than in the header for the same account.
+                  -->
+                  <UserAvatar :name="entry.studentName ?? ''" size="sm" />
                   <span class="min-w-0 flex-1">
                     <span
                       class="block truncate text-sm font-medium text-gray-900 dark:text-white/90"
@@ -413,12 +411,13 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
             />
           </div>
 
+          <div class="mt-6">
+            <TrendChart metric="instructor_activity" />
+          </div>
+
           <!-- Content counts. Only shown when there is something to count. -->
-          <div
-            v-if="hasCourses && (dashboard.materials ?? 0) > 0"
-            class="mt-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Your content</h2>
+          <div v-if="hasCourses && (dashboard.materials ?? 0) > 0" class="mt-6 surface-card">
+            <h2 class="section-heading">Your content</h2>
 
             <dl class="mt-4 space-y-3">
               <div class="flex items-center justify-between gap-3">

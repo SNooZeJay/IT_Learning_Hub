@@ -48,34 +48,13 @@
 
       <div class="mt-6 grid gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2">
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Enrollment trend</h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              New enrollments per month across the platform.
-            </p>
-            <div class="mt-6">
-              <!--
-                The monthly aggregation is not built yet, so this reports the real
-                active enrolment count rather than a chart drawn from invented
-                numbers. Swap in the trend chart when the query lands.
-              -->
-              <EmptyState
-                title="No enrollments yet"
-                :description="`Once students enroll, this panel plots new enrollments month by month. There are ${stats.enrolments} active so far.`"
-                :icon="ChartColumn"
-              />
-            </div>
-          </div>
+          <TrendChart metric="admin_enrollment" />
         </div>
 
         <div>
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <div class="flex items-baseline justify-between gap-3">
-              <h2 class="text-title-sm text-gray-900 dark:text-white/90">Recent payments</h2>
+          <div class="surface-card">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <h2 class="section-heading">Recent payments</h2>
               <router-link
                 to="/admin/payments"
                 class="shrink-0 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
@@ -83,7 +62,7 @@
                 All payments
               </router-link>
             </div>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">PayMongo receipts in PHP.</p>
+            <p class="mt-1 section-subheading">PayMongo receipts in PHP.</p>
 
             <!--
               Its own read, its own loading and error states, and deliberately not
@@ -97,9 +76,7 @@
               total and not the individual receipts that make it up.
             -->
             <div class="mt-4">
-              <p v-if="paymentsLoading" class="text-sm text-gray-500 dark:text-gray-400">
-                Loading payments…
-              </p>
+              <p v-if="paymentsLoading" class="section-subheading">Loading payments…</p>
 
               <Alert
                 v-else-if="paymentsError"
@@ -126,14 +103,22 @@
 
               <ul v-else role="list" class="divide-y divide-gray-200 dark:divide-gray-800">
                 <li v-for="payment in payments" :key="payment.id" class="py-3">
-                  <div class="flex items-baseline justify-between gap-3">
+                  <!--
+                    `items-start` and no wrapping. The amount is the figure this panel
+                    exists to show, so it stays in a right-hand column where several of
+                    them line up and can be compared. It was sharing a `flex-wrap`
+                    pattern with the card headings above, which let a long course title
+                    push the amount onto its own line - fine for a heading and wrong for
+                    a money column, where the ragged edge is the whole problem.
+                  -->
+                  <div class="flex items-start justify-between gap-3">
                     <p
                       class="min-w-0 truncate text-sm font-medium text-gray-900 dark:text-white/90"
                     >
                       {{ payment.courseTitle }}
                     </p>
                     <p
-                      class="shrink-0 text-sm font-medium text-gray-900 tabular-nums dark:text-white/90"
+                      class="shrink-0 text-sm font-semibold text-gray-900 tabular-nums dark:text-white/90"
                     >
                       {{ formatPeso(payment.amountCentavos) }}
                     </p>
@@ -170,12 +155,13 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { ChartColumn, GraduationCap, Library, Users, Wallet } from 'lucide-vue-next'
+import { GraduationCap, Library, Users, Wallet } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatCard from '@/components/common/StatCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
+import TrendChart from '@/components/common/TrendChart.vue'
 import Alert from '@/components/ui/Alert.vue'
 import { getAdminStats, EMPTY_ADMIN_STATS } from '@/services/stats.service'
 import { listAdminPayments, type AdminPayment } from '@/services/admin.service'

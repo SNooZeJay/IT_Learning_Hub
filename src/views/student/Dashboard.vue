@@ -36,6 +36,7 @@ import StatCard from '@/components/common/StatCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
+import TrendChart from '@/components/common/TrendChart.vue'
 import Button from '@/components/ui/Button.vue'
 import { useAuthStore } from '@/stores/auth'
 import { loadStudentDashboard, type StudentDashboard } from '@/services/dashboard.service'
@@ -190,23 +191,18 @@ const hasAnyActivity = computed(() => {
         <div class="lg:col-span-2">
           <!-- Continue learning. The single most useful thing on the page: where to
                go next. Everything else on a dashboard is reference. -->
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Continue learning</h2>
+          <div class="surface-card">
+            <h2 class="section-heading">Continue learning</h2>
 
             <div v-if="dashboard.continueLearning" class="mt-5">
-              <p class="text-sm text-gray-500 dark:text-gray-400">
+              <p class="section-subheading">
                 {{ dashboard.continueLearning.courseTitle }}
               </p>
 
               <p class="mt-1 text-xl font-semibold text-gray-900 dark:text-white/90">
                 {{ dashboard.continueLearning.lessonTitle }}
               </p>
-              <p
-                v-if="dashboard.continueLearning.moduleTitle"
-                class="mt-1 text-sm text-gray-500 dark:text-gray-400"
-              >
+              <p v-if="dashboard.continueLearning.moduleTitle" class="mt-1 section-subheading">
                 {{ dashboard.continueLearning.moduleTitle }}
               </p>
 
@@ -214,7 +210,7 @@ const hasAnyActivity = computed(() => {
                    below it. A bar and a figure that disagree is worse than neither. -->
               <div class="mt-5">
                 <div class="flex items-baseline justify-between gap-3 text-sm">
-                  <span class="text-gray-500 dark:text-gray-400">
+                  <span class="section-subheading">
                     {{ dashboard.continueLearning.completedInCourse }} of
                     {{ dashboard.continueLearning.totalLessons }} lessons
                   </span>
@@ -292,12 +288,9 @@ const hasAnyActivity = computed(() => {
           </div>
 
           <!-- Recent grades. A student opens this to find out how they did. -->
-          <div
-            v-if="dashboard.recentGrades.length > 0"
-            class="mt-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <div class="flex items-baseline justify-between gap-3">
-              <h2 class="text-title-sm text-gray-900 dark:text-white/90">Recent results</h2>
+          <div v-if="dashboard.recentGrades.length > 0" class="mt-6 surface-card">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <h2 class="section-heading">Recent results</h2>
               <router-link
                 to="/student/grades"
                 class="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
@@ -311,7 +304,7 @@ const hasAnyActivity = computed(() => {
               <li v-for="grade in dashboard.recentGrades" :key="grade.attemptId">
                 <router-link
                   :to="`/student/quizzes/${grade.quizId}`"
-                  class="flex items-center gap-4 py-3.5 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.02]"
+                  class="-mx-2 flex items-center gap-4 rounded-md px-2 py-3.5 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.06]"
                 >
                   <span class="min-w-0 flex-1">
                     <span
@@ -347,31 +340,29 @@ const hasAnyActivity = computed(() => {
               </li>
             </ul>
           </div>
+
+          <div class="mt-6">
+            <TrendChart metric="student_activity" />
+          </div>
         </div>
 
         <div>
           <!-- Quizzes with something still to do. Passed quizzes and exhausted
                quizzes are deliberately absent: both are dead ends, and offering
                them sends a student to a screen that tells them they cannot start. -->
-          <div
-            class="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Quizzes to do</h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ dashboard.upcomingQuizzes.length }} waiting
-            </p>
+          <div class="surface-card">
+            <h2 class="section-heading">Quizzes to do</h2>
+            <p class="mt-1 section-subheading">{{ dashboard.upcomingQuizzes.length }} waiting</p>
 
             <div v-if="dashboard.upcomingQuizzes.length > 0" class="mt-5">
               <ul role="list" class="flex flex-col gap-3">
                 <li v-for="quiz in dashboard.upcomingQuizzes" :key="quiz.quizId">
                   <router-link
                     :to="`/student/quizzes/${quiz.quizId}`"
-                    class="block rounded-lg border border-gray-200 p-4 transition-colors hover:border-brand-400 hover:bg-gray-50 dark:border-gray-800 dark:hover:border-brand-500 dark:hover:bg-white/[0.02]"
+                    class="surface-card-interactive block p-4"
                   >
                     <span class="flex items-start gap-3">
-                      <span
-                        class="flex size-8 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-500 dark:bg-white/[0.06] dark:text-gray-400"
-                      >
+                      <span class="icon-chip">
                         <FileText class="size-4" aria-hidden="true" />
                       </span>
                       <span class="min-w-0 flex-1">
@@ -421,9 +412,9 @@ const hasAnyActivity = computed(() => {
                zeroes is worse than no card. -->
           <div
             v-if="dashboard.unreadNotifications && dashboard.unreadNotifications > 0"
-            class="mt-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+            class="mt-6 surface-card"
           >
-            <h2 class="text-title-sm text-gray-900 dark:text-white/90">Notifications</h2>
+            <h2 class="section-heading">Notifications</h2>
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
               You have
               <strong class="font-semibold">{{ dashboard.unreadNotifications }}</strong>
@@ -445,12 +436,9 @@ const hasAnyActivity = computed(() => {
             something due - a permanent panel reading "nothing" is a dead component
             most weeks of term.
           -->
-          <div
-            v-if="deadlines.length > 0"
-            class="mt-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]"
-          >
-            <div class="flex items-baseline justify-between gap-3">
-              <h2 class="text-title-sm text-gray-900 dark:text-white/90">Upcoming deadlines</h2>
+          <div v-if="deadlines.length > 0" class="mt-6 surface-card">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <h2 class="section-heading">Upcoming deadlines</h2>
               <router-link
                 to="/student/calendar"
                 class="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
@@ -466,7 +454,11 @@ const hasAnyActivity = computed(() => {
                   :is="item.link ? 'router-link' : 'div'"
                   :to="item.link ?? undefined"
                   class="flex items-center gap-3 py-3.5 transition-colors"
-                  :class="item.link ? 'hover:bg-gray-50 dark:hover:bg-white/[0.02]' : ''"
+                  :class="
+                    item.link
+                      ? '-mx-2 rounded-md px-2 hover:bg-gray-50 dark:hover:bg-white/[0.06]'
+                      : ''
+                  "
                 >
                   <!-- A date block rather than a sentence: reading when something is
                        due is a date-reading task, and the day number is what the eye
@@ -514,7 +506,7 @@ const hasAnyActivity = computed(() => {
           -->
           <router-link
             to="/student/grades"
-            class="mt-6 flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-5 transition-colors hover:border-brand-400 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-brand-500"
+            class="surface-card-interactive mt-6 flex items-center justify-between gap-3 p-5"
           >
             <span class="min-w-0">
               <span class="block text-sm font-medium text-gray-900 dark:text-white/90">
