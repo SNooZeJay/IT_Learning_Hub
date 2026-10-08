@@ -6,7 +6,6 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import VueApexCharts from 'vue3-apexcharts'
 import { initRTL } from './composables/useRTL'
 import { useAuthStore } from './stores/auth'
 
@@ -17,7 +16,22 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
-app.use(VueApexCharts)
+
+/**
+ * ApexCharts is deliberately NOT registered globally.
+ *
+ * `app.use(VueApexCharts)` here put the whole library - 518KB, about 140KB gzipped -
+ * into the entry chunk, so every visitor downloaded and parsed it before the landing
+ * page or the sign-in form could paint, and neither of those draws a chart. Lighthouse
+ * named it as the single largest opportunity on a throttled phone: 1670ms of unused
+ * JavaScript.
+ *
+ * Nothing depended on the registration. The three components that draw a chart -
+ * admin Analytics, instructor Analytics and TrendChart - each import VueApexCharts
+ * locally, so each now pulls the library in with its own route chunk and only when
+ * that route is opened. There is no `<apexchart>` element anywhere in the app for the
+ * global name to have served.
+ */
 
 /**
  * Resolve the session, then mount.
