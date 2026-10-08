@@ -241,27 +241,31 @@
             >
               <!--
                 Before the first character there is no segment to attach the caret
-                to, so it is rendered first. Placed after the segments instead, it
-                lands at the end of the last line - which, while every character is
-                transparent, is the wrong end of the sentence entirely.
+                to, so it is rendered first, against a zero-width host. Placed after
+                the segments instead, it would land at the end of the last line -
+                which, while every character is transparent, is the wrong end of the
+                sentence entirely. It sits on an empty host because an in-flow caret
+                of its own is exactly what made the headline re-break as it typed.
               -->
               <span
                 v-if="caretVisible && typedCount === 0"
-                class="caret-tick"
-                aria-hidden="true"
-              ></span>
+                class="relative inline-block"
+              >
+                <span class="caret-tick" aria-hidden="true"></span>
+              </span>
 
               <template v-for="(segment, segmentIndex) in heroSegments" :key="segmentIndex">
                 <em v-if="segment.accent" class="font-normal text-lp-accent italic">
                   <template v-for="(character, characterIndex) in segment.text" :key="characterIndex">
                     <span
-                      class="inline transition-opacity duration-100"
+                      class="relative inline transition-opacity duration-100"
                       :class="isTyped(segmentIndex, characterIndex) ? 'opacity-100' : 'opacity-0'"
-                      >{{ character }}</span
-                    ><span
-                      v-if="isCaretHere(segment, characterIndex)"
-                      class="caret-tick"
-                      aria-hidden="true"
+                      >{{ character
+                      }}<span
+                        v-if="isCaretHere(segment, characterIndex)"
+                        class="caret-tick"
+                        aria-hidden="true"
+                      ></span
                     ></span>
                   </template>
                 </em>
@@ -272,13 +276,14 @@
                     :key="characterIndex"
                   >
                     <span
-                      class="inline transition-opacity duration-100"
+                      class="relative inline transition-opacity duration-100"
                       :class="isTyped(segmentIndex, characterIndex) ? 'opacity-100' : 'opacity-0'"
-                      >{{ character }}</span
-                    ><span
-                      v-if="isCaretHere(segment, characterIndex)"
-                      class="caret-tick"
-                      aria-hidden="true"
+                      >{{ character
+                      }}<span
+                        v-if="isCaretHere(segment, characterIndex)"
+                        class="caret-tick"
+                        aria-hidden="true"
+                      ></span
                     ></span>
                   </template>
                 </template>

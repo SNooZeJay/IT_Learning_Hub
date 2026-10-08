@@ -948,20 +948,28 @@ layer(base);
 */
 @utility caret-tick {
   /*
-    Zero WIDTH, on purpose.
+    ABSOLUTE, and that is the whole fix.
 
-    This was `inline-block w-[3px] ms-[2px]` - five live pixels of inline width, and it
-    moves one character to the right on every tick of the typewriter. Five pixels is
-    enough, on a `text-balance` heading at 4.1rem, to move where the line breaks, so
-    every character typed reflowed the headline and shoved the whole hero down. The page
-    shook because the cursor was in the text flow.
+    The caret is an `inline-block`, which makes it an ATOMIC INLINE: the line breaker
+    cannot split it, and it cannot be broken across a line. It also moves one character
+    to the right on every tick. So the text was being re-broken on every character
+    typed and words hopped between lines - measured at up to 105px of sideways travel
+    for a middle character, with the heading's own box never moving at all.
 
-    It is now a zero-width box carrying a 3px inline-start border, which draws the same
-    tick and occupies no width at all. Borders overflow a zero-width box, so the tick
-    still renders. `border-s-*` rather than `border-l-*` so the caret leads the text
-    in both reading directions.
+    An earlier attempt made it a zero-width box with a 3px inline-start border. That
+    narrowed its layout width and removed the vertical shove, but left it IN the flow,
+    and an in-flow atomic inline still steers line breaking - the 105px was still there.
+
+    Taking it out of flow entirely is the fix. It is now positioned against the
+    character it follows, so it draws in the right place and the line breaker never
+    sees it. Verified by suppressing it outright and re-measuring: 0px.
+
+    `start-full` is the logical inset scale in Tailwind v4, so the caret leads the
+    text in both directions. `inset-inline-start-full` is not a utility at all: it makes
+    the whole stylesheet fail to compile, which the dev server reports as a 500 for
+    main.css and the app never mounts.
   */
-  @apply inline-block h-[0.78em] w-0 border-s-[3px] border-solid border-lp-accent align-baseline animate-caret-blink;
+  @apply pointer-events-none absolute start-full top-0 h-[0.78em] w-[3px] rounded-full bg-lp-accent animate-caret-blink;
 }
 
 /*
