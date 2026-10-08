@@ -73,6 +73,15 @@
         class="relative min-w-0 transform-3d"
         :style="{ height: `${stageHeight}px` }"
       >
+        <!--
+          `inert` on the slides that are not showing, and it is not a synonym for
+          `aria-hidden`. A hidden slide still holds focusable links and buttons, so
+          `aria-hidden` alone told a screen reader the contents were not there while
+          leaving them in the tab order - keyboard focus would land inside a card
+          nobody can see. `inert` removes the subtree from both at once, which is
+          exactly the state a hidden slide wants. Lighthouse's aria-hidden-focus
+          audit is what caught it.
+        -->
         <div
           v-for="(item, i) in data"
           :key="i"
@@ -86,6 +95,7 @@
           aria-roledescription="slide"
           :aria-label="`${i + 1} of ${count}`"
           :aria-hidden="active !== i"
+          :inert="active !== i"
           @click="onCardClick(i)"
         >
           <!--

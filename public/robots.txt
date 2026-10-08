@@ -1,0 +1,20 @@
+# IT Learning Hub
+#
+# The catalogue is public and is meant to be found. Everything behind the sign-in
+# is not, so it is disallowed rather than left to be discovered and refused: a
+# crawler arriving at /student/dashboard gets the login screen, which is a page it
+# should not be indexing.
+#
+# This file exists because without one the SPA fallback answers /robots.txt with
+# index.html, and a crawler handed HTML where it expected rules cannot tell a
+# site with no rules from a malformed one.
+
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /instructor
+Disallow: /student
+Disallow: /auth
+Disallow: /messages
+Disallow: /profile
