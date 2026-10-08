@@ -55,7 +55,6 @@ async function signIn(
 }
 
 const collect = () =>
-   
   Array.from(document.querySelectorAll('body *')).flatMap((el) => {
     const node = el as HTMLElement
     if (!node.offsetParent) return []

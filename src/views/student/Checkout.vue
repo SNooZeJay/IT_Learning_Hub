@@ -35,9 +35,7 @@
               <CircleCheck class="size-7 text-success-600 dark:text-success-400" />
             </span>
 
-            <h2 class="mt-4 section-heading">
-              Payment successful — you are enrolled
-            </h2>
+            <h2 class="mt-4 section-heading">Payment successful — you are enrolled</h2>
 
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
               {{ course.title }} is now on your dashboard, with every lesson, quiz and assignment

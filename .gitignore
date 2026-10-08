@@ -56,3 +56,8 @@ scripts/*.local.json
 # run, not something the repository should carry.
 /audit-out/
 /reports/
+
+# Lighthouse reports. Written into the working directory by the audit runs; they are
+# evidence for a run, and a 150KB JSON blob failing the formatting check is not.
+/lh-*.json
+/lighthouse-report.*
