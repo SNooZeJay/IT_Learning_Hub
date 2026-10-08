@@ -10,6 +10,7 @@ import {
   Award,
   Library,
   ListChecks,
+  Megaphone,
   Users,
   ChartColumn,
   ShieldCheck,
@@ -60,6 +61,7 @@ export const ROLE_NAVIGATION: Record<Role, NavItem[]> = {
     { label: 'My Courses', to: '/instructor/courses', icon: Library },
     { label: 'My Students', to: '/instructor/students', icon: Users },
     { label: 'Grading', to: '/instructor/grading', icon: ListChecks },
+    { label: 'Announcements', to: '/instructor/announcements', icon: Megaphone },
     { label: 'Insights', to: '/instructor/analytics', icon: ChartColumn },
     { label: 'Calendar', to: '/instructor/calendar', icon: CalendarDays },
     { label: 'Messages', to: '/messages', icon: MessageSquare, badge: 'messages' },
@@ -79,6 +81,7 @@ export const ROLE_NAVIGATION: Record<Role, NavItem[]> = {
     { label: 'Courses', to: '/admin/courses', icon: Library },
     { label: 'Categories', to: '/admin/categories', icon: FolderTree },
     { label: 'Payments', to: '/admin/payments', icon: Wallet },
+    { label: 'Announcements', to: '/admin/announcements', icon: Megaphone },
     { label: 'Analytics', to: '/admin/analytics', icon: ChartColumn },
     { label: 'Messages', to: '/messages', icon: MessageSquare, badge: 'messages' },
     // Named "System settings", not "Settings", and given a different icon from the

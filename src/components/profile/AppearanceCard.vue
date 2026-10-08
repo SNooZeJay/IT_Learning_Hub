@@ -5,9 +5,7 @@
   >
     <h2 id="appearance-heading" class="text-theme-xl text-ink">Appearance</h2>
     <p class="mt-1 text-sm text-slate">
-      Saved in this browser under <code class="font-mono">theme</code> and
-      <code class="font-mono">rtl_mode</code>. They are not attached to your account, so they do not
-      follow you to another device.
+      These are remembered by this browser, so they do not follow you to another device.
     </p>
 
     <!--

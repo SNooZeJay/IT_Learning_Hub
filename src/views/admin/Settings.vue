@@ -2,30 +2,8 @@
   <div>
     <PageHeader
       title="System settings"
-      subtitle="What the platform currently holds, and an honest account of what it cannot be told to change."
+      subtitle="What the platform holds right now, and where each of it is changed."
       :crumbs="[{ label: 'Admin', to: '/admin/dashboard' }, { label: 'Settings' }]"
-    >
-      <template #actions>
-        <span
-          class="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-xs font-medium text-slate"
-        >
-          <Lock class="size-3.5" aria-hidden="true" />
-          Read-only
-        </span>
-      </template>
-    </PageHeader>
-
-    <!--
-      Said first, and said plainly. There is no settings table in this schema, so
-      there is nowhere for a preference to be saved and nothing this page could
-      write. A form full of controls that quietly do nothing is worse than no
-      form: it looks like configuration and behaves like a lie.
-    -->
-    <Alert
-      variant="info"
-      title="This screen reports, it does not change"
-      message="Everything here is measured live. Anything that genuinely can be changed is changed on the screen named beside it."
-      class="mb-6"
     />
 
     <LoadingState v-if="isLoading" label="Loading platform facts" />
@@ -69,8 +47,7 @@
       <section class="mt-6 rounded-lg border border-hairline bg-canvas p-6">
         <h2 class="text-title-sm font-semibold text-ink">What can be changed, and where</h2>
         <p class="mt-1 text-sm text-slate">
-          This page stores nothing. These are the only settings that exist today, and each one is a
-          row in a real table rather than a preference.
+          Everything on this screen is changed on the page it links to.
         </p>
 
         <ul class="mt-5 divide-y divide-hairline">
@@ -138,8 +115,7 @@
           </dl>
           <p class="mt-5 text-sm text-slate">
             A certificate is issued as soon as an enrollment completes. Revoking one is a decision
-            about a named learner rather than a platform setting, so it is handled on the learner's
-            own record.
+            about a named learner, so it is handled on the learner's own record.
           </p>
         </section>
 
@@ -156,14 +132,13 @@
             </div>
           </dl>
           <p class="mt-5 text-sm text-slate">
-            Amounts are stored as integer centavos and only formatted at this edge, because floating
-            point pesos lose cents. Collected and refunded are the only two that represent money
-            that moved.
+            Collected and refunded are the only two that represent money that moved. The others are
+            attempts that did not complete.
           </p>
         </section>
       </div>
 
-      <!-- ============================ POSTURE ============================ -->
+      <!-- ============================ RULES ============================ -->
       <section class="mt-6 rounded-lg border border-hairline bg-canvas p-6">
         <div class="flex items-start gap-3">
           <ShieldCheck
@@ -171,11 +146,9 @@
             aria-hidden="true"
           />
           <div>
-            <h2 class="text-title-sm font-semibold text-ink">How access is decided</h2>
+            <h2 class="text-title-sm font-semibold text-ink">Rules the platform keeps</h2>
             <p class="mt-1 text-sm text-slate">
-              These rules are decided by the system, not stored as a setting, so they cannot be
-              edited from this screen. They are listed here so you know exactly what the platform
-              enforces on its own.
+              These hold whatever is set here, so there is nothing to edit on this screen.
             </p>
           </div>
         </div>
@@ -190,29 +163,20 @@
             <p class="mt-1 text-sm text-slate">{{ fact.detail }}</p>
           </li>
         </ul>
-
-        <p class="mt-5 text-sm text-slate">
-          These counts reflect what this account is entitled to see. Anything outside that is never
-          sent to the browser in the first place.
-        </p>
       </section>
 
-      <p class="mt-6 text-sm text-slate">
-        Refreshed {{ loadedAtLabel }}. Everything on this page is counted at the moment it loads;
-        nothing is cached and nothing is written.
-      </p>
+      <p class="mt-6 text-sm text-slate">Refreshed {{ loadedAtLabel }}.</p>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { BookOpen, ChevronRight, Library, Lock, ShieldCheck, Users, Wallet } from 'lucide-vue-next'
+import { BookOpen, ChevronRight, Library, ShieldCheck, Users, Wallet } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatCard from '@/components/common/StatCard.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
-import Alert from '@/components/ui/Alert.vue'
 import { getPlatformOverview } from '@/services/admin.service'
 import { formatPeso, formatDateTime } from '@/types'
 import type { PlatformOverview } from '@/services/admin.service'
@@ -275,11 +239,10 @@ const moneyRows = computed(() => {
 })
 
 /**
- * The settings that exist, each one a real row in a real table.
+ * What this screen cannot change, and where it is changed instead.
  *
- * Listed with the screen that owns the write, because "where do I change this?"
- * is the only question a settings page has to answer when it cannot answer "what
- * can I configure?".
+ * Listed with the screen that owns the write, because "where do I change this?" is the
+ * only question this page has to answer.
  */
 const editableControls = [
   {
@@ -306,41 +269,34 @@ const editableControls = [
 ]
 
 /**
- * How this installation behaves, in terms an administrator acts on.
+ * The rules that hold whatever is configured, in terms an administrator acts on.
  *
- * Not settings, and not editable. Each one explains why a control somewhere in the admin
- * surface is absent rather than unfinished, so nobody waits for a button that is never
- * going to appear.
- *
- * Written in product language on purpose. An earlier version of this list described the
- * mechanisms — Row Level Security, `is_admin()`, the service role — and read as a note to
- * whoever deployed the schema rather than as information about the LMS in front of them.
+ * Each one exists because a button somewhere in the admin surface is absent by design,
+ * so nobody waits for a control that is never going to arrive. Written in product
+ * language: an earlier version named the mechanisms behind them and read as a note to
+ * whoever deployed the platform rather than as information about the school in front of
+ * them.
  */
 const postureFacts = [
   {
     title: 'People only see what belongs to them',
     detail:
-      'A student sees their own work, an instructor sees their own courses, and an administrator sees the whole school. Nothing is filtered after the fact — an account that is not entitled to a record is not sent it.',
+      'A student sees their own work, an instructor sees their own courses, and an administrator sees the whole school.',
   },
   {
     title: 'A role is set by an administrator, never by the person holding it',
     detail:
-      'Changing a role in the browser has no effect on what that account can reach. The change has to be made and confirmed here first.',
+      'Changing a role has to be made and confirmed on this screen first, whichever browser the change is attempted from.',
   },
   {
     title: 'Payments are confirmed by the provider, not by this screen',
     detail:
-      'A payment becomes paid when the provider confirms it. That is why payments are read-only here, and why a payment can take a moment to appear as settled.',
+      'A payment becomes paid when the provider confirms it, which is why a charge can take a moment to appear as settled.',
   },
   {
     title: 'The last administrator cannot be removed',
     detail:
       'The platform refuses every attempt to remove the final administrator, so it can never be left with nobody able to promote anybody.',
-  },
-  {
-    title: 'Audit rows are written server-side',
-    detail:
-      'Admin actions are recorded by a security-definer function that stamps the actor itself, so an entry cannot be attributed to somebody else.',
   },
   {
     title: 'Publishing is reversible',

@@ -244,6 +244,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Course insights', roles: ['instructor'] },
       },
       {
+        path: 'announcements',
+        name: 'instructor-announcements',
+        component: () => import('@/views/instructor/Announcements.vue'),
+        meta: { title: 'Announcements', roles: ['instructor'] },
+      },
+      {
         path: 'calendar',
         name: 'instructor-calendar',
         component: () => import('@/views/instructor/Calendar.vue'),
@@ -302,6 +308,12 @@ const routes: RouteRecordRaw[] = [
         name: 'admin-payments',
         component: () => import('@/views/admin/Payments.vue'),
         meta: { title: 'Payments', roles: ['admin'] },
+      },
+      {
+        path: 'announcements',
+        name: 'admin-announcements',
+        component: () => import('@/views/admin/Announcements.vue'),
+        meta: { title: 'Announcements', roles: ['admin'] },
       },
       {
         path: 'analytics',

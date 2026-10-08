@@ -33,31 +33,6 @@
     </div>
 
     <LoadingState v-else class="mt-6" label="Loading your account" />
-
-    <!--
-      The rest, named.
-
-      A settings page that quietly omits a section leaves the visitor deciding whether the
-      absence means "off", "not applicable to me" or "not built yet". Naming the categories
-      that do not exist here, and why, answers that without inventing a control for any of
-      them.
-    -->
-    <section
-      class="mt-6 rounded-lg border border-hairline bg-canvas p-5 sm:p-6 dark:bg-white/[0.03]"
-      aria-labelledby="not-yet-heading"
-    >
-      <h2 id="not-yet-heading" class="text-theme-xl text-ink">Not here yet</h2>
-      <p class="mt-1 text-sm text-slate">
-        These are settings people expect to find. None of them is listed as a control here, because
-        each would be a switch that changes nothing.
-      </p>
-      <dl class="mt-4 grid gap-3 sm:grid-cols-2">
-        <div v-for="item in ABSENT" :key="item.title" class="rounded-md bg-surface-soft p-3">
-          <dt class="text-sm font-medium text-ink">{{ item.title }}</dt>
-          <dd class="mt-0.5 text-xs text-slate">{{ item.why }}</dd>
-        </div>
-      </dl>
-    </section>
   </div>
 </template>
 
@@ -95,32 +70,4 @@ onMounted(async () => {
   // the guard awaited rather than assuming the work is done.
   await auth.ensureReady()
 })
-
-/**
- * Categories a settings page would be expected to carry, and the reason each is absent.
- *
- * Written out rather than left unmentioned, because an unlisted section is ambiguous in
- * a way a listed one is not: a visitor cannot tell "I turned this off" from "nobody built
- * this". Every entry below names a real absence, not a missing feature someone forgot to
- * add - there is no preference store, no i18n layer, and no per-user notification
- * configuration anywhere in this project.
- */
-const ABSENT: ReadonlyArray<{ title: string; why: string }> = [
-  {
-    title: 'Notifications',
-    why: 'Notifications are not configurable per person. Every kind is sent to everybody it applies to, and there is no per-kind switch to turn one off.',
-  },
-  {
-    title: 'Language',
-    why: 'The interface is English only. There is no translation layer, so there is nothing for a language choice to switch between.',
-  },
-  {
-    title: 'Accessibility',
-    why: 'Font size, contrast and motion are fixed in the design tokens. Nothing here reads a per-person value, so a control could not alter what is on screen.',
-  },
-  {
-    title: 'Privacy',
-    why: 'What is visible about you is decided by your role and your enrollments, not by a setting. The only per-person visibility choice — your profile photo — is on My profile.',
-  },
-]
 </script>

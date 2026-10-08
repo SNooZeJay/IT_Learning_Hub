@@ -196,6 +196,173 @@ export async function listQuizzesForCourse(courseId: string): Promise<Quiz[]> {
   return quizzes.map((quiz) => ({ ...quiz, questions: questionsByQuiz.get(quiz.id) ?? [] }))
 }
 
+/**
+ * One quiz as the student's own list shows it.
+ *
+ * Everything here is per person: the same quiz reads differently for two students, and
+ * for the same student between Monday and the attempt they just finished.
+ */
+export interface StudentQuizSummary {
+  quizId: string
+  title: string
+  description: string | null
+  courseId: string
+  courseTitle: string
+  courseSlug: string
+  /** Where it sits in the course, or null when it belongs to the course as a whole. */
+  moduleTitle: string | null
+  lessonId: string | null
+  lessonTitle: string | null
+  questionCount: number
+  passingScore: number
+  attemptsAllowed: number
+  attemptsUsed: number
+  attemptsRemaining: number
+  hasOpenAttempt: boolean
+  /** The best graded percentage so far, or null when nothing has been graded. */
+  bestPercentage: number | null
+  /** True once a graded attempt has passed. */
+  passed: boolean
+  timeLimitMinutes: number | null
+  /** When the last graded attempt was submitted, newest last. */
+  lastAttemptAt: string | null
+}
+
+/**
+ * Every quiz this student may take, with where it sits and where they stand on it.
+ *
+ * Enrolment is the gate, and it is enforced rather than filtered here: the `quizzes`
+ * read policy admits an account that teaches the course, administers it, or holds a live
+ * place on it, so a query that never mentions a course id already returns nothing for a
+ * course this student cannot reach. Filtering to `published` on top of that is what
+ * keeps an instructor's work in progress off the list.
+ *
+ * Four reads rather than a nested select. A select that joins `quizzes` to `courses`,
+ * `modules` and `lessons` comes back as one object per row with keys that disappear
+ * when a join has no match, which reads as "no course" rather than "not joined" - and a
+ * quiz attached to a module but not a lesson is ordinary, not exceptional.
+ */
+export async function listStudentQuizzes(): Promise<StudentQuizSummary[]> {
+  const { data: quizRows, error: quizError } = await supabase
+    .from('quizzes')
+    .select(QUIZ_COLUMNS)
+    .eq('status', 'published')
+    .order('created_at', { ascending: true })
+
+  if (quizError) throw new QuizError(messageOf(quizError, 'Could not load your quizzes.'))
+
+  const quizzes = (quizRows ?? []) as unknown as QuizRow[]
+  if (quizzes.length === 0) return []
+
+  const quizIds = quizzes.map((quiz) => quiz.id)
+
+  const moduleIds = [...new Set(quizzes.map((q) => q.module_id).filter((id): id is string => !!id))]
+  const lessonIds = [...new Set(quizzes.map((q) => q.lesson_id).filter((id): id is string => !!id))]
+  const courseIds = [...new Set(quizzes.map((q) => q.course_id))]
+
+  const [coursesResult, modulesResult, lessonsResult, questionResult, attemptResult] =
+    await Promise.all([
+      courseIds.length
+        ? supabase.from('courses').select('id, title, slug').in('id', courseIds)
+        : Promise.resolve({ data: [], error: null }),
+      moduleIds.length
+        ? supabase.from('modules').select('id, title').in('id', moduleIds)
+        : Promise.resolve({ data: [], error: null }),
+      lessonIds.length
+        ? supabase.from('lessons').select('id, title').in('id', lessonIds)
+        : Promise.resolve({ data: [], error: null }),
+      supabase.from('quiz_questions').select('quiz_id').in('quiz_id', quizIds),
+      supabase
+        .from('quiz_attempts')
+        .select('quiz_id, status, percentage, passed, submitted_at')
+        .in('quiz_id', quizIds),
+    ])
+
+  if (questionResult.error) {
+    throw new QuizError(messageOf(questionResult.error, 'Could not load your quizzes.'))
+  }
+  if (attemptResult.error) {
+    throw new QuizError(messageOf(attemptResult.error, 'Could not load your quiz attempts.'))
+  }
+
+  const coursesById = new Map(
+    ((coursesResult.data ?? []) as Array<{ id: string; title: string; slug: string }>).map(
+      (course) => [course.id, course],
+    ),
+  )
+  const moduleTitles = new Map(
+    ((modulesResult.data ?? []) as Array<{ id: string; title: string }>).map((m) => [
+      m.id,
+      m.title,
+    ]),
+  )
+  const lessonById = new Map(
+    ((lessonsResult.data ?? []) as Array<{ id: string; title: string }>).map((l) => [l.id, l]),
+  )
+
+  const questionCountByQuiz = new Map<string, number>()
+  for (const row of (questionResult.data ?? []) as Array<{ quiz_id: string }>) {
+    questionCountByQuiz.set(row.quiz_id, (questionCountByQuiz.get(row.quiz_id) ?? 0) + 1)
+  }
+
+  type AttemptRow = {
+    quiz_id: string
+    status: string
+    percentage: number | string | null
+    passed: boolean | null
+    submitted_at: string | null
+  }
+
+  const attemptsByQuiz = new Map<string, AttemptRow[]>()
+  for (const row of (attemptResult.data ?? []) as AttemptRow[]) {
+    const list = attemptsByQuiz.get(row.quiz_id) ?? []
+    list.push(row)
+    attemptsByQuiz.set(row.quiz_id, list)
+  }
+
+  return quizzes.map((quiz) => {
+    const attempts = attemptsByQuiz.get(quiz.id) ?? []
+    const graded = attempts.filter((attempt) => attempt.status !== 'in_progress')
+
+    // A student who has started an attempt and reloaded is mid-quiz, not passed. The
+    // graded verdict alone decides that, so the two states cannot be confused.
+    const percentages = graded
+      .map((attempt) => (attempt.percentage === null ? null : Number(attempt.percentage)))
+      .filter((value): value is number => value !== null)
+
+    const attemptsAllowed = Math.min(quiz.attempts_allowed, 3)
+
+    return {
+      quizId: quiz.id,
+      title: quiz.title,
+      description: quiz.description,
+      courseId: quiz.course_id,
+      courseTitle: coursesById.get(quiz.course_id)?.title ?? 'Your course',
+      courseSlug: coursesById.get(quiz.course_id)?.slug ?? '',
+      moduleTitle: quiz.module_id ? (moduleTitles.get(quiz.module_id) ?? null) : null,
+      lessonId: quiz.lesson_id,
+      lessonTitle: quiz.lesson_id ? (lessonById.get(quiz.lesson_id)?.title ?? null) : null,
+      questionCount: questionCountByQuiz.get(quiz.id) ?? 0,
+      passingScore: Number(quiz.passing_score),
+      attemptsAllowed,
+      // An open attempt still holds a place, so it counts. Otherwise a student could
+      // reload, start a fourth try, and be counted as having used three.
+      attemptsUsed: attempts.length,
+      attemptsRemaining: Math.max(attemptsAllowed - attempts.length, 0),
+      hasOpenAttempt: attempts.some((attempt) => attempt.status === 'in_progress'),
+      bestPercentage: percentages.length ? Math.max(...percentages) : null,
+      passed: attempts.some((attempt) => attempt.passed === true),
+      timeLimitMinutes: quiz.time_limit_minutes,
+      lastAttemptAt:
+        graded
+          .map((attempt) => attempt.submitted_at)
+          .filter((value): value is string => !!value)
+          .sort()
+          .at(-1) ?? null,
+    }
+  })
+}
+
 /** One quiz with its questions. */
 export async function getQuiz(quizId: string): Promise<Quiz | null> {
   const { data: quizRows, error } = await supabase

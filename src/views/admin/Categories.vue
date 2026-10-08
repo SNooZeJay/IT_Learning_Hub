@@ -141,9 +141,6 @@
               placeholder="ShieldCheck"
               :class="inputClass"
             />
-            <p class="mt-1 text-xs text-slate">
-              Free text, stored exactly as written. Nothing in this app resolves it to an icon yet.
-            </p>
           </div>
         </div>
 
@@ -294,8 +291,8 @@
       </p>
 
       <p class="mt-6 text-sm text-slate">
-        A category that still has courses attached cannot be deleted. The foreign key refuses the
-        delete and names the constraint, rather than quietly detaching the courses from it.
+        A category that still has courses attached cannot be deleted. Move the courses to another
+        category first.
       </p>
     </template>
   </div>

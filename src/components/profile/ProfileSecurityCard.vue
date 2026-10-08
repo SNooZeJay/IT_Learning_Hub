@@ -72,9 +72,7 @@
               `new-password-hint ${passwordFieldError ? 'new-password-error' : ''}`.trim()
             "
           />
-          <p id="new-password-hint" class="mt-1.5 text-xs text-slate">
-            At least 8 characters. Supabase sets the rules, so a shorter one will be refused.
-          </p>
+          <p id="new-password-hint" class="mt-1.5 text-xs text-slate">At least 8 characters.</p>
           <p
             v-if="passwordFieldError"
             id="new-password-error"
@@ -123,8 +121,7 @@
       <div class="mt-5 border-t border-hairline-soft pt-5">
         <p class="text-sm font-medium text-ink">Locked out?</p>
         <p class="mt-1 text-sm text-slate">
-          Send yourself a reset link instead. It goes from this school's own mailer, not from
-          Supabase.
+          Send yourself a reset link instead, and use it to choose a new password.
         </p>
 
         <div v-if="resetNotice" aria-live="polite" class="mt-3">

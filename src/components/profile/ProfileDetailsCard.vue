@@ -67,8 +67,7 @@
             aria-describedby="email-note"
           />
           <p id="email-note" class="mt-1.5 text-xs text-slate">
-            Read-only. Changing your sign-in address needs a re-verification step this app does not
-            run yet.
+            The address you sign in with. To change it, ask an administrator.
           </p>
         </div>
 
@@ -95,7 +94,7 @@
             aria-describedby="role-note"
           />
           <p id="role-note" class="mt-1.5 text-xs text-slate">
-            Read-only. A database trigger refuses any attempt to change your own role.
+            Set by an administrator, and what decides what you can reach.
           </p>
         </div>
 

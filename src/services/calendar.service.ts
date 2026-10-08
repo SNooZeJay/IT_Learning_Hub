@@ -279,10 +279,18 @@ async function collectStudentEvents(): Promise<CalendarEvent[]> {
     // `.is('course_id', null)` rather than `.not(...)`, because "not aimed at a course" is
     // the case worth being explicit about and the one a reader would otherwise have to
     // infer from the absence of a filter.
+    // A LEFT join, and `course_id` selected beside it.
+    //
+    // `!inner` here was a real bug, and a quiet one: an announcement with `course_id` null
+    // is a platform-wide notice, an inner join on `courses` finds nothing for it, and the
+    // row never reached the filter below - so the filter's own `courseId === null` branch,
+    // written specifically to keep platform-wide notices, could never fire. The one
+    // notice an administrator posts for everybody was the one notice that could never
+    // reach a calendar.
     rowsOf(() =>
       supabase
         .from('announcements')
-        .select('id, title, published_at, course_id, courses!inner(title, slug)')
+        .select('id, title, published_at, course_id, courses(title, slug)')
         .not('published_at', 'is', null),
     ).then((rows) =>
       rows.filter((row) => {
@@ -500,6 +508,25 @@ async function collectStudentEvents(): Promise<CalendarEvent[]> {
 }
 
 /**
+ * The courses an instructor teaches.
+ *
+ * `is_instructor_of` decides every row here, so no instructor id is passed: the viewer is
+ * whoever is signed in and the query cannot be pointed at somebody else's teaching list.
+ * A course that has not been published yet is still a course they teach, so there is no
+ * publication filter - "no announcements yet" on a brand-new course is the honest answer.
+ */
+async function liveCourseIdsForInstructor(): Promise<string[]> {
+  const rows = await rowsOf(() => supabase.from('course_instructors').select('course_id'))
+
+  const ids = new Set<string>()
+  for (const row of rows) {
+    const id = (row as { course_id?: unknown }).course_id
+    if (typeof id === 'string' && id !== '') ids.add(id)
+  }
+  return [...ids]
+}
+
+/**
  * Collect events for an instructor.
  *
  * Scoped by `is_instructor_of` through the course policies, so an instructor sees
@@ -509,6 +536,11 @@ async function collectStudentEvents(): Promise<CalendarEvent[]> {
 async function collectInstructorEvents(): Promise<CalendarEvent[]> {
   const now = new Date()
 
+  // The courses this instructor teaches. Used to filter course-scoped announcements to
+  // their own, for the same reason the student calendar does: RLS decides what may be
+  // read, and "which rows belong on this person's calendar" is the second question.
+  const liveCourseIds = await liveCourseIdsForInstructor()
+
   const [assignments, announcements, courses, attempts, enrolments, lessons, quizzes] =
     await Promise.all([
       rowsOf(() =>
@@ -517,11 +549,26 @@ async function collectInstructorEvents(): Promise<CalendarEvent[]> {
           .select('id, title, due_at, courses!inner(id, title)')
           .not('due_at', 'is', null),
       ),
+      // A LEFT join, and `course_id` selected beside it.
+      //
+      // This was `courses!inner(title)`, which silently dropped every platform-wide
+      // notice. An announcement with `course_id` null has no course to inner-join on, so
+      // the one notice an administrator posts for everybody - maintenance, a closure -
+      // was the one notice that could never reach a calendar. The map below already read
+      // `courses: null` as "for everybody"; the query was the thing disagreeing.
+      //
+      // The filter below is applied in JS, matching the student calendar exactly, so the
+      // two cannot drift apart on what "my calendar" means.
       rowsOf(() =>
         supabase
           .from('announcements')
-          .select('id, title, published_at, courses!inner(title)')
+          .select('id, title, published_at, course_id, courses(title, slug)')
           .not('published_at', 'is', null),
+      ).then((rows) =>
+        rows.filter((row) => {
+          const courseId = (row as { course_id?: string | null }).course_id ?? null
+          return courseId === null || liveCourseIds.includes(courseId)
+        }),
       ),
       rowsOf(() =>
         supabase

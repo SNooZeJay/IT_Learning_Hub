@@ -212,7 +212,7 @@
           v-if="eventsTruncated"
           variant="warning"
           title="Older confirmations are not shown"
-          :message="`Showing the ${ADMIN_PAYMENT_EVENT_LIMIT} most recent confirmations. A confirmation can only be written by the payment provider, never by anyone signed in, so this list is a read-only record of what actually came back.`"
+          :message="`Showing the ${ADMIN_PAYMENT_EVENT_LIMIT} most recent confirmations. This is the record of what the payment provider reported, and it cannot be edited from here.`"
           class="mt-4"
         />
 
