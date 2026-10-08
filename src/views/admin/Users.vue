@@ -181,7 +181,7 @@
                       :value="user.role"
                       :disabled="isBusy(user.id)"
                       :aria-label="`Role for ${user.fullName}`"
-                      :class="[inlineSelectClass, roleToneClass[user.role]]"
+                      :class="[cellSelectClass, roleToneClass[user.role]]"
                       @change="onRoleChange(user, $event)"
                     >
                       <option v-for="role in ROLES" :key="role" :value="role">
@@ -313,7 +313,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/types'
 import type { AdminUser } from '@/services/admin.service'
-import { selectClass } from '@/components/ui/controlClasses'
+import { cellSelectClass, selectClass } from '@/components/ui/controlClasses'
 import type { AccountStatus, Role } from '@/types'
 
 const auth = useAuthStore()
@@ -333,9 +333,6 @@ const auditWarning = ref('')
 
 const searchClass =
   'w-full rounded border border-hairline-strong bg-canvas py-2.5 ps-9 pe-3 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden'
-
-const inlineSelectClass =
-  'rounded-md border border-hairline-strong bg-canvas py-1.5 ps-2.5 pe-2 text-xs font-medium focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50'
 
 const actionButtonClass =
   'inline-flex items-center gap-1.5 rounded-md border border-hairline-strong bg-canvas px-2.5 py-1.5 text-xs font-medium text-ink transition hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50'

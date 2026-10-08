@@ -188,7 +188,7 @@
             <select
               id="catalogue-level"
               v-model="level"
-              class="h-11 w-full rounded-full border border-lp-line bg-lp-canvas px-4 text-sm text-lp-ink transition-colors focus-within:border-lp-line-strong"
+              class="select-chevron h-11 w-full appearance-none rounded-full border border-lp-line bg-lp-canvas ps-4 pe-9 text-sm text-lp-ink transition-colors focus-within:border-lp-line-strong"
             >
               <option value="all">All levels</option>
               <option value="beginner">Beginner</option>
@@ -207,7 +207,7 @@
             <select
               id="catalogue-price"
               v-model="price"
-              class="h-11 w-full rounded-full border border-lp-line bg-lp-canvas px-4 text-sm text-lp-ink transition-colors focus-within:border-lp-line-strong"
+              class="select-chevron h-11 w-full appearance-none rounded-full border border-lp-line bg-lp-canvas ps-4 pe-9 text-sm text-lp-ink transition-colors focus-within:border-lp-line-strong"
             >
               <option value="all">Free and paid</option>
               <option value="free">Free</option>

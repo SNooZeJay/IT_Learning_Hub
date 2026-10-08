@@ -556,7 +556,7 @@ onMounted(async () => {
               id="compose-recipient"
               v-model="recipientId"
               required
-              class="w-full rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm text-ink dark:border-white/10 dark:bg-white/[0.04]"
+              class="select-chevron w-full appearance-none rounded-md border border-hairline bg-surface py-2.5 ps-3 pe-9 text-sm text-ink dark:border-white/10 dark:bg-white/[0.04]"
             >
               <option value="" disabled>Choose someone</option>
               <option v-for="person in people" :key="person.id" :value="person.id">
@@ -576,7 +576,7 @@ onMounted(async () => {
               maxlength="120"
               required
               placeholder="What is this about?"
-              class="w-full rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-stone dark:border-white/10 dark:bg-white/[0.04]"
+              class="select-chevron w-full appearance-none rounded-md border border-hairline bg-surface py-2.5 ps-3 pe-9 text-sm text-ink placeholder:text-stone dark:border-white/10 dark:bg-white/[0.04]"
             />
           </div>
 
