@@ -155,6 +155,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'My grades', roles: ['student'] },
       },
       {
+        path: 'quizzes',
+        name: 'student-quizzes',
+        component: () => import('@/views/student/Quizzes.vue'),
+        meta: { title: 'Quizzes', roles: ['student'] },
+      },
+      {
         path: `certificates/:id${UUID_PARAM}`,
         name: 'student-certificate',
         component: () => import('@/views/student/Certificate.vue'),
