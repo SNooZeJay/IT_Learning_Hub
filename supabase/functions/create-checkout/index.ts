@@ -464,8 +464,23 @@ async function createPendingPayment(input: {
   return (data as { id: string }).id
 }
 
-/** Call PayMongo. The secret goes in the Authorization header and nowhere else. */
-async function createPayMongoSession(input: {
+/**
+ * Trim provider-facing text to a length limit without cutting mid-word.
+ *
+ * A hard slice at 255 characters leaves "…takes you from core Python syntax t", which
+ * reads like a bug on the buyer's screen. Courses here run to about 275 characters, so
+ * this actually fires - backing off to the last space costs a few characters and is the
+ * difference between a truncated description and a broken one.
+ */
+function trimForProvider(text: string, limit = 255): string {
+  const trimmed = text.trim()
+  if (trimmed.length <= limit) return trimmed
+  const cut = trimmed.slice(0, limit)
+  const lastSpace = cut.lastIndexOf(' ')
+  return `${(lastSpace > limit * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`
+}
+
+/** Call PayMongo. The secret goes in the Authorization header and nowhere else. */async function createPayMongoSession(input: {
   reference: string
   amountCentavos: number
   courseTitle: string
@@ -508,7 +523,12 @@ async function createPayMongoSession(input: {
               // rejection, so the conversion happens here and nowhere else.
               currency: 'PHP',
               amount: input.amountCentavos,
-              name: input.courseTitle.slice(0, 255),
+              name: trimForProvider(input.courseTitle),
+              // Without this, PayMongo renders the merchant's account name in the
+              // description slot, so every course read "JOEL T BAUTISTA" on the
+              // checkout page. The text comes from the course row, so each course
+              // carries its own and nothing here is hardcoded.
+              description: trimForProvider(input.description),
               quantity: 1,
             },
           ],
