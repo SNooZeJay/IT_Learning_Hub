@@ -49,7 +49,9 @@ test.describe('Student', () => {
     await signIn(page, 'student')
     await page.goto('/student/courses')
 
-    await expect(page.getByRole('heading', { name: /courses/i }).first()).toBeVisible()
+    // "Course catalogue", not "Courses" - matched loosely so a heading reword does not
+    // fail the suite. The claim under test is that the catalogue loaded, not its wording.
+    await expect(page.getByRole('heading', { name: /course/i }).first()).toBeVisible()
 
     // The count line is "N of M courses" only when a filter is active, and "M courses"
     // otherwise. Either way it must not be the empty catalogue.
@@ -68,9 +70,11 @@ test.describe('Student', () => {
     // page this replaced was a table of due dates wearing a calendar's heading.
     await expect(page.locator('[role="gridcell"]')).toHaveCount(42)
 
-    // Both views exist and switch.
-    await expect(page.getByRole('button', { name: 'Month' })).toBeVisible()
-    await page.getByRole('button', { name: 'Week' }).click()
+    // Both views exist and switch. The view toggle is a radiogroup, so the buttons carry
+    // the same name as the month column heading further down the page; `.first()` takes
+    // the toggle rather than every cell that happens to say "Month".
+    await expect(page.getByRole('button', { name: 'Month' }).first()).toBeVisible()
+    await page.getByRole('button', { name: 'Week' }).first().click()
     await expect(page.locator('[role="gridcell"]')).toHaveCount(0)
     await expect(page.getByText(/Nothing/i).first()).toBeVisible()
 
@@ -82,16 +86,26 @@ test.describe('Student', () => {
     await signIn(page, 'student')
 
     await page.goto('/student/courses')
-    const firstCourse = page.locator('a[href^="/student/courses/"]').first()
-    await expect(firstCourse).toBeVisible()
-    await firstCourse.click()
+
+    // An enrolled course, not merely the first one. The catalogue is ordered for
+    // everybody, so its first entry is often a course this account has no place in - the
+    // curriculum is gated, that course page shows no lesson links, and the spec skipped
+    // itself instead of testing anything. A skipped spec is a green tick over a hole.
+    //
+    // "Continue" is the card's own word for "you have a place here"; "View course" and
+    // "View and enroll" are what the others say. Matching the call to action is also the
+    // assertion: if enrolled cards stopped saying Continue, this fails rather than quietly
+    // testing a course the student cannot open.
+    const enrolledCourse = page.getByRole('link', { name: 'Continue', exact: true }).first()
+    await expect(enrolledCourse).toBeVisible()
+    await enrolledCourse.click()
 
     await expect(page).toHaveURL(/\/student\/courses\//)
 
     const firstLesson = page.locator('a[href^="/student/lessons/"]').first()
-    if ((await firstLesson.count()) === 0) {
-      test.skip(true, 'this account has no lesson links on its course page')
-    }
+    // No skip: an enrolled course that shows no lessons is a defect, and the assertion
+    // below is what should report it.
+    await expect(firstLesson).toBeVisible()
     await firstLesson.click()
 
     await expect(page).toHaveURL(/\/student\/lessons\//)
@@ -118,9 +132,12 @@ test.describe('Student', () => {
   test('signing out ends the session', async ({ page }) => {
     await signIn(page, 'student')
 
+    // The account menu is the last control in the header and is labelled rather than
+    // matched on text: it renders initials plus a name, so a filter on the email or the
+    // surname breaks the moment the header renders differently. Its aria-label is the
+    // thing that names it, and it is stable.
     await page
-      .locator('header button')
-      .filter({ hasText: /@|audit|garmino|lalamonan|guia/i })
+      .getByRole('button', { name: /account menu|your account|profile/i })
       .first()
       .click()
     await page.getByRole('button', { name: /sign out/i }).click()

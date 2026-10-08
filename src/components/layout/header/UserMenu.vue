@@ -1,12 +1,21 @@
 <template>
   <div ref="dropdownRef" class="relative">
-    <!-- User button -->
+    <!--
+      User button.
+
+      The accessible name is set explicitly because the visible content is a first name:
+      a screen reader announcing "Joren, button" gives no hint that opening it reveals the
+      account menu, which is the only thing the control does. Naming it also gives the
+      end-to-end suite a stable handle - matching on the name in the header text broke
+      whenever the header rendered a different amount of the name.
+    -->
     <button
       type="button"
       class="flex w-full items-center gap-2 rounded-md px-1 py-1 text-start transition-colors hover:bg-surface-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:hover:bg-white/[0.06] xl:w-auto"
       aria-haspopup="true"
       :aria-expanded="dropdownOpen"
       aria-controls="user-menu-dropdown"
+      :aria-label="`Account menu for ${firstName}`"
       @click="toggleDropdown"
     >
       <!--

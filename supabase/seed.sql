@@ -134,16 +134,28 @@ from (values
    'video_link'::public.material_type, null,
    'https://www.youtube.com/watch?v=dQw4w9WgXcQ', null, null, null, 1),
 
-  -- pdf / image / document: file-backed materials
+  -- Materials a learner can actually open.
+  --
+  -- These were `image` / `pdf` / `document` rows pointing at
+  -- `lesson-materials/<name>`, which cannot resolve twice over: the key repeats the bucket
+  -- name, so signing it asks for `lesson-materials/lesson-materials/<name>`, and this seed
+  -- never uploaded an object at all. Every one of them was a dead download advertised as
+  -- a file. See `20261008150000_seeded_materials_pointed_at_files_that_do_not_exist.sql`.
+  --
+  -- A real `external_link` to a real reference is what this project can honestly offer,
+  -- because it stores no binaries.
   ('Packets, switches and routers', 'Packet lifecycle diagram',
-   'image'::public.material_type, null, null,
-   'lesson-materials/packet-lifecycle.png', 48213, 'image/png', 1),
+   'external_link'::public.material_type, null,
+   'https://www.cloudflare.com/learning/network-layer/what-is-the-network-layer/',
+   null, null, null, 1),
   ('Packets, switches and routers', 'Reference sheet',
-   'pdf'::public.material_type, null, null,
-   'lesson-materials/network-reference.pdf', 184320, 'application/pdf', 2),
+   'external_link'::public.material_type, null,
+   'https://www.rfc-editor.org/rfc/rfc791',
+   null, null, null, 2),
   ('IP addresses and DNS lookup', 'DNS troubleshooting checklist',
-   'document'::public.material_type, null, null,
-   'lesson-materials/dns-checklist.docx', 24576, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 1)
+   'external_link'::public.material_type, null,
+   'https://www.cloudflare.com/learning/dns/what-is-dns/',
+   null, null, null, 1)
 ) as v(lesson_title, title, material_type, content_text, external_url, file_path, file_size, file_type, position)
 join public.lessons l on l.title = v.lesson_title
 join public.modules m on m.id = l.module_id

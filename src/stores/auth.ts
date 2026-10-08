@@ -129,8 +129,30 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Wait until the store knows who is signed in AND what their role is.
+   *
+   * `initialize()` alone is not enough, and this was the reason signing in landed people on
+   * their profile page instead of their dashboard. By the time somebody signs in, the
+   * store has already run `initialize()` on the sign-in page - with no session - and set
+   * `initialized`. So `initialize()` returned immediately, `role` was still null, and
+   * `homePath` fell through to its student default while the router guard, seeing no
+   * role either, redirected to `/profile` to get one.
+   *
+   * The guard and this call need the same fact, so this waits for it: after a session
+   * exists, a null profile means the fetch has not finished, not that the fetch is
+   * unnecessary. A profile genuinely absent is left as null, which is what the guard's
+   * own handling of it expects.
+   */
   async function ensureReady(): Promise<void> {
     await initialize()
+
+    const current = session.value
+    if (!current) return
+
+    if (!profile.value) {
+      await loadProfile(current.user.id)
+    }
   }
 
   /**

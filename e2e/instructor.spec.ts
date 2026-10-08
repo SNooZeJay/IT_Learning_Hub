@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { HOME, signIn, trackConsoleErrors } from './helpers'
+import { HOME, courseLink, signIn, trackConsoleErrors } from './helpers'
 
 /**
  * The instructor's path through the LMS.
@@ -43,7 +43,7 @@ test.describe('Instructor', () => {
     // Every course link must carry a course id, not a slug: the instructor route is
     // `courses/:id` while the student route is `courses/:slug` resolved from `:id`.
     // Linking one to the other produces a page that loads and shows nothing.
-    const links = page.locator('a[href^="/instructor/courses/"]')
+    const links = courseLink(page)
     const count = await links.count()
     for (let i = 0; i < count; i++) {
       const href = await links.nth(i).getAttribute('href')
@@ -59,7 +59,7 @@ test.describe('Instructor', () => {
     await signIn(page, 'instructor')
     await page.goto('/instructor/courses')
 
-    const firstCourse = page.locator('a[href^="/instructor/courses/"]').first()
+    const firstCourse = courseLink(page).first()
     await expect(firstCourse).toBeVisible()
     await firstCourse.click()
 
@@ -74,7 +74,7 @@ test.describe('Instructor', () => {
     await signIn(page, 'instructor')
     await page.goto('/instructor/courses')
 
-    const firstCourse = page.locator('a[href^="/instructor/courses/"]').first()
+    const firstCourse = courseLink(page).first()
     await firstCourse.click()
     await expect(page).toHaveURL(/\/instructor\/courses\/[0-9a-f-]{36}/)
 

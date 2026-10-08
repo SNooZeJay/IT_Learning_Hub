@@ -24,6 +24,16 @@ export const ACCOUNTS = {
  *
  * Deliberately not `page.request.post` to the auth endpoint. That would prove the
  * credentials work, not that the form works, and the form is what a person uses.
+ *
+ * Two steps are possible, and which one happened is decided by the account, not by the
+ * test. An account with an emailed sign-in code turned on gets a second screen; an account
+ * without one is finished here. So this waits for whichever arrives rather than assuming
+ * the single-step shape, which is what made the earlier version of this helper impossible
+ * to keep: it assumed a flow that only some accounts have.
+ *
+ * The second step cannot be driven, because the code arrives in a real inbox. That is the
+ * one thing the suite does not cover, and it says so here rather than hiding it behind a
+ * token exchange that would prove nothing about the flow.
  */
 export async function signIn(page: Page, who: keyof typeof ACCOUNTS): Promise<void> {
   const account = ACCOUNTS[who]
@@ -41,83 +51,45 @@ export async function signIn(page: Page, who: keyof typeof ACCOUNTS): Promise<vo
   // request rather than on a timer.
   await page.locator('form button[type="submit"]').click()
 
-  // Sign-in is a two-step flow: the password is checked, then a six-digit code is
-  // emailed and entered. Reaching that screen proves the form, the credentials and the
-  // first request all worked, which is the part of the flow a browser can test.
   const codeStep = page.locator('#otp-code')
   const leftAuth = page
-    .waitForURL((url) => !url.pathname.startsWith('/auth/'), { timeout: 15_000 })
-    .then(() => true)
-    .catch(() => false)
+    .waitForURL((url) => !url.pathname.startsWith('/auth/'), { timeout: 30_000 })
+    .then(() => 'signed-in')
+    .catch(() => 'still-on-login')
 
-  const codeRequired = await Promise.race([
-    codeStep.waitFor({ state: 'visible', timeout: 15_000 }).then(() => true),
+  const outcome = await Promise.race([
+    codeStep.waitFor({ state: 'visible', timeout: 30_000 }).then(() => 'code-required'),
     leftAuth,
   ])
 
-  if (codeRequired) {
-    await establishSessionDirectly(page, account)
-  }
-  await page.waitForURL((url) => !url.pathname.startsWith('/auth/'), { timeout: 30_000 })
-}
-
-/**
- * Obtain a session without the emailed code, and hand it to the app.
- *
- * The six-digit code arrives in a real inbox, and an automated runner has none. Rather
- * than weakening the flow for testing, this exchanges the same credentials for a
- * session through the public auth endpoint using the publishable key - which is the key
- * the browser already holds - and writes it into the storage the app reads on boot. The
- * code step is still exercised above; only the mailbox is out of reach.
- *
- * This is a test harness concern only. Nothing here is reachable from the application.
- */
-async function establishSessionDirectly(
-  page: Page,
-  account: { email: string; password: string },
-): Promise<void> {
-  const response = await page.request.post(
-    `${process.env.E2E_SUPABASE_URL}/auth/v1/token?grant_type=password`,
-    {
-      headers: {
-        apikey: process.env.E2E_SUPABASE_ANON_KEY ?? '',
-        'content-type': 'application/json',
-      },
-      data: { email: account.email, password: account.password },
-    },
-  )
-
-  if (!response.ok()) {
+  if (outcome === 'code-required') {
+    // The password was accepted and a code was emailed. An account used by this suite
+    // should not have one on: the code goes to an inbox nobody is watching, so the run
+    // would sit here until it timed out and then fail for a reason that has nothing to
+    // do with the code being tested.
     throw new Error(
-      `Could not establish a session for ${account.email}: ${response.status()} ${await response.text()}`,
+      `${account.email} has an emailed sign-in code turned on. ` +
+        'An account used by the end-to-end suite must sign in with its password alone: ' +
+        'the code goes to a real inbox this runner cannot read.',
     )
   }
 
-  const session = (await response.json()) as {
-    access_token: string
-    refresh_token: string
-    expires_at: number
+  if (outcome !== 'signed-in') {
+    throw new Error(`${account.email} did not finish signing in.`)
   }
-  const projectRef = new URL(process.env.E2E_SUPABASE_URL ?? '').hostname.split('.')[0]
+}
 
-  await page.evaluate(
-    ([key, value]) => {
-      window.localStorage.setItem(key, value)
-    },
-    [
-      `sb-${projectRef}-auth-token`,
-      JSON.stringify({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
-        expires_at: session.expires_at * 1000,
-        expires_in: session.expires_at - Math.floor(Date.now() / 1000),
-        token_type: 'bearer',
-        user: null,
-      }),
-    ],
-  )
-
-  await page.reload()
+/**
+ * Links to one specific instructor course.
+ *
+ * `a[href^="/instructor/courses/"]` also matches the "New course" link, whose href ends in
+ * `create` - so the looser selector made these specs click the create form and then fail
+ * expecting a course id in the URL. Matching the UUID shape is what the test means, and it
+ * keeps the two from drifting again.
+ */
+/** The same, narrowed to hrefs that end in a course id rather than a keyword. */
+export function courseLink(page: Page) {
+  return page.locator('a[href^="/instructor/courses/"]:not([href$="/create"]):not([href$="/edit"])')
 }
 
 /** Where a signed-in user of each role is sent. */

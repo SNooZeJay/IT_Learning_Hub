@@ -23,21 +23,14 @@ import { defineConfig, devices } from '@playwright/test'
  * an account, and no secret is read from the repository.
  */
 const SUPABASE_URL = process.env.E2E_SUPABASE_URL ?? ''
-const E2E_SUPABASE_ANON_KEY = process.env.E2E_SUPABASE_ANON_KEY ?? ''
+
 const E2E_STUDENT_EMAIL = process.env.E2E_STUDENT_EMAIL ?? ''
 const E2E_STUDENT_PASSWORD = process.env.E2E_STUDENT_PASSWORD ?? ''
 const E2E_INSTRUCTOR_EMAIL = process.env.E2E_INSTRUCTOR_EMAIL ?? ''
 const E2E_INSTRUCTOR_PASSWORD = process.env.E2E_INSTRUCTOR_PASSWORD ?? ''
 
-/**
- * `E2E_SUPABASE_ANON_KEY` is the publishable key, the same one compiled into the bundle.
- * It is not a secret and is checked here only because the suite cannot complete a
- * sign-in without it: the second step of the flow is a code sent to a real inbox, and an
- * automated runner has none. See `signIn` in `e2e/helpers.ts`.
- */
 const missing = [
   !SUPABASE_URL && 'E2E_SUPABASE_URL',
-  !E2E_SUPABASE_ANON_KEY && 'E2E_SUPABASE_ANON_KEY',
   !E2E_STUDENT_EMAIL && 'E2E_STUDENT_EMAIL',
   !E2E_STUDENT_PASSWORD && 'E2E_STUDENT_PASSWORD',
   !E2E_INSTRUCTOR_EMAIL && 'E2E_INSTRUCTOR_EMAIL',
