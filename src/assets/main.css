@@ -674,22 +674,6 @@ layer(base);
   ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
   }
-
-  /*
-   * Tailwind's `sr-only` carries `margin: -1px`, and that negative margin widens the
-   * document's scrollable area. It is invisible - the element is 1px and clipped - but
-   * a page carrying enough of them reports a scrollbar and can be dragged sideways into
-   * empty space. The announcements pages, with fourteen screen-reader-only labels,
-   * overflowed a 375px screen by exactly 14px for this reason and nothing else: every
-   * element on the page measured inside the viewport.
-   *
-   * `margin: 0` removes the cause without touching the hiding. The element is still
-   * position:absolute at 1px with the box clipped, so it remains available to a screen
-   * reader and still occupies no layout.
-   */
-  .sr-only {
-    margin: 0;
-  }
   button:not(:disabled),
   [role='button']:not(:disabled) {
     cursor: pointer;
@@ -1308,6 +1292,34 @@ span.flatpickr-weekday,
     5px 0 0 #f9fafb !important;
   @apply dark:!shadow-datepicker;
 }
+/*
+ * `sr-only` without the negative margin.
+ *
+ * Tailwind's `sr-only` carries `margin: -1px`, and that negative margin widens the
+ * document's scrollable area. The element is invisible - 1px, clipped - but a page
+ * carrying enough of them reports a horizontal scrollbar and can be dragged sideways
+ * into empty space.
+ *
+ * The announcements pages, with fourteen screen-reader-only labels between them,
+ * overflowed a 375px screen by exactly 14px for this reason and nothing else: every
+ * element on the page measured inside the viewport, which is what made it look like
+ * there was nothing to find.
+ *
+ * Unlayered on purpose. Tailwind emits `sr-only` in the `utilities` layer, and
+ * `@layer base` loses to it - the first attempt at this override was written there
+ * and changed nothing.
+ *
+ * The hiding is untouched: still position:absolute at 1px with the box clipped, so a
+ * screen reader still reads it and it still occupies no layout.
+ */
+.sr-only {
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Third-party overrides. Unlayered for the same reason: these have to beat the
+ * utilities layer, and `@layer components` would not.
+ * --------------------------------------------------------------------------- */
 .flatpickr-day.inRange,
 .flatpickr-day.prevMonthDay.inRange,
 .flatpickr-day.nextMonthDay.inRange,
