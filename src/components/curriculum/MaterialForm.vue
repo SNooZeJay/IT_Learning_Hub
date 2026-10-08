@@ -17,6 +17,7 @@ import { computed, ref, watch } from 'vue'
 import { FileUp, Link2, Type } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import type { LessonMaterial, MaterialType } from '@/types'
+import { formSelectClass } from '@/components/ui/controlClasses'
 import { materialIsInlineText, materialIsLink, materialNeedsFile } from '@/types'
 import {
   materialTypeLabel,
@@ -229,11 +230,7 @@ const isTextType = computed(() => materialIsInlineText(materialType.value))
         <label for="material-type" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           What kind of thing is it
         </label>
-        <select
-          id="material-type"
-          v-model="materialType"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
-        >
+        <select id="material-type" v-model="materialType" class="formSelectClass">
           <option v-for="option in OPTIONS" :key="option.value" :value="option.value">
             {{ materialTypeLabel(option.value) }} — {{ option.hint }}
           </option>

@@ -12,6 +12,7 @@ import { ref, watch } from 'vue'
 import Button from '@/components/ui/Button.vue'
 import { isSafeUrl } from '@/validation'
 import { UNSAFE_URL_REASON } from '@/services/curriculum.service'
+import { formSelectClass } from '@/components/ui/controlClasses'
 import type { ContentStatus, Lesson } from '@/types'
 
 const props = defineProps<{
@@ -158,11 +159,7 @@ function submit(): void {
         <label for="lesson-type" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Kind
         </label>
-        <select
-          id="lesson-type"
-          v-model="lessonType"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
-        >
+        <select id="lesson-type" v-model="lessonType" class="formSelectClass">
           <option value="article">Reading — written notes on the page</option>
           <option value="video">Video — played on the page</option>
         </select>
@@ -238,11 +235,7 @@ function submit(): void {
           <label for="lesson-status" class="text-sm font-medium text-gray-700 dark:text-gray-300">
             Visibility
           </label>
-          <select
-            id="lesson-status"
-            v-model="status"
-            class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
-          >
+          <select id="lesson-status" v-model="status" class="formSelectClass">
             <option value="draft">Draft — only you can see this</option>
             <option value="published">Published — students can see this</option>
             <option value="archived">Archived — hidden from everyone</option>

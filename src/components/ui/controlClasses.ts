@@ -94,6 +94,31 @@ export const selectClass = [
   `dark:bg-[image:url(${CHEVRON_DARK})]`,
 ].join(' ')
 
+/**
+ * Select inside a form field, where the control sits in a labelled column rather than
+ * a filter bar.
+ *
+ * Six curriculum forms - lesson, module, material, assignment, and both quiz forms -
+ * each wrote their own copy of this control, all six identical to each other and all
+ * six still on the old TailAdmin greys (`border-gray-300`, `bg-white`, `text-gray-900`,
+ * `dark:border-gray-700`) that the rest of the app moved off months ago. So a select in
+ * a quiz question looked measurably different from a select in a filter bar on the same
+ * screen, and none of them had a chevron, because a native one was all they had.
+ *
+ * This exists to end that. One definition, on the current ramp, with the same chevron as
+ * `selectClass`; the six call sites now name it instead of restating it.
+ */
+export const formSelectClass = [
+  'mt-1.5 w-full appearance-none rounded-lg border border-hairline-strong bg-canvas',
+  'bg-[length:16px] bg-[position:right_0.75rem_center] bg-no-repeat',
+  `bg-[image:url(${CHEVRON_LIGHT})]`,
+  'py-2.5 ps-3.5 pe-9 text-sm text-ink transition-colors',
+  'focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20',
+  'disabled:cursor-not-allowed disabled:opacity-60',
+  'dark:bg-white/[0.03]',
+  `dark:bg-[image:url(${CHEVRON_DARK})]`,
+].join(' ')
+
 /*
   The same two controls, on the public pages' palette.
 

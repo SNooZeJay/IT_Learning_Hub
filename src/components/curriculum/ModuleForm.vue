@@ -14,6 +14,7 @@
  */
 import { ref, watch } from 'vue'
 import Button from '@/components/ui/Button.vue'
+import { formSelectClass } from '@/components/ui/controlClasses'
 import type { ContentStatus, Module } from '@/types'
 
 const props = defineProps<{
@@ -121,11 +122,7 @@ function submit(): void {
         <label for="module-status" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Visibility
         </label>
-        <select
-          id="module-status"
-          v-model="status"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
-        >
+        <select id="module-status" v-model="status" class="formSelectClass">
           <option value="draft">Draft — only you can see this</option>
           <option value="published">Published — students can see this</option>
           <option value="archived">Archived — hidden from everyone</option>

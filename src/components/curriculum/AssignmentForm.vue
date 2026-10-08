@@ -16,6 +16,7 @@
  * typed as local time and stored as local time is an hour wrong twice a year.
  */
 import { ref, watch } from 'vue'
+import { formSelectClass } from '@/components/ui/controlClasses'
 import Button from '@/components/ui/Button.vue'
 import {
   DEFAULT_ASSIGNMENT_POINTS,
@@ -195,11 +196,7 @@ function submit(): void {
           Which module
           <span class="font-normal text-gray-400">(optional)</span>
         </label>
-        <select
-          id="assignment-module"
-          v-model="moduleId"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
-        >
+        <select id="assignment-module" v-model="moduleId" class="formSelectClass">
           <option value="">The whole course — not tied to one module</option>
           <option v-for="module in modules" :key="module.id" :value="module.id">
             {{ module.title }}
@@ -247,7 +244,7 @@ function submit(): void {
             id="assignment-due"
             v-model="dueAt"
             type="datetime-local"
-            class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+            class="formSelectClass"
             :aria-invalid="Boolean(dueAtError)"
           />
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
@@ -264,11 +261,7 @@ function submit(): void {
         <label for="assignment-status" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Visibility
         </label>
-        <select
-          id="assignment-status"
-          v-model="status"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
-        >
+        <select id="assignment-status" v-model="status" class="formSelectClass">
           <option value="draft">Draft — only you can see this</option>
           <option value="published">Published — students can see and hand this in</option>
         </select>
