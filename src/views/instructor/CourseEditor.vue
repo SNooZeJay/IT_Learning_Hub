@@ -715,7 +715,9 @@
             <dl class="mt-4 space-y-2.5 text-sm">
               <div class="flex items-center justify-between gap-3">
                 <dt class="text-gray-500 dark:text-gray-400">Status</dt>
-                <dd class="font-medium text-gray-900 dark:text-white/90">{{ form.status }}</dd>
+                <dd class="font-medium text-gray-900 dark:text-white/90">
+                  {{ courseStatusLabel(form.status) }}
+                </dd>
               </div>
               <div class="flex items-center justify-between gap-3">
                 <dt class="text-gray-500 dark:text-gray-400">Price</dt>
@@ -847,7 +849,7 @@ import type { CourseModule } from '@/services/instructor.service'
 // course, so a new or removed module is otherwise invisible until a reload.
 import { forgetModuleCache } from '@/services/dashboard.service'
 import type { CourseLevel, CourseStatus, Lesson, LessonType } from '@/types'
-import { formatPeso } from '@/types'
+import { courseStatusLabel, formatPeso } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import { useConfirm } from '@/composables/useConfirm'
 

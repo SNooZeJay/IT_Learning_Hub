@@ -28,7 +28,13 @@
           {{ subtitle }}
         </p>
       </div>
-      <div v-if="$slots.actions" class="flex shrink-0 items-center gap-2">
+      <!--
+        `flex-wrap` so a header with two actions wraps them onto a second line on a
+        narrow phone instead of overflowing the viewport. `shrink-0` is deliberately
+        absent: on the `sm:flex-row` layout the action row shares the line with the
+        title, and a shrinking button is a squeezed button.
+      -->
+      <div v-if="$slots.actions" class="flex flex-wrap items-center gap-2">
         <slot name="actions" />
       </div>
     </div>

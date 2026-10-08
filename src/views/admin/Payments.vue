@@ -113,7 +113,7 @@
         v-if="paymentsTruncated"
         variant="warning"
         title="Older payments are not shown"
-        :message="`Showing the ${ADMIN_PAYMENT_LIMIT} most recent payments. For the complete payment history, use the payment provider's own dashboard.`"
+        :message="`Showing the ${ADMIN_PAYMENT_LIMIT} most recent payments. Earlier ones are still recorded and can be looked up by reference.`"
         class="mt-4"
       />
 
@@ -200,9 +200,10 @@
       <section class="mt-10">
         <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 class="text-title-sm font-semibold text-ink">Provider webhooks</h2>
+            <h2 class="text-title-sm font-semibold text-ink">Payment confirmations</h2>
             <p class="mt-1 text-sm text-slate">
-              What PayMongo delivered, and what the Edge Function concluded from each one.
+              Every confirmation the payment provider sent, and what the platform concluded from
+              each one.
             </p>
           </div>
         </div>
@@ -210,16 +211,16 @@
         <Alert
           v-if="eventsTruncated"
           variant="warning"
-          title="Older webhook deliveries are not shown"
-          :message="`This view reads the ${ADMIN_PAYMENT_EVENT_LIMIT} most recent deliveries. payment_events grants signed-in users no INSERT, so this trail can only be written by the provider's own callbacks.`"
+          title="Older confirmations are not shown"
+          :message="`Showing the ${ADMIN_PAYMENT_EVENT_LIMIT} most recent confirmations. A confirmation can only be written by the payment provider, never by anyone signed in, so this list is a read-only record of what actually came back.`"
           class="mt-4"
         />
 
         <EmptyState
           v-if="events.length === 0"
           class="mt-4"
-          title="No webhook deliveries yet"
-          description="PayMongo posts an event here whenever a checkout is paid, fails or expires. Nothing has arrived, which usually means no paid course has been checked out."
+          title="No payment confirmations yet"
+          description="A confirmation is posted here whenever a checkout is paid, fails or expires. Nothing has arrived, which usually means no paid course has been checked out."
           :icon="Webhook"
         />
 

@@ -167,9 +167,9 @@
       </div>
 
       <p class="mt-4 text-sm text-slate">
-        Counts come from the <code class="font-mono text-xs">enrollments</code> table as it stands
-        right now. A row with a zero here has never opened a course, not a course with no students —
-        the second case is the courses screen.
+        Counts are the students' own records as they stand right now. A zero here means this student
+        has never opened a course. A course with no students is a different fact, and belongs on the
+        courses screen.
       </p>
     </template>
   </div>

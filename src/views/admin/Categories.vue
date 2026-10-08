@@ -2,7 +2,7 @@
   <div>
     <PageHeader
       title="Categories"
-      subtitle="How the catalogue is organised. Every field on this page is stored in course_categories."
+      subtitle="How the catalogue is organised. Every course sits in exactly one category."
       :crumbs="[{ label: 'Admin', to: '/admin/dashboard' }, { label: 'Categories' }]"
     >
       <template #actions>
@@ -90,9 +90,7 @@
               placeholder="Networking and Security"
               :class="inputClass"
             />
-            <p class="mt-1 text-xs text-slate">
-              Unique. A name already in use is refused.
-            </p>
+            <p class="mt-1 text-xs text-slate">Unique. A name already in use is refused.</p>
           </div>
 
           <div>

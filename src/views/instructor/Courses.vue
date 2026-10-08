@@ -102,7 +102,7 @@
                 <CircleDot v-if="course.status === 'published'" class="size-3" />
                 <PencilLine v-else-if="course.status === 'draft'" class="size-3" />
                 <Archive v-else class="size-3" />
-                {{ course.status }}
+                {{ courseStatusLabel(course.status) }}
               </span>
             </div>
 
@@ -178,6 +178,7 @@ import LoadingState from '@/components/common/LoadingState.vue'
 import { listInstructorCourses } from '@/services/instructor.service'
 import type { InstructorCourse } from '@/services/instructor.service'
 import type { CourseStatus } from '@/types'
+import { courseStatusLabel } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()

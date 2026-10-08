@@ -47,7 +47,13 @@ export const useToastStore = defineStore('toast', {
       const id = this.nextId++
       const durationMs =
         input.durationMs === undefined ? DEFAULT_DURATION[input.variant] : input.durationMs
-      this.toasts.push({ id, variant: input.variant, title: input.title, message: input.message, durationMs })
+      this.toasts.push({
+        id,
+        variant: input.variant,
+        title: input.title,
+        message: input.message,
+        durationMs,
+      })
       if (durationMs !== null) {
         window.setTimeout(() => this.dismiss(id), durationMs)
       }

@@ -21,7 +21,13 @@ export const useConfirmStore = defineStore('confirm', {
   actions: {
     ask(request: ConfirmRequest): Promise<boolean> {
       return new Promise<boolean>((resolve) => {
-        this.request = { confirmText: 'Confirm', cancelText: 'Cancel', variant: 'default', ...request, resolve }
+        this.request = {
+          confirmText: 'Confirm',
+          cancelText: 'Cancel',
+          variant: 'default',
+          ...request,
+          resolve,
+        }
       })
     },
     settle(value: boolean): void {

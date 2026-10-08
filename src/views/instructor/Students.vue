@@ -145,10 +145,10 @@
 
                 <td class="px-6 py-4">
                   <span
-                    class="inline-flex rounded px-2 py-1 text-xs font-medium capitalize"
+                    class="inline-flex rounded px-2 py-1 text-xs font-medium"
                     :class="statusClass(row.status)"
                   >
-                    {{ row.status }}
+                    {{ enrollmentStatusLabel(row.status) }}
                   </span>
                 </td>
 
@@ -215,7 +215,7 @@ import LoadingState from '@/components/common/LoadingState.vue'
 import { listInstructorStudents } from '@/services/instructor.service'
 import type { InstructorStudentRow } from '@/services/instructor.service'
 import type { EnrollmentStatus } from '@/types'
-import { formatDate } from '@/types'
+import { enrollmentStatusLabel, formatDate } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()

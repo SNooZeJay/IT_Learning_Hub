@@ -33,7 +33,8 @@
     <div
       class="grid items-center gap-2 sm:gap-5 lg:gap-8"
       :style="{
-        gridTemplateColumns: showControls && count > 1 ? 'auto minmax(0,1fr) auto' : 'minmax(0,1fr)',
+        gridTemplateColumns:
+          showControls && count > 1 ? 'auto minmax(0,1fr) auto' : 'minmax(0,1fr)',
         perspective: `${perspective}px`,
       }"
     >
@@ -72,18 +73,22 @@
         class="relative min-w-0 transform-3d"
         :style="{ height: `${stageHeight}px` }"
       >
-      <div
-        v-for="(item, i) in data"
-        :key="i"
-        :ref="(el) => setCardRef(el, i)"
-        class="absolute top-1/2 left-1/2 origin-center overflow-hidden border border-lp-line-strong/60 transform-[translate(-50%,-50%)] will-change-[transform,opacity,filter] bg-lp-card shadow-lp-card"
-        :style="{ width: `${cardWidth}px`, height: `${cardHeight}px`, borderRadius: `${radius}px` }"
-        aria-roledescription="slide"
-        :aria-label="`${i + 1} of ${count}`"
-        :aria-hidden="active !== i"
-        @click="onCardClick(i)"
-      >
-        <!--
+        <div
+          v-for="(item, i) in data"
+          :key="i"
+          :ref="(el) => setCardRef(el, i)"
+          class="absolute top-1/2 left-1/2 origin-center overflow-hidden border border-lp-line-strong/60 transform-[translate(-50%,-50%)] will-change-[transform,opacity,filter] bg-lp-card shadow-lp-card"
+          :style="{
+            width: `${cardWidth}px`,
+            height: `${cardHeight}px`,
+            borderRadius: `${radius}px`,
+          }"
+          aria-roledescription="slide"
+          :aria-label="`${i + 1} of ${count}`"
+          :aria-hidden="active !== i"
+          @click="onCardClick(i)"
+        >
+          <!--
           The `card` slot replaces the plain image. This product's courses rarely
           have cover art, so the default <img> would render a broken frame for most
           of them; the caller supplies the level-drawn placeholder instead, which is
@@ -92,21 +97,21 @@
           The tint overlay below stays outside the slot on purpose: it is the depth
           shading and belongs to the carousel, not to whatever the slide draws.
         -->
-        <slot name="card" :item="item" :index="i">
-          <img
-            class="pointer-events-none block h-full w-full object-cover select-none [-webkit-user-drag:none]"
-            :src="item.image"
-            :alt="item.alt || ''"
-            :draggable="false"
+          <slot name="card" :item="item" :index="i">
+            <img
+              class="pointer-events-none block h-full w-full object-cover select-none [-webkit-user-drag:none]"
+              :src="item.image"
+              :alt="item.alt || ''"
+              :draggable="false"
+            />
+          </slot>
+          <span
+            :ref="(el) => setOverlayRef(el, i)"
+            class="pointer-events-none absolute inset-0 opacity-0 mix-blend-multiply"
+            :style="{ background: tint }"
           />
-        </slot>
-        <span
-          :ref="(el) => setOverlayRef(el, i)"
-          class="pointer-events-none absolute inset-0 opacity-0 mix-blend-multiply"
-          :style="{ background: tint }"
-        />
+        </div>
       </div>
-    </div>
 
       <button
         v-if="showControls && count > 1"
@@ -178,9 +183,7 @@
         <span
           class="block rounded-full transition-[width,background-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
           :class="
-            active === i
-              ? 'h-3 w-11 bg-lp-accent'
-              : 'size-2.5 bg-lp-ink/25 dark:bg-lp-ink/40'
+            active === i ? 'h-3 w-11 bg-lp-accent' : 'size-2.5 bg-lp-ink/25 dark:bg-lp-ink/40'
           "
         />
       </button>
@@ -371,8 +374,7 @@ function syncStageHeight(): void {
 function estimateScale(stageWidth: number): number {
   const worstD = Math.max(0, props.visibleCards)
   const foreshorten = props.perspective / (props.perspective + props.depth * worstD)
-  const halfExtent =
-    (worstD * Math.abs(props.spread) + props.cardWidth / 2) * foreshorten
+  const halfExtent = (worstD * Math.abs(props.spread) + props.cardWidth / 2) * foreshorten
   return stageWidth / (halfExtent * 2 + 40)
 }
 

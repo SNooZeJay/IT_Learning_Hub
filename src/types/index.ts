@@ -10,6 +10,7 @@
 import type { Database } from '@/services/supabase/types'
 import type {
   AccountStatus,
+  AssignmentStatus,
   AttemptStatus,
   ContentStatus,
   CourseLevel,
@@ -22,6 +23,7 @@ import type {
   QuestionType,
   QuizStatus,
   Role,
+  SubmissionStatus,
 } from './enums'
 
 // ---------------------------------------------------------------------------
@@ -42,6 +44,8 @@ export type {
   QuizStatus,
   QuestionType,
   AttemptStatus,
+  AssignmentStatus,
+  SubmissionStatus,
 }
 
 export {
@@ -329,6 +333,116 @@ export function formatPeso(centavos: number): string {
     style: 'currency',
     currency: 'PHP',
   }).format(centavos / 100)
+}
+
+/**
+ * Plain-English names for the stored status values.
+ *
+ * A status is stored as a lowercase machine token because it is constrained by a
+ * Postgres enum, but a screen that prints the token shows the reader the schema
+ * rather than the state of their work. These are the only place a token becomes a
+ * sentence, so the wording cannot drift between the admin tables, the instructor
+ * views and the student views.
+ *
+ * Unknown values fall back to a readable sentence rather than the raw token: a
+ * status added to the enum after this build still reads as a word, and the
+ * fallback is visibly wrong rather than quietly technical.
+ */
+
+const ACCOUNT_STATUS_NAMES: Record<AccountStatus, string> = {
+  active: 'Active',
+  invited: 'Invited',
+  suspended: 'Suspended',
+}
+
+const COURSE_STATUS_NAMES: Record<CourseStatus, string> = {
+  draft: 'Draft',
+  published: 'Published',
+  archived: 'Archived',
+}
+
+const ENROLLMENT_STATUS_NAMES: Record<EnrollmentStatus, string> = {
+  pending: 'Awaiting payment',
+  active: 'In progress',
+  completed: 'Completed',
+  dropped: 'Dropped',
+}
+
+const CONTENT_STATUS_NAMES: Record<ContentStatus, string> = {
+  draft: 'Draft',
+  published: 'Published',
+  archived: 'Archived',
+}
+
+const QUIZ_STATUS_NAMES: Record<QuizStatus, string> = {
+  draft: 'Not published',
+  published: 'Published',
+}
+
+const ASSIGNMENT_STATUS_NAMES: Record<AssignmentStatus, string> = {
+  draft: 'Not published',
+  published: 'Published',
+}
+
+const SUBMISSION_STATUS_NAMES: Record<SubmissionStatus, string> = {
+  submitted: 'Awaiting grade',
+  graded: 'Graded',
+}
+
+const PAYMENT_STATUS_NAMES: Record<PaymentStatus, string> = {
+  pending: 'Awaiting payment',
+  paid: 'Paid',
+  failed: 'Payment failed',
+  refunded: 'Refunded',
+  cancelled: 'Cancelled',
+}
+
+const PROGRESS_STATUS_NAMES: Record<ProgressStatus, string> = {
+  not_started: 'Not started',
+  in_progress: 'In progress',
+  completed: 'Completed',
+}
+
+/** Falls back to a capitalised word, never to the raw token. */
+function readable(value: string): string {
+  const spaced = value.replace(/_/g, ' ')
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+}
+
+export function accountStatusLabel(status: AccountStatus): string {
+  return ACCOUNT_STATUS_NAMES[status] ?? readable(status)
+}
+
+export function courseStatusLabel(status: CourseStatus): string {
+  return COURSE_STATUS_NAMES[status] ?? readable(status)
+}
+
+export function enrollmentStatusLabel(status: EnrollmentStatus): string {
+  return ENROLLMENT_STATUS_NAMES[status] ?? readable(status)
+}
+
+export function contentStatusLabel(status: ContentStatus): string {
+  return CONTENT_STATUS_NAMES[status] ?? readable(status)
+}
+
+export function quizStatusLabel(status: QuizStatus): string {
+  return QUIZ_STATUS_NAMES[status] ?? readable(status)
+}
+
+export function assignmentStatusLabel(status: AssignmentStatus): string {
+  return ASSIGNMENT_STATUS_NAMES[status] ?? readable(status)
+}
+
+export function submissionStatusLabel(status: SubmissionStatus): string {
+  return SUBMISSION_STATUS_NAMES[status] ?? readable(status)
+}
+
+export function paymentStatusLabel(status: PaymentStatus): string {
+  return PAYMENT_STATUS_NAMES[status] ?? readable(status)
+}
+
+export function progressStatusLabel(status: ProgressStatus): string {
+  return PROGRESS_STATUS_NAMES[status] ?? readable(status)
 }
 
 export function formatDate(iso: string): string {

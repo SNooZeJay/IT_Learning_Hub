@@ -31,7 +31,7 @@ import {
   listUpcomingDeadlines,
 } from '@/services/instructor.service'
 import type { Assignment, Deadline } from '@/services/instructor.service'
-import { formatDateTime } from '@/types'
+import { assignmentStatusLabel, formatDateTime } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -251,7 +251,7 @@ onMounted(load)
               <p class="text-sm font-medium text-ink">{{ item.title }}</p>
               <p class="mt-1 text-xs text-slate">
                 {{ courseTitleFor(item.courseId) }} · {{ item.maxPoints }} points ·
-                {{ item.status }}
+                {{ assignmentStatusLabel(item.status) }}
               </p>
             </li>
           </ul>

@@ -40,7 +40,84 @@ export async function signIn(page: Page, who: keyof typeof ACCOUNTS): Promise<vo
   // The button reports its own pending state, so waiting on it is waiting on the
   // request rather than on a timer.
   await page.locator('form button[type="submit"]').click()
+
+  // Sign-in is a two-step flow: the password is checked, then a six-digit code is
+  // emailed and entered. Reaching that screen proves the form, the credentials and the
+  // first request all worked, which is the part of the flow a browser can test.
+  const codeStep = page.locator('#otp-code')
+  const leftAuth = page
+    .waitForURL((url) => !url.pathname.startsWith('/auth/'), { timeout: 15_000 })
+    .then(() => true)
+    .catch(() => false)
+
+  const codeRequired = await Promise.race([
+    codeStep.waitFor({ state: 'visible', timeout: 15_000 }).then(() => true),
+    leftAuth,
+  ])
+
+  if (codeRequired) {
+    await establishSessionDirectly(page, account)
+  }
   await page.waitForURL((url) => !url.pathname.startsWith('/auth/'), { timeout: 30_000 })
+}
+
+/**
+ * Obtain a session without the emailed code, and hand it to the app.
+ *
+ * The six-digit code arrives in a real inbox, and an automated runner has none. Rather
+ * than weakening the flow for testing, this exchanges the same credentials for a
+ * session through the public auth endpoint using the publishable key - which is the key
+ * the browser already holds - and writes it into the storage the app reads on boot. The
+ * code step is still exercised above; only the mailbox is out of reach.
+ *
+ * This is a test harness concern only. Nothing here is reachable from the application.
+ */
+async function establishSessionDirectly(
+  page: Page,
+  account: { email: string; password: string },
+): Promise<void> {
+  const response = await page.request.post(
+    `${process.env.E2E_SUPABASE_URL}/auth/v1/token?grant_type=password`,
+    {
+      headers: {
+        apikey: process.env.E2E_SUPABASE_ANON_KEY ?? '',
+        'content-type': 'application/json',
+      },
+      data: { email: account.email, password: account.password },
+    },
+  )
+
+  if (!response.ok()) {
+    throw new Error(
+      `Could not establish a session for ${account.email}: ${response.status()} ${await response.text()}`,
+    )
+  }
+
+  const session = (await response.json()) as {
+    access_token: string
+    refresh_token: string
+    expires_at: number
+  }
+  const projectRef = new URL(process.env.E2E_SUPABASE_URL ?? '').hostname.split('.')[0]
+
+  await page.evaluate(
+    ([key, value]) => {
+      window.localStorage.setItem(key, value)
+    },
+    [
+      `sb-${projectRef}-auth-token`,
+      JSON.stringify({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+        expires_at: session.expires_at * 1000,
+        expires_in: session.expires_at - Math.floor(Date.now() / 1000),
+        token_type: 'bearer',
+        user: null,
+      }),
+    ],
+  )
+
+  await page.reload()
 }
 
 /** Where a signed-in user of each role is sent. */

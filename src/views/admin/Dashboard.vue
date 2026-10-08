@@ -68,7 +68,7 @@
                 All payments
               </router-link>
             </div>
-            <p class="mt-1 section-subheading">PayMongo receipts in PHP.</p>
+            <p class="mt-1 section-subheading">Course payments, in Philippine pesos.</p>
 
             <!--
               Its own read, its own loading and error states, and deliberately not
@@ -130,7 +130,7 @@
                     </p>
                   </div>
                   <p class="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
-                    {{ payment.studentName }} · {{ payment.status }} ·
+                    {{ payment.studentName }} · {{ PAYMENT_STATUS_LABELS[payment.status] }} ·
                     {{ formatDateTime(payment.paidAt ?? payment.createdAt) }}
                   </p>
                   <code class="mt-0.5 block font-mono text-[11px] text-gray-400 dark:text-gray-500">
@@ -170,7 +170,11 @@ import LoadingState from '@/components/common/LoadingState.vue'
 import TrendChart from '@/components/common/TrendChart.vue'
 import Alert from '@/components/ui/Alert.vue'
 import { getAdminStats, EMPTY_ADMIN_STATS } from '@/services/stats.service'
-import { listAdminPayments, type AdminPayment } from '@/services/admin.service'
+import {
+  listAdminPayments,
+  PAYMENT_STATUS_LABELS,
+  type AdminPayment,
+} from '@/services/admin.service'
 import { isSupabaseConfigured } from '@/services/supabase/client'
 import { formatPeso, formatDateTime } from '@/types'
 import type { AdminStats } from '@/services/stats.service'

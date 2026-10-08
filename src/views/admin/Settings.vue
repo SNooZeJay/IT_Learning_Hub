@@ -138,8 +138,8 @@
           </dl>
           <p class="mt-5 text-sm text-slate">
             A certificate is issued as soon as an enrollment completes. Revoking one is a decision
-            about a named learner rather than a platform setting, so it is handled on the
-            learner's own record.
+            about a named learner rather than a platform setting, so it is handled on the learner's
+            own record.
           </p>
         </section>
 
@@ -173,9 +173,9 @@
           <div>
             <h2 class="text-title-sm font-semibold text-ink">How access is decided</h2>
             <p class="mt-1 text-sm text-slate">
-              This describes the deployed schema. It is not stored anywhere and cannot be edited
-              from this screen; it is here so an administrator can see which decisions are the
-              database's rather than the interface's.
+              These rules are decided by the system, not stored as a setting, so they cannot be
+              edited from this screen. They are listed here so you know exactly what the platform
+              enforces on its own.
             </p>
           </div>
         </div>
@@ -285,7 +285,7 @@ const editableControls = [
   {
     label: 'Roles and account status',
     detail:
-      'Roles go through the database function set_user_role, which refuses to remove the last administrator. Suspending blocks course access without deleting anything.',
+      'The last remaining administrator cannot be removed, so the platform always keeps one account with full control. Suspending an account blocks course access without deleting anything.',
     to: '/admin/users',
     action: 'Manage users',
   },

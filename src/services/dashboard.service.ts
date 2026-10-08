@@ -1,5 +1,5 @@
 import { supabase } from './supabase/client'
-import type { MaterialType } from '@/types'
+import type { EnrollmentStatus, MaterialType } from '@/types'
 
 /**
  * Dashboard figures, and the rows behind them.
@@ -463,7 +463,7 @@ export async function loadStudentDashboard(): Promise<StudentDashboard> {
 export interface RecentEnrolment {
   studentName: string | null
   courseTitle: string
-  status: string
+  status: EnrollmentStatus
   enrolledAt: string
 }
 
@@ -586,7 +586,7 @@ async function loadRecentEnrolments(limit = 6): Promise<RecentEnrolment[]> {
       .limit(limit),
   )) as unknown as Array<{
     student_id: string
-    status: string
+    status: EnrollmentStatus
     enrolled_at: string
     courses: { title: string } | null
   }>

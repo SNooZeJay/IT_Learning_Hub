@@ -281,8 +281,7 @@ onMounted(() => {
   if (!ctn) return
 
   reducedMotion =
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   try {
     renderer = new Renderer({
@@ -379,8 +378,7 @@ onMounted(() => {
 
 // Re-resolve the stops when the theme flips, so the Aurora follows light and dark.
 watch(
-  () =>
-    typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
+  () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
   () => syncStops(),
 )
 

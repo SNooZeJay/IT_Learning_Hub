@@ -327,7 +327,7 @@ function adminFigures(stats: AdminStats): Figure[] {
       label: 'Revenue',
       value: formatPeso(stats.revenueCentavos),
       icon: Wallet,
-      hint: 'PayMongo receipts marked paid',
+      hint: 'From confirmed payments only',
     },
   ]
 }

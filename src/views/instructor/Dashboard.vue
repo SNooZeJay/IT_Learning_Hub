@@ -45,7 +45,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 import Button from '@/components/ui/Button.vue'
 import { useAuthStore } from '@/stores/auth'
 import { loadInstructorDashboard, type InstructorDashboard } from '@/services/dashboard.service'
-import { formatDateTime } from '@/types'
+import { enrollmentStatusLabel, formatDateTime } from '@/types'
 import { materialTypeLabel } from '@/services/curriculum.service'
 
 const auth = useAuthStore()
@@ -395,7 +395,7 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                       <template v-if="entry.status === 'active'">Active</template>
                       <template v-else-if="entry.status === 'pending'">Awaiting payment</template>
                       <template v-else-if="entry.status === 'completed'">Completed</template>
-                      <template v-else>{{ entry.status }}</template>
+                      <template v-else>{{ enrollmentStatusLabel(entry.status) }}</template>
                     </span>
                   </span>
                 </div>

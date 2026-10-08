@@ -5,18 +5,33 @@
       aria-live="polite"
       aria-atomic="false"
     >
-      <TransitionGroup enter-active-class="transition-all duration-200 ease-out" leave-active-class="transition-all duration-150 ease-in" enter-from-class="opacity-0 translate-y-2" leave-to-class="opacity-0 translate-y-1">
+      <TransitionGroup
+        enter-active-class="transition-all duration-200 ease-out"
+        leave-active-class="transition-all duration-150 ease-in"
+        enter-from-class="opacity-0 translate-y-2"
+        leave-to-class="opacity-0 translate-y-1"
+      >
         <div
           v-for="toast in toasts"
           :key="toast.id"
-          :class="['pointer-events-auto relative w-full overflow-hidden rounded-xl border shadow-theme-md dark:bg-gray-900/90', classes[toast.variant].container]"
+          :class="[
+            'pointer-events-auto relative w-full overflow-hidden rounded-xl border shadow-theme-md dark:bg-gray-900/90',
+            classes[toast.variant].container,
+          ]"
           role="status"
         >
           <div class="flex items-start gap-3 p-4">
-            <component :is="icons[toast.variant]" class="mt-0.5 size-5 shrink-0" :class="classes[toast.variant].icon" aria-hidden="true" />
+            <component
+              :is="icons[toast.variant]"
+              class="mt-0.5 size-5 shrink-0"
+              :class="classes[toast.variant].icon"
+              aria-hidden="true"
+            />
             <div class="min-w-0 flex-1">
               <p class="text-sm font-semibold text-ink dark:text-white/90">{{ toast.title }}</p>
-              <p v-if="toast.message" class="mt-0.5 text-sm text-slate dark:text-gray-400">{{ toast.message }}</p>
+              <p v-if="toast.message" class="mt-0.5 text-sm text-slate dark:text-gray-400">
+                {{ toast.message }}
+              </p>
             </div>
             <button
               type="button"
@@ -47,9 +62,23 @@ const icons = {
 } as const
 
 const classes = {
-  success: { container: 'border-success-500/60 bg-success-50 dark:border-success-500/30 dark:bg-success-500/10', icon: 'text-success-500' },
-  error: { container: 'border-error-500/60 bg-error-50 dark:border-error-500/30 dark:bg-error-500/10', icon: 'text-error-500' },
-  warning: { container: 'border-warning-500/60 bg-warning-50 dark:border-warning-500/30 dark:bg-warning-500/10', icon: 'text-warning-500' },
-  info: { container: 'border-brand-500/60 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10', icon: 'text-brand-500' },
+  success: {
+    container:
+      'border-success-500/60 bg-success-50 dark:border-success-500/30 dark:bg-success-500/10',
+    icon: 'text-success-500',
+  },
+  error: {
+    container: 'border-error-500/60 bg-error-50 dark:border-error-500/30 dark:bg-error-500/10',
+    icon: 'text-error-500',
+  },
+  warning: {
+    container:
+      'border-warning-500/60 bg-warning-50 dark:border-warning-500/30 dark:bg-warning-500/10',
+    icon: 'text-warning-500',
+  },
+  info: {
+    container: 'border-brand-500/60 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10',
+    icon: 'text-brand-500',
+  },
 } as const
 </script>

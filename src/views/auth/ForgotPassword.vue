@@ -50,10 +50,7 @@
     </form>
 
     <p class="mt-6 text-center text-sm text-lp-slate">
-      <router-link
-        to="/auth/login"
-        class="font-medium text-lp-accent hover:underline"
-      >
+      <router-link to="/auth/login" class="font-medium text-lp-accent hover:underline">
         Back to sign in
       </router-link>
     </p>

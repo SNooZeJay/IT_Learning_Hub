@@ -178,7 +178,7 @@
                         : 'bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400'
                     "
                   >
-                    {{ quiz.status }}
+                    {{ quizStatusLabel(quiz.status) }}
                   </span>
                 </div>
 
@@ -354,7 +354,7 @@
                             : 'bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400'
                         "
                       >
-                        {{ assignment.status }}
+                        {{ assignmentStatusLabel(assignment.status) }}
                       </span>
                       <button
                         type="button"
@@ -452,7 +452,7 @@
               <div class="flex items-center justify-between gap-3">
                 <dt class="text-gray-500 dark:text-gray-400">Status</dt>
                 <dd class="font-medium text-gray-900 dark:text-white/90">
-                  {{ course.status }}
+                  {{ courseStatusLabel(course.status) }}
                 </dd>
               </div>
               <div class="flex items-center justify-between gap-3">
@@ -563,7 +563,14 @@ import { useConfirm } from '@/composables/useConfirm'
 // The student dashboard caches module ids per course, so an instructor's
 // curriculum write has to drop it or a student sees the old module list.
 import { forgetModuleCache } from '@/services/dashboard.service'
-import { formatDate, formatDateTime, formatPeso } from '@/types'
+import {
+  assignmentStatusLabel,
+  courseStatusLabel,
+  formatDate,
+  formatDateTime,
+  formatPeso,
+  quizStatusLabel,
+} from '@/types'
 import type {
   ContentStatus,
   CurriculumLesson,

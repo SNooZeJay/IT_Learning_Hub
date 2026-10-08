@@ -209,6 +209,7 @@ jobs:
     # express that and was the thing that broke the file.
     env:
       E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      E2E_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
       E2E_STUDENT_EMAIL: ${{ secrets.E2E_STUDENT_EMAIL }}
       E2E_STUDENT_PASSWORD: ${{ secrets.E2E_STUDENT_PASSWORD }}
       E2E_INSTRUCTOR_EMAIL: ${{ secrets.E2E_INSTRUCTOR_EMAIL }}
@@ -228,8 +229,8 @@ jobs:
         run: |
           set -eu
           missing=""
-          for name in E2E_SUPABASE_URL E2E_STUDENT_EMAIL E2E_STUDENT_PASSWORD \
-                      E2E_INSTRUCTOR_EMAIL E2E_INSTRUCTOR_PASSWORD; do
+          for name in E2E_SUPABASE_URL E2E_SUPABASE_ANON_KEY E2E_STUDENT_EMAIL \
+                      E2E_STUDENT_PASSWORD E2E_INSTRUCTOR_EMAIL E2E_INSTRUCTOR_PASSWORD; do
             eval "value=\${$name:-}"
             if [ -z "$value" ]; then missing="$missing $name"; fi
           done

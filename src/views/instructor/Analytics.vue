@@ -127,8 +127,8 @@
                 >
                   {{ course.courseTitle }}
                 </router-link>
-                <p class="mt-0.5 text-xs text-gray-500 capitalize dark:text-gray-400">
-                  {{ course.status }}
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ courseStatusLabel(course.status) }}
                 </p>
               </td>
               <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
@@ -193,6 +193,7 @@ import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import { getInstructorInsights } from '@/services/instructor.service'
 import type { InstructorInsights } from '@/services/instructor.service'
+import { courseStatusLabel } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
