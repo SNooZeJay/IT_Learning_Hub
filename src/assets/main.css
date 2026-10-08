@@ -18,7 +18,7 @@
   tax every authenticated page for one route's benefit.
 */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap')
-  layer(base);
+layer(base);
 
 @import 'tailwindcss';
 
@@ -84,9 +84,18 @@
   that lands on near-black.
 
   So this is a second, deliberately narrow set of tokens, scoped by the `lp-`
-  prefix and consumed only by `Landing.vue`. Nothing else in the app references
-  them, which is the point - a redesign of one page cannot be allowed to move the
-  surface under the other thirty.
+  prefix and consumed by the PUBLIC, UNAUTHENTICATED surface only: `Landing.vue`,
+  the course catalogue and course detail pages, and `AuthShell.vue` - which means
+  the sign-in, register, password and legal pages all draw from it too. No screen
+  behind the router guard references a single `lp-` value, which is the point: a
+  redesign of the public front door cannot be allowed to move the surface under
+  the authenticated half of the product.
+
+  The boundary is "signed out", not "this one page". It was originally drawn around
+  `Landing.vue` alone, and every other public page adopted it as it was built, so an
+  earlier version of this comment named that one file as the sole consumer and was
+  wrong for about ten. It is listed by surface here so the next person adding a
+  public page knows which side of the line they are on.
 
   Warmth is the load-bearing choice in every value below. A cream page with cool
   greys is a grey page; the cast has to be consistent or it reads as an accident.
@@ -472,8 +481,7 @@
     the lift - a single-stop shadow cannot do both, and picking one is what makes
     a floating element look pasted on.
   */
-  --shadow-lp-nav:
-    0px 1px 2px rgba(23, 21, 15, 0.04), 0px 10px 30px -12px rgba(23, 21, 15, 0.1);
+  --shadow-lp-nav: 0px 1px 2px rgba(23, 21, 15, 0.04), 0px 10px 30px -12px rgba(23, 21, 15, 0.1);
   --shadow-lp-card:
     0px 2px 6px -2px rgba(23, 21, 15, 0.05), 0px 24px 48px -24px rgba(23, 21, 15, 0.16);
   --shadow-lp-button: 0px 1px 2px rgba(23, 21, 15, 0.06);
@@ -696,7 +704,15 @@
     2.8:1, just under the 3:1 WCAG 2.2 asks of a focus indicator; brand-400 #7c69d8
     measures 4.3:1 on the same ground.
   */
-  :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex='-1'])):focus-visible {
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [tabindex]:not([tabindex='-1'])
+  ):focus-visible {
     outline: 2px solid var(--color-brand-500);
     outline-offset: 2px;
   }
@@ -944,9 +960,7 @@
   animation: motion-hero var(--ith-motion-slow) var(--ith-ease-soft) both;
   /* Written out rather than read from a token - see the note on `--stagger-i` above.
      `min()` is the cap, and it is why one declaration is safe on a list of any length. */
-  animation-delay: calc(
-    min(var(--stagger-i, 0), var(--ith-stagger-cap)) * var(--ith-stagger-step)
-  );
+  animation-delay: calc(min(var(--stagger-i, 0), var(--ith-stagger-cap)) * var(--ith-stagger-step));
 
   @media (prefers-reduced-motion: reduce) {
     animation-name: motion-fade;
@@ -966,9 +980,7 @@
 */
 @utility lp-stagger {
   animation: motion-enter var(--ith-motion-base) var(--ith-ease-out) both;
-  animation-delay: calc(
-    min(var(--stagger-i, 0), var(--ith-stagger-cap)) * var(--ith-stagger-step)
-  );
+  animation-delay: calc(min(var(--stagger-i, 0), var(--ith-stagger-cap)) * var(--ith-stagger-step));
 
   @media (prefers-reduced-motion: reduce) {
     animation-name: motion-fade;
@@ -1006,7 +1018,8 @@
   &:hover {
     transform: translateY(-2px);
     box-shadow:
-      0px 2px 6px -2px rgba(23, 21, 15, 0.05), 0px 32px 60px -28px rgba(23, 21, 15, 0.22);
+      0px 2px 6px -2px rgba(23, 21, 15, 0.05),
+      0px 32px 60px -28px rgba(23, 21, 15, 0.22);
   }
 
   @media (prefers-reduced-motion: reduce) {

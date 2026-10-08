@@ -48,68 +48,25 @@
       ></div>
 
       <!--
-        THE AURORA: the three circles, given slow organic motion.
+        NO SHADER LAYER HERE, and this is deliberate.
 
-        The three CSS circles above stay. They are the source of truth for this
-        page's background - not placeholders - and removing them would lose the soft
-        edges and the depth that the Aurora's own straight ribbon cannot provide. The
-        Aurora sits over them at low opacity so the result reads as one atmosphere
-        rather than two effects.
+        This page used to carry a WebGL aurora ribbon over these three circles, added
+        for slow organic motion. It has been removed.
 
-        The colour stops are passed as TOKEN NAMES, not as hex. The component reads
-        them off the document, so they pick up the light and dark values already
-        declared in `main.css` and follow the theme toggle with no second palette to
-        keep in sync. Order follows where the circles are - green top-left, beige
-        top-right and largest, peach further down - because the shader ramps the
-        stops left to right, and an evenly spaced set would read as a different design.
+        In light mode it laid a grey-brown cloud across the hero. The circles were
+        doing the work; the ribbon was subtracting from them. Measuring the composited
+        page with the canvas shown and hidden gave an equal delta on all three channels
+        - rgb(250,248,243) against rgb(194,191,186) - which is the signature of a
+        neutral rather than a colour, and cream composited with opaque black at the
+        layer's 0.45 opacity is 137, the value it actually landed on. It also required a
+        WebGL context on the most-visited page in the product, for an effect that
+        worked perfectly well as three blurred circles.
 
-        `blend 0.5`, `amplitude 1.0`, `speed 0.5` are upstream's own values and are
-        left alone. The subtlety comes from the layer opacity and the blend, not from
-        hobbling the shader - `blend` is the soft edge width, so raising it would give
-        a harder edge, not a stronger one.
-
-        `mix-blend-multiply` in light mode and `dark:mix-blend-screen` in dark, because
-        no single blend reads in both. Measured on the composed page, at the 95th
-        percentile of the change across the band (the strength where the ribbon
-        actually is, rather than an average dragged to zero by transparent pixels):
-
-                          light          dark
-          multiply       -11            +1     <- vanishes on near-black
-          screen          0           +13..17  <- vanishes on cream
-
-        Multiply deepens the cream, screen lifts the near-black canvas, and each is a
-        no-op on the other's backdrop. `dark:` is a variant of this project's
-        class-driven dark mode, so the same element carries both.
-
-        `opacity-45` is what lands it as depth rather than as something on top. The
-        ribbon's core is far stronger than the average - at 0.7 it pulled a point on
-        the beige circle down 81 levels in light mode, which is a visible band rather
-        than atmosphere. At 0.45 the strongest part of the ribbon stays within the
-        range the three circles already occupy, so the eye reads one background.
-
-        `top-0 h-[46rem]` rather than `inset-0`: the ribbon is derived from the canvas
-        aspect ratio, and a canvas as tall as the whole page stretches it into
-        vertical smears. Bounding it to the region the three circles occupy keeps the
-        drift horizontal, where the circles are.
-
-        The wrapper is `pointer-events-none` as well as the component itself: the
-        parent already has it for the circles, and this makes it true of the whole
-        effect without anyone having to check which child is interactive.
+        The circles above are the background. They are warm, they follow the theme, they
+        cost nothing, and they render on a phone with no GPU. If motion is wanted back
+        here, animate the circles - a transform or an opacity on the divs - rather than
+        reinstating a shader layer over them.
       -->
-      <div
-        class="pointer-events-none absolute inset-x-0 top-0 h-[46rem] opacity-45 mix-blend-multiply dark:mix-blend-screen"
-      >
-        <Aurora
-          :color-stops="[
-            '--ith-lp-glow-green',
-            '--ith-lp-glow-beige',
-            '--ith-lp-glow-peach',
-          ]"
-          :blend="0.5"
-          :amplitude="1.0"
-          :speed="0.5"
-        />
-      </div>
     </div>
 
     <!--
@@ -216,9 +173,9 @@
         The right column is one step, not five. The carousel is a single object and
         animating its parts separately would fight the DepthCarousel's own entrance.
 
-        WHAT IS NOT ANIMATED HERE, deliberately: the navbar, the background and the
-        aurora. A header that slides in on every page load teaches the reader that the
-        page moves before they can read it, and the background is behind everything -
+        WHAT IS NOT ANIMATED HERE, deliberately: the navbar and the background. A
+        header that slides in on every page load teaches the reader that the page
+        moves before they can read it, and the background is behind everything -
         animating it would be motion with no viewer.
 
         The headline is set in the project's editorial serif and drops to a
@@ -1147,7 +1104,6 @@ import ThemeToggleButton from '@/components/common/ThemeToggleButton.vue'
 import CatalogueCard from '@/components/catalogue/CatalogueCard.vue'
 import LevelPattern from '@/components/catalogue/LevelPattern.vue'
 import DepthCarousel from '@/components/carousel/DepthCarousel.vue'
-import Aurora from '@/components/landing/Aurora.vue'
 import { describeSupabaseError } from '@/services/supabase/client'
 import {
   listPublishedCourses,

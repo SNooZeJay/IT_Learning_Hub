@@ -109,7 +109,31 @@ actually installed.
     one that bites: it is available in `env:`, `run:` and `with:`, and in **no** `if`.
     A file that breaks that rule is rejected whole by GitHub, so no job runs at all and
     the run reports "No jobs were found".
+  - `npm run check:impeccable` — drives the Impeccable design-hook plugin against the real
+    engine and asserts the wiring end to end. Run before changing
+    `.opencode/plugins/impeccable.js` or `.opencode/lib/impeccable-hook.js`.
   - `npm run format` — runs Prettier on `src/`.
+
+## The Impeccable Design Hook
+
+The `impeccable` skill is installed at `.agents/skills/impeccable/`, and its design
+detector runs on every UI edit through `.opencode/plugins/impeccable.js`. After editing a
+`.vue`/`.css`/`.ts` file, the detector's findings arrive as part of that tool's result.
+**Read them and act** — a finding is a real design problem until triaged otherwise, and
+suppressing one takes a reason. `npm run check:impeccable` proves the wiring.
+
+Three things about it that are easy to get wrong:
+
+- **The hook fires post-edit, per file, once.** The engine acknowledges a clean file and
+  then stays quiet about it for the rest of the session, so a second edit to the same file
+  produces no reminder. Silence on a repeat edit is the design working, not a failure.
+- **Only the per-edit tier runs.** Impeccable's deeper pass — copy cadence, palette and
+  typography taste, layout rhythm — is wired to the Claude Code and Codex `Stop` event, and
+  OpenCode's `event` hook is observe-only and cannot inject into context. That pass is
+  manual here: `impeccable detect --json <paths>`.
+- **Findings are advisory to triage, not to obey.** Fix real problems, persist a narrow
+  `impeccable hooks ignore-value` for a false positive with a stated reason, and ask about
+  anything you are unsure of. Never add an ignore to push a finding through.
 
 ## Conventions
 

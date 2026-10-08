@@ -13,11 +13,12 @@
     "format": "prettier --write src/",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run check:workflows && npm run test && npm run type-check && npm run lint && npm run build",
+    "verify": "npm run check:workflows && npm run check:impeccable && npm run test && npm run type-check && npm run lint && npm run build",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "e2e:install": "playwright install chromium",
-    "check:workflows": "node scripts/check-workflow-expressions.mjs"
+    "check:workflows": "node scripts/check-workflow-expressions.mjs",
+    "check:impeccable": "node scripts/check-impeccable-hook.mjs"
   },
   "dependencies": {
     "@fullcalendar/vue3": "^7.1.0",
