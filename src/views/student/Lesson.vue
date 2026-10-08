@@ -64,9 +64,17 @@
             </p>
           </div>
 
-          <!-- Video -->
+          <!--
+            Video.
+
+            Shown only when there is actually something to play. A lesson typed as a video
+            with no URL behind it used to render this whole panel with "No video has been
+            attached" inside it, which teaches the reader that videos are missing from a
+            course that simply does not use them. A text lesson should read as a text
+            lesson.
+          -->
           <section
-            v-if="lesson.lessonType === 'video'"
+            v-if="lesson.lessonType === 'video' && lesson.videoUrl"
             class="mt-6 rounded-lg border border-hairline bg-canvas p-6 dark:bg-white/[0.03]"
           >
             <h2 class="text-theme-sm text-ink">{{ lesson.title }}</h2>
@@ -124,11 +132,6 @@
                 </p>
               </div>
             </div>
-
-            <p v-else class="mt-4 text-sm text-slate">
-              No video has been attached to this lesson yet. The written content below is all there
-              is.
-            </p>
           </section>
 
           <!-- Content -->
