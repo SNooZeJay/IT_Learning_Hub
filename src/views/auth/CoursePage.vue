@@ -45,7 +45,7 @@
           <RouterLink to="/" class="flex min-w-0 items-center gap-2.5">
             <BrandMark class="size-8 shrink-0" />
             <span
-              class="hidden truncate text-[15px] font-semibold tracking-tight text-lp-ink md:inline"
+              class="sr-only truncate text-[15px] font-semibold tracking-tight text-lp-ink md:not-sr-only"
             >
               IT Learning Hub
             </span>

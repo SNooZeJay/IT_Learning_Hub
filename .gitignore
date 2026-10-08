@@ -61,3 +61,8 @@ scripts/*.local.json
 # evidence for a run, and a 150KB JSON blob failing the formatting check is not.
 /lh-*.json
 /lighthouse-report.*
+
+# Python bytecode. The ui-ux-pro-max search tool is Python and writes this
+# cache next to itself; it is a build artefact of running the tool, not source.
+__pycache__/
+*.pyc

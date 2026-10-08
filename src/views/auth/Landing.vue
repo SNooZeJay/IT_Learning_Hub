@@ -120,12 +120,26 @@
               Get Started ~103, plus the gaps between them - about 261px once the
               wordmark joins in at `md`, and 252px without it. 261 does not fit
               the 311px left inside the padding at 375px with anything to spare,
-              and it badly does not fit 320px, so the wordmark is held back to
-              `md` (768px). Below that the mark alone identifies the product,
-              which is what the alt-less BrandMark is for.
+              and it badly does not fit 320px.
+
+              `sr-only` rather than `hidden`, and that is the accessibility half of
+              the same decision. This was `hidden ... md:inline`, which meant that
+              below 768px the link held nothing but a `BrandMark` - and BrandMark is
+              `alt=""` on purpose, because the name normally sits beside it. So on a
+              phone the link had no accessible name at all and announced as a bare
+              "link". Lighthouse caught it exactly there, since it audits at mobile
+              width; the comment above used to claim the mark alone identifies the
+              product, which is true for a sighted reader and not for a screen
+              reader.
+
+              `sr-only md:not-sr-only` keeps the name in the accessibility tree at
+              every width and only makes it visually present from `md`. Nothing is
+              announced twice: at `md` it is a normal visible span, below it there is
+              no visible text to duplicate. The same pair is applied to the logo
+              links in Catalog, CoursePage and AuthShell, which share this markup.
             -->
             <span
-              class="hidden truncate text-[15px] font-semibold tracking-tight text-lp-ink md:inline"
+              class="sr-only truncate text-[15px] font-semibold tracking-tight text-lp-ink md:not-sr-only"
             >
               IT Learning Hub
             </span>
