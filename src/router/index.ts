@@ -155,6 +155,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'My grades', roles: ['student'] },
       },
       {
+        path: 'announcements',
+        name: 'student-announcements',
+        component: () => import('@/views/student/Announcements.vue'),
+        meta: { title: 'Announcements', roles: ['student'] },
+      },
+      {
         path: 'quizzes',
         name: 'student-quizzes',
         component: () => import('@/views/student/Quizzes.vue'),

@@ -71,6 +71,21 @@
           </div>
 
           <div>
+            <label for="notice-kind" class="mb-1.5 block text-sm font-medium text-ink">
+              What kind of notice
+            </label>
+            <select id="notice-kind" v-model="form.kind" :class="selectClass">
+              <option v-for="kind in ANNOUNCEMENT_KINDS" :key="kind.value" :value="kind.value">
+                {{ kind.label }}
+              </option>
+            </select>
+            <p class="mt-1.5 text-xs text-slate">
+              Students see this as a label on the notice, so pick the one that fits rather than the
+              one that sounds most official.
+            </p>
+          </div>
+
+          <div>
             <label for="notice-title" class="mb-1.5 block text-sm font-medium text-ink">
               Title
             </label>
@@ -228,8 +243,10 @@ import {
   createAnnouncement,
   deleteAnnouncement,
   listAnnouncements,
+  ANNOUNCEMENT_KINDS,
   setAnnouncementPublished,
   type Announcement,
+  type AnnouncementKind,
 } from '@/services/announcement.service'
 import { listInstructorCourses } from '@/services/instructor.service'
 import { useAuthStore } from '@/stores/auth'
@@ -275,7 +292,7 @@ const isLoading = ref(true)
 const isSaving = ref(false)
 const errorMessage = ref('')
 
-const form = reactive({ courseId: '', title: '', body: '' })
+const form = reactive({ courseId: '', kind: 'general' as AnnouncementKind, title: '', body: '' })
 const fieldErrors = reactive({ course: '', title: '', body: '' })
 
 const inputClass =
@@ -359,6 +376,7 @@ async function post(publishNow: boolean): Promise<void> {
       // `validate()` has already refused an empty course for a role that may not choose
       // "everybody", so the null here is always a deliberate platform-wide notice.
       courseId: form.courseId.trim() || null,
+      kind: form.kind,
       publishNow,
     })
     announcements.value = [created, ...announcements.value]

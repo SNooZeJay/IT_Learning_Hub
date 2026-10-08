@@ -52,6 +52,7 @@ export const ROLE_NAVIGATION: Record<Role, NavItem[]> = {
     { label: 'Dashboard', to: '/student/dashboard', icon: LayoutDashboard },
     { label: 'My Courses', to: '/student/courses', icon: BookOpen },
     { label: 'Quizzes', to: '/student/quizzes', icon: NotebookPen },
+    { label: 'Announcements', to: '/student/announcements', icon: Megaphone },
     { label: 'My Grades', to: '/student/grades', icon: Award },
     { label: 'Calendar', to: '/student/calendar', icon: CalendarDays },
     { label: 'Notifications', to: '/student/notifications', icon: Bell, badge: 'notifications' },

@@ -934,6 +934,7 @@ export type Database = {
           course_id: string | null
           created_at: string
           id: string
+          kind: string
           published_at: string | null
           title: string
           updated_at: string
@@ -944,6 +945,7 @@ export type Database = {
           course_id?: string | null
           created_at?: string
           id?: string
+          kind?: string
           published_at?: string | null
           title: string
           updated_at?: string
@@ -954,6 +956,7 @@ export type Database = {
           course_id?: string | null
           created_at?: string
           id?: string
+          kind?: string
           published_at?: string | null
           title?: string
           updated_at?: string
@@ -1654,6 +1657,10 @@ export type Database = {
       /** Everything the pre-quiz screen needs, and nothing more. */
       quiz_briefing: { Args: { p_quiz_id: string }; Returns: unknown }
       can_view_profile: { Args: { target_profile: string }; Returns: boolean }
+      announcement_byline: {
+        Args: { p_announcement_ids: string[] }
+        Returns: { author_name: string; author_role: string; id: string }[]
+      }
       certificate_signatories: {
         Args: { p_certificate_id: string }
         Returns: {

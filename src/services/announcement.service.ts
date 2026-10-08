@@ -21,6 +21,8 @@ export interface Announcement {
   courseId: string | null
   courseTitle: string | null
   authorName: string
+  authorRole: 'admin' | 'instructor' | 'student'
+  kind: string
   title: string
   body: string
   publishedAt: string | null
@@ -51,12 +53,13 @@ function messageOf(error: { message: string } | null, fallback: string): string 
   return error.message.replace(/^(?:ERROR:\s*|[A-Z]{5}:\s*)/, '').trim() || fallback
 }
 
-const COLUMNS = 'id, course_id, author_id, title, body, published_at, created_at'
+const COLUMNS = 'id, course_id, author_id, kind, title, body, published_at, created_at'
 
 interface AnnouncementRow {
   id: string
   course_id: string | null
   author_id: string | null
+  kind: string | null
   title: string
   body: string
   published_at: string | null
@@ -66,7 +69,7 @@ interface AnnouncementRow {
 /** `{ courses: { title } | null }` is PostgREST's shape for a nullable embedded relation. */
 interface AnnouncementRowWithTitle extends AnnouncementRow {
   courses: { title: string } | null
-  author: { full_name: string } | null
+  author: { full_name: string; role: string } | null
 }
 
 /**
@@ -79,13 +82,139 @@ interface AnnouncementRowWithTitle extends AnnouncementRow {
 export async function listAnnouncements(): Promise<Announcement[]> {
   const { data, error } = await supabase
     .from('announcements')
-    .select(`${COLUMNS}, courses(title), author:profiles!announcements_author_id_fkey(full_name)`)
+    .select(
+      `${COLUMNS}, courses(title), author:profiles!announcements_author_id_fkey(full_name, role)`,
+    )
     .order('published_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
 
   if (error) throw new AnnouncementError(messageOf(error, 'Announcements could not be loaded.'))
 
   return ((data ?? []) as unknown as AnnouncementRowWithTitle[]).map(toAnnouncement)
+}
+
+/**
+ * What kind of notice this is.
+ *
+ * Stored as a column rather than guessed from the title. A reader scanning five notices
+ * needs to tell "the site is down until noon" from "a new lesson is up" at a glance, and
+ * inferring that from wording is exactly the kind of guess that gets it wrong on the one
+ * notice that mattered.
+ */
+export type AnnouncementKind = 'maintenance' | 'course_update' | 'assignment' | 'general'
+
+export const ANNOUNCEMENT_KINDS: ReadonlyArray<{ value: AnnouncementKind; label: string }> = [
+  { value: 'general', label: 'General news' },
+  { value: 'maintenance', label: 'Maintenance or closure' },
+  { value: 'course_update', label: 'Course update' },
+  { value: 'assignment', label: 'Assignment or quiz' },
+]
+
+/**
+ * The notices one student may read.
+ *
+ * The read policy already draws the line: published notices for everybody, plus those for a
+ * course this student holds a live place on, plus their own drafts. So this returns exactly
+ * what the database considers theirs, and adds no filter of its own.
+ *
+ * `author:profiles!author_id_fkey` resolves the author, whose role is read from the same
+ * row, so "posted by an instructor" is a fact about the author rather than a guess from
+ * which screen they wrote it on.
+ */
+export interface StudentAnnouncement {
+  id: string
+  kind: AnnouncementKind
+  courseId: string | null
+  courseTitle: string | null
+  courseSlug: string | null
+  authorName: string
+  authorRole: 'admin' | 'instructor' | 'staff'
+  title: string
+  body: string
+  publishedAt: string
+}
+
+export async function listAnnouncementsForStudent(): Promise<StudentAnnouncement[]> {
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('id, course_id, kind, title, body, published_at, courses(title, slug)')
+    .not('published_at', 'is', null)
+    .order('published_at', { ascending: false })
+
+  if (error) throw new AnnouncementError(messageOf(error, 'Announcements could not be loaded.'))
+
+  const rows = (data ?? []) as unknown as Array<{
+    id: string
+    course_id: string | null
+    kind: string | null
+    title: string
+    body: string
+    published_at: string
+    courses: { title: string; slug: string } | null
+  }>
+
+  // The byline is a second call, not an embedded join. `can_view_profile` does not let a
+  // student read the instructor who wrote to them, so the join returns null and every
+  // notice would read as posted by nobody - the one fact a notice cannot afford to miss.
+  const bylines = await loadBylines(rows.map((row) => row.id))
+
+  return rows.map((row) => {
+    const byline = bylines.get(row.id)
+    return {
+      id: row.id,
+      kind: (ANNOUNCEMENT_KINDS.some((k) => k.value === row.kind)
+        ? row.kind
+        : 'general') as AnnouncementKind,
+      courseId: row.course_id,
+      courseTitle: row.courses?.title ?? null,
+      courseSlug: row.courses?.slug ?? null,
+      authorName: byline?.authorName ?? 'IT Learning Hub',
+      authorRole: byline?.authorRole ?? 'staff',
+      title: row.title,
+      body: row.body,
+      publishedAt: row.published_at,
+    }
+  })
+}
+
+/**
+ * Author name and role for a set of notices.
+ *
+ * One call for the whole list: a page of ten notices would otherwise be eleven round trips
+ * to render one screen.
+ *
+ * A failure here does not fail the page. An unknown byline falls back to "IT Learning Hub",
+ * which is less informative but still true, and losing the whole list over a byline would
+ * be a poor trade.
+ */
+async function loadBylines(
+  ids: string[],
+): Promise<Map<string, { authorName: string; authorRole: StudentAnnouncement['authorRole'] }>> {
+  if (ids.length === 0) return new Map()
+
+  const { data, error } = await supabase.rpc('announcement_byline', { p_announcement_ids: ids })
+  if (error) return new Map()
+
+  const bylines = new Map<
+    string,
+    { authorName: string; authorRole: StudentAnnouncement['authorRole'] }
+  >()
+  for (const row of (data ?? []) as Array<{
+    id: string
+    author_name: string
+    author_role: string
+  }>) {
+    bylines.set(row.id, {
+      authorName: row.author_name,
+      authorRole:
+        row.author_role === 'instructor'
+          ? 'instructor'
+          : row.author_role === 'admin'
+            ? 'admin'
+            : 'staff',
+    })
+  }
+  return bylines
 }
 
 /**
@@ -104,6 +233,7 @@ export async function createAnnouncement(input: {
   title: string
   body: string
   courseId?: string | null
+  kind?: AnnouncementKind
   publishNow?: boolean
 }): Promise<Announcement> {
   const title = input.title.trim()
@@ -120,6 +250,7 @@ export async function createAnnouncement(input: {
       author_id: input.authorId,
       title,
       body,
+      kind: input.kind ?? 'general',
       published_at: publishNow ? new Date().toISOString() : null,
     })
     .select(`${COLUMNS}, courses(title), author:profiles!announcements_author_id_fkey(full_name)`)
@@ -169,6 +300,13 @@ function toAnnouncement(row: AnnouncementRowWithTitle): Announcement {
     courseId: row.course_id,
     courseTitle: row.courses?.title ?? null,
     authorName: row.author?.full_name ?? 'IT Learning Hub',
+    authorRole:
+      row.author?.role === 'instructor'
+        ? 'instructor'
+        : row.author?.role === 'admin'
+          ? 'admin'
+          : 'student',
+    kind: row.kind ?? 'general',
     title: row.title,
     body: row.body,
     publishedAt: row.published_at,
