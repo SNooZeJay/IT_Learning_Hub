@@ -399,7 +399,7 @@
                 <dt class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
                   Students
                 </dt>
-                <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white/90">
+                <dd class="mt-1 text-xl font-semibold text-gray-900 dark:text-white/90">
                   {{ course.enrolledCount }}
                 </dd>
               </div>
@@ -407,7 +407,7 @@
                 <dt class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
                   Completed
                 </dt>
-                <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white/90">
+                <dd class="mt-1 text-xl font-semibold text-gray-900 dark:text-white/90">
                   {{ course.completedCount }}
                 </dd>
               </div>

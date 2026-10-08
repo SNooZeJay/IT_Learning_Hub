@@ -123,7 +123,7 @@
               <td class="px-6 py-4">
                 <router-link
                   :to="`/instructor/courses/${course.courseId}`"
-                  class="text-sm font-medium text-gray-900 hover:text-brand-600 dark:text-white/90 dark:hover:text-brand-400"
+                  class="inline-block py-1 text-sm font-medium text-gray-900 hover:text-brand-600 dark:text-white/90 dark:hover:text-brand-400"
                 >
                   {{ course.courseTitle }}
                 </router-link>

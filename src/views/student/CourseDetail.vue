@@ -178,7 +178,7 @@
         <!-- Enrolment panel -->
         <div>
           <div class="sticky top-6 surface-card">
-            <p class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white/90">
+            <p class="text-xl font-semibold tracking-tight text-gray-900 dark:text-white/90">
               {{ priceLabel }}
             </p>
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">

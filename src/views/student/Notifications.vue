@@ -128,7 +128,7 @@
                 <RouterLink
                   v-if="notification.link"
                   :to="notification.link"
-                  class="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+                  class="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
                   @click="markRead(notification)"
                 >
                   Open

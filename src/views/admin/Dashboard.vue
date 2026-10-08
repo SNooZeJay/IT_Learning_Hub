@@ -66,7 +66,7 @@
               <h2 class="section-heading">Recent payments</h2>
               <router-link
                 to="/admin/payments"
-                class="shrink-0 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+                class="inline-flex min-h-9 shrink-0 items-center text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
               >
                 All payments
               </router-link>

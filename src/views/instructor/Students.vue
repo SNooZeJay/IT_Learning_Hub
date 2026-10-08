@@ -56,7 +56,7 @@
             <dt class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
               Enrollments
             </dt>
-            <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white/90">
+            <dd class="mt-1 text-xl font-semibold text-gray-900 dark:text-white/90">
               {{ filtered.length }}
             </dd>
           </div>
@@ -64,7 +64,7 @@
             <dt class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
               Distinct students
             </dt>
-            <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white/90">
+            <dd class="mt-1 text-xl font-semibold text-gray-900 dark:text-white/90">
               {{ distinctStudents }}
             </dd>
           </div>
@@ -72,7 +72,7 @@
             <dt class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
               Completed
             </dt>
-            <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white/90">
+            <dd class="mt-1 text-xl font-semibold text-gray-900 dark:text-white/90">
               {{ completedCount }}
             </dd>
           </div>
@@ -80,7 +80,7 @@
             <dt class="text-xs tracking-wide text-gray-500 uppercase dark:text-gray-400">
               Average progress
             </dt>
-            <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white/90">
+            <dd class="mt-1 text-xl font-semibold text-gray-900 dark:text-white/90">
               {{ averageProgress === null ? '—' : `${averageProgress}%` }}
             </dd>
           </div>
@@ -137,7 +137,7 @@
                 <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                   <router-link
                     :to="`/instructor/courses/${row.courseId}`"
-                    class="hover:text-brand-600 dark:hover:text-brand-400"
+                    class="inline-block py-1 hover:text-brand-600 dark:hover:text-brand-400"
                   >
                     {{ row.courseTitle }}
                   </router-link>
