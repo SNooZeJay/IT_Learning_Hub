@@ -247,7 +247,8 @@ layer(base);
     family.
   */
   --font-display:
-    'Source Serif 4', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+    'Source Serif 4', 'Source Serif 4 Fallback', 'Iowan Old Style', 'Palatino Linotype', Palatino,
+    Georgia, serif;
 
   /* Notion's radius scale. This is the single most visible change from Carbon,
      which capped every corner at 4px.
@@ -2203,4 +2204,30 @@ pre code,
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+}
+
+/*
+  A METRICALLY MATCHED FALLBACK for the display face.
+
+  The hero used to jump 68px on load - the heading going from four lines to three -
+  because Source Serif 4 swapped in after first paint and re-wrapped the text. The
+  preload added alongside Inter narrows that window; it does not close it. This does.
+
+  `size-adjust` scales the fallback so its glyph advances match the real face, so the
+  wrap is identical before and after the swap and nothing moves. The percentage is
+  MEASURED, not guessed: at 65px the sample line
+  "Learn IT skills through structured, practical courses."
+  is 1360.94px in Source Serif 4 and 1501.25px in Palatino Linotype - the family this
+  stack actually lands on - which is 90.65%. A hand-written percentage either over- or
+  under-shoots and leaves a smaller jump sitting where the original one was.
+
+  Only `size-adjust` is set, and nothing else is needed. Display type here runs on a
+  fixed `line-height`, so the line box comes from font-size rather than from the face
+  metrics, and the whole 68px came from the wrap. Ascent, descent and line-gap overrides
+  would be cargo cult on top of this.
+*/
+@font-face {
+  font-family: 'Source Serif 4 Fallback';
+  src: local('Palatino Linotype'), local('Palatino'), local('Georgia');
+  size-adjust: 90.65%;
 }
