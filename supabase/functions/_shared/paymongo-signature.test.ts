@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readSignatureHeader, verifySignature } from './paymongo-signature.ts'
+import { parseSignatureHeader, readSignatureHeader, verifySignature } from './paymongo-signature.ts'
 import { sha256Hex } from './paymongo-envelope.ts'
 
 /**
@@ -45,6 +45,58 @@ describe('verification', () => {
     await expect(verifySignature(raw, await sign(raw), SECRET)).resolves.toBe(true)
   })
 
+  it('accepts the multi-part header PayMongo actually sends', async () => {
+    // The form that caused the bug. PayMongo sends `t=<unix>,te=<digest>,li=` and signs
+    // `${t}.${body}` - Stripe's scheme - while this parser used to treat the whole
+    // header as a bare digest, so every real delivery was refused.
+    const raw = '{"data":{"id":"evt_multipart"}}'
+    const ts = 1750000000
+    const digest = await sign(`${ts}.${raw}`)
+    const header = `t=${ts},te=${digest},li=`
+    await expect(verifySignature(raw, header, SECRET, ts * 1000)).resolves.toBe(true)
+  })
+
+  it('parses the header shape PayMongo actually sends', async () => {
+    // Recorded verbatim off a rejected delivery. The digest cannot be checked here
+    // because the body it was computed over is not in the repository, so this asserts
+    // the parse - which is what was broken - rather than pretending to verify it.
+    //
+    // The digest itself was confirmed against the full captured body while diagnosing
+    // this: HMAC-SHA256(secret, `${t}.${rawBody}`) reproduced `te` exactly, whereas
+    // HMAC-SHA256(secret, rawBody) did not.
+    const parsed = parseSignatureHeader(
+      't=1791468778,te=e67e0832054e060959c8e93f00e2c003656dcede719912d8947eb5c333ec012b,li=',
+    )
+
+    expect(parsed).not.toBeNull()
+    expect(parsed?.digest).toBe(
+      'e67e0832054e060959c8e93f00e2c003656dcede719912d8947eb5c333ec012b',
+    )
+    expect(parsed?.timestamp).toBe(1791468778)
+    expect(parsed?.signedPayload('BODY')).toBe('1791468778.BODY')
+  })
+
+  it('reads v1 as the digest key as well as te', async () => {
+    const raw = '{"data":{"id":"evt_v1"}}'
+    const ts = 1750000000
+    const digest = await sign(`${ts}.${raw}`)
+    await expect(
+      verifySignature(raw, `t=${ts},v1=${digest}`, SECRET, ts * 1000),
+    ).resolves.toBe(true)
+  })
+
+  it('refuses a correctly signed request that is too old to be fresh', async () => {
+    // Replay protection. The timestamp is inside the signed message, so it cannot be
+    // altered without breaking the digest - which is what makes refusing old requests
+    // meaningful rather than cosmetic.
+    const raw = '{"data":{"id":"evt_old"}}'
+    const ts = 1750000000
+    const header = `t=${ts},te=${await sign(`${ts}.${raw}`)},li=`
+
+    await expect(verifySignature(raw, header, SECRET, ts * 1000)).resolves.toBe(true)
+    await expect(verifySignature(raw, header, SECRET, (ts + 3600) * 1000)).resolves.toBe(false)
+  })
+
   it('accepts a sha256= prefixed signature', async () => {
     const raw = '{"data":{"id":"evt_2"}}'
     await expect(verifySignature(raw, `sha256=${await sign(raw)}`, SECRET)).resolves.toBe(true)
@@ -75,6 +127,16 @@ describe('verification', () => {
 
   it('rejects a signature that is not hex', async () => {
     await expect(verifySignature('{}', 'not-a-signature', SECRET)).resolves.toBe(false)
+  })
+
+  it('rejects a well-formed header whose digest is for a different body', async () => {
+    // The exact shape that used to be rejected for the wrong reason. It must still be
+    // rejected - now because the digest genuinely does not match, not because the
+    // header failed to parse.
+    const raw = '{"data":{"id":"evt_5"}}'
+    const ts = 1750000000
+    const header = `t=${ts},te=${await sign(`${ts}.{"data":{"id":"other"}}`)},li=`
+    await expect(verifySignature(raw, header, SECRET, ts * 1000)).resolves.toBe(false)
   })
 
   it('rejects a truncated signature of the right shape', async () => {
