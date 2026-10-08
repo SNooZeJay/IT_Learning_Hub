@@ -22,10 +22,31 @@
       and omitting the attribute makes the preload silently miss and then fetch
       the same file a second time.
 
-      If the Google CSS ever changes this filename, the preload goes stale and
-      costs one wasted request. It cannot cause a wrong font to render, since the
-      @font-face rules remain the authority on what to use.
     -->
+    <!--
+      The Google Fonts stylesheet, linked here rather than @imported from main.css.
+
+      An @import inside a stylesheet cannot begin until that stylesheet has been
+      fetched and parsed, so it serialised the critical path into three round trips
+      before any text could paint:
+
+          HTML -> main.css -> fonts.googleapis.com/css2 -> the woff2 files
+
+      As a <link> here the HTML parser discovers it immediately and it downloads
+      alongside the app CSS instead of after it. On a throttled connection, removing
+      a round trip from the critical path is worth more than tuning anything inside
+      the files it was fetching.
+
+      The two faces and their weight ranges are unchanged, so every page still renders
+      from the same files as before - this only changes when they start arriving, and
+      display=swap means text is readable in the fallback meanwhile.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap"
+    />
     <link
       rel="preload"
       as="font"
@@ -55,13 +76,20 @@
       href="https://fonts.gstatic.com/s/sourceserif4/v15/vEFI2_tTDB4M7-auWDN0ahZJW1gb8tc.woff2"
       crossorigin
     />
-    <link
-      rel="preload"
-      as="font"
-      type="font/woff2"
-      href="https://fonts.gstatic.com/s/sourceserif4/v15/vEFK2_tTDB4M7-auWDN0ahZJW1gewtW_Wg.woff2"
-      crossorigin
-    />
+    <!--
+      REMOVED: a third preload for `vEFK2_tTDB4M7-auWDN0ahZJW1gewtW_Wg.woff2`.
+
+      It was stale. Checked against the CSS Google actually serves for this project
+      (`family=Inter:wght@400..700&family=Source+Serif+4:opsz,wght@8..60,400..700`),
+      no `@font-face` block references that file - the serif's upright latin is the
+      `...gb8tc.woff2` one above. A preload is not a hint the browser may weigh and
+      drop; it is an instruction to fetch now. So this was 130,785 bytes downloaded on
+      every single page load, used by nothing, and it was the single largest asset on
+      the page - bigger than the entire JavaScript entry chunk.
+
+      The comment above it used to warn that this could go stale and cost one wasted
+      request. It did. The cost was not one request.
+    -->
     <meta
       name="description"
       content="IT Learning Hub - practical IT training with courses, quizzes and assignments."
