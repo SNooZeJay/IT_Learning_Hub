@@ -163,7 +163,22 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
       </div>
 
       <div class="mt-6 grid gap-6 lg:grid-cols-3">
-        <div class="lg:col-span-2">
+        <!--
+          `min-w-0` is load-bearing, and the table's own `overflow-x-auto` is not
+          enough on its own.
+
+          Below `lg` this grid is a single column, so the track should be the width of
+          the screen. It was not: a grid item defaults to `min-width: auto`, which
+          resolves to its content's minimum, and the quiz table carries
+          `min-w-[34rem]`. The track grew to fit the table, the card padding went with
+          it, and the dashboard scrolled 210px sideways on a phone - while the table's
+          scroll container sat inside a box that had already been widened, so it had
+          nothing left to do.
+
+          `min-w-0` lets the track stay at the screen width and leaves the scroll
+          container to do the scrolling it was written for.
+        -->
+        <div class="min-w-0 lg:col-span-2">
           <!-- Quiz activity first: it is the only panel on this page that can
                contain something an instructor needs to act on. -->
           <div class="surface-card-shell">

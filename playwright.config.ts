@@ -29,6 +29,17 @@ const E2E_STUDENT_PASSWORD = process.env.E2E_STUDENT_PASSWORD ?? ''
 const E2E_INSTRUCTOR_EMAIL = process.env.E2E_INSTRUCTOR_EMAIL ?? ''
 const E2E_INSTRUCTOR_PASSWORD = process.env.E2E_INSTRUCTOR_PASSWORD ?? ''
 
+/**
+ * Admin is optional, unlike the two above.
+ *
+ * The workflows worth asserting need a student and an instructor. The responsive audit
+ * needs to walk the admin screens too, and those are the most table-heavy pages in the
+ * product - so it reads the admin account when one is supplied and skips those routes
+ * when it is not, rather than the whole suite refusing to start.
+ */
+const E2E_ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? ''
+const E2E_ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? ''
+
 const missing = [
   !SUPABASE_URL && 'E2E_SUPABASE_URL',
   !E2E_STUDENT_EMAIL && 'E2E_STUDENT_EMAIL',
@@ -104,4 +115,5 @@ export const env = {
   SUPABASE_URL,
   STUDENT: { email: E2E_STUDENT_EMAIL, password: E2E_STUDENT_PASSWORD },
   INSTRUCTOR: { email: E2E_INSTRUCTOR_EMAIL, password: E2E_INSTRUCTOR_PASSWORD },
+  ADMIN: { email: E2E_ADMIN_EMAIL, password: E2E_ADMIN_PASSWORD },
 }

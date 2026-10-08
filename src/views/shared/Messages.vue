@@ -295,9 +295,16 @@ onMounted(async () => {
         The list. On a narrow screen this is the whole view until a thread is opened;
         the grid handles the split at `lg` and the `v-if` on the wrappers handles the
         two-step flow below it.
+
+        `min-w-0` is load-bearing. A grid item defaults to `min-width: auto`, which
+        resolves to its content's minimum - and every preview here is `truncate`, so
+        `white-space: nowrap` makes that minimum the full unwrapped text width. The
+        track then grew to the longest subject line in the inbox and pushed the whole
+        page 185px sideways on a phone, with the ellipsis never once appearing.
       -->
       <section
         aria-labelledby="messages-list-heading"
+        class="min-w-0"
         :class="openThreadId ? 'hidden lg:block' : 'block'"
       >
         <div class="rounded-lg border border-hairline bg-canvas dark:border-white/10">
@@ -350,9 +357,10 @@ onMounted(async () => {
         </div>
       </section>
 
-      <!-- The thread. -->
+      <!-- The thread. `min-w-0` for the same reason as the list above. -->
       <section
         aria-labelledby="messages-thread-heading"
+        class="min-w-0"
         :class="openThreadId ? 'block' : 'hidden lg:block'"
       >
         <div class="rounded-lg border border-hairline bg-canvas dark:border-white/10">
