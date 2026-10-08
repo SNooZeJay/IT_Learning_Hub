@@ -66,11 +66,12 @@ Deno.serve(async (request) => {
     return json({ received: true, matched: false })
   }
 
-  const verified = await verifySignature(
-    rawBody,
-    readSignatureHeader(request.headers),
-    WEBHOOK_SECRET,
-  )
+  // Kept, because "verification failed" and "no signature arrived" are different faults
+  // with different fixes, and recording them under one code sends you looking in the
+  // wrong place. Whether the header is present at all is the first thing to know.
+  const signatureHeader = readSignatureHeader(request.headers)
+
+  const verified = await verifySignature(rawBody, signatureHeader, WEBHOOK_SECRET)
 
   const envelope = await parsePayMongoEvent(payload, rawBody)
 
@@ -83,9 +84,18 @@ Deno.serve(async (request) => {
   if (!verified) {
     // Recorded, never acted on. Deleting an unverified event would hide the
     // attempt; the record is the evidence.
-    console.error(`paymongo webhook: signature failed for ${envelope.eventId}`)
-    await recordAsUnusable(rawBody, false, 'signature_unverified', envelope)
-    return json({ received: true, verified: false })
+    //
+    // A missing header and a mismatched digest are the same verdict and completely
+    // different problems: one means nothing signed the request, or something between
+    // PayMongo and here stripped it; the other means the secret, or the exact bytes
+    // that were signed, are not what we think. Both were recorded as a bare
+    // 'signature_unverified', which cannot tell them apart.
+    const why = signatureHeader
+      ? 'signature_present_but_digest_mismatch'
+      : 'signature_header_absent'
+    console.error(`paymongo webhook: signature failed for ${envelope.eventId} (${why})`)
+    await recordAsUnusable(rawBody, false, 'signature_unverified', envelope, why)
+    return json({ received: true, verified: false, reason: why })
   }
 
   const decision = decidePaymentAction(envelope)
@@ -294,6 +304,7 @@ async function setStatus(
   eventId: string,
   status: 'ignored' | 'failed' | 'processed',
   failureCode?: string,
+  failureMessage?: string,
 ): Promise<void> {
   await supabase
     .from('payment_events')
@@ -301,6 +312,7 @@ async function setStatus(
       processing_status: status,
       processed_at: new Date().toISOString(),
       ...(failureCode ? { failure_code: failureCode } : {}),
+      ...(failureMessage ? { failure_message: failureMessage } : {}),
     })
     .eq('event_id', eventId)
 }
@@ -311,6 +323,7 @@ async function recordAsUnusable(
   verified: boolean,
   failureCode: string,
   envelope?: PayMongoEnvelope,
+  failureMessage?: string,
 ): Promise<void> {
   const eventId = envelope?.eventId ?? `unusable:${await sha256(rawBody)}`
   await supabase.rpc('record_payment_event', {
@@ -330,7 +343,7 @@ async function recordAsUnusable(
     in_reported_currency: envelope?.currency ?? null,
     in_livemode: envelope?.livemode ?? null,
   })
-  await setStatus(eventId, 'failed', failureCode)
+  await setStatus(eventId, 'failed', failureCode, failureMessage)
 }
 
 async function sha256(input: string): Promise<string> {

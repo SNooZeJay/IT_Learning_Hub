@@ -102,6 +102,33 @@
             />
 
             <!--
+              The other half of the bounded wait above. When the wait runs out the learner
+              is told the truth and given a way to act on it, rather than a spinner that
+              never ends or a page reload that discards the reference number.
+            -->
+            <div
+              v-if="isUnconfirmed && !settled"
+              class="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-brand-200 bg-brand-25 p-4 dark:border-brand-800 dark:bg-brand-900/20"
+            >
+              <RotateCw
+                class="size-5 shrink-0 text-brand-600 dark:text-brand-400"
+                :class="isRechecking ? 'animate-spin' : ''"
+                aria-hidden="true"
+              />
+              <p class="min-w-0 flex-1 text-xs text-gray-600 dark:text-gray-400">
+                Still waiting on PayMongo. Checking again costs nothing and will not charge you twice.
+              </p>
+              <button
+                type="button"
+                class="btn btn-sm shrink-0 border border-brand-300 bg-white text-brand-700 hover:bg-brand-50 disabled:opacity-60 dark:border-brand-700 dark:bg-brand-900/40 dark:text-brand-200 dark:hover:bg-brand-900/70"
+                :disabled="isRechecking"
+                @click="checkAgain"
+              >
+                {{ isRechecking ? 'Checking…' : 'Check again' }}
+              </button>
+            </div>
+
+            <!--
               Returning from PayMongo with `?payment=success` only means the provider
               thinks the payment went through. The webhook has not necessarily run yet,
               so this waits for the server rather than claiming an outcome.
@@ -200,7 +227,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { CircleCheck, LoaderCircle } from 'lucide-vue-next'
+import { CircleCheck, LoaderCircle, RotateCw } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
@@ -245,6 +272,21 @@ const settled = ref(false)
 const referenceNumber = ref<string | null>(null)
 const paidAt = ref<string | null>(null)
 const isAwaitingConfirmation = ref(false)
+
+/**
+ * We came back from PayMongo saying `?payment=success`, and the server still does not
+ * agree that the money arrived.
+ *
+ * A distinct state from "awaiting" on purpose. Awaiting is a spinner with a short,
+ * self-ending wait. This is what is left when that wait ran out, and it must not look
+ * like the same thing: the previous wording told the learner to refresh the page, which
+ * threw away the only thing that had the answer in it - the reference number - and left
+ * them with no way to try again short of reloading and hoping.
+ */
+const isUnconfirmed = ref(false)
+
+/** Re-checking is in flight, so the button can disable itself. */
+const isRechecking = ref(false)
 
 let pollTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -336,19 +378,66 @@ const pollForSettlement = async (attempt = 0): Promise<void> => {
     // Keep trying; the last failure is reported by the button path.
   }
 
-  if (settled.value || attempt >= POLL_ATTEMPTS) {
-    if (!settled.value) {
-      isAwaitingConfirmation.value = false
-      noticeVariant.value = 'warning'
-      noticeTitle.value = 'Still confirming'
-      notice.value =
-        'We have not heard back from PayMongo yet. Your place is reserved and you have not been charged twice — refresh this page in a moment.'
-    }
+  if (settled.value) {
+    isUnconfirmed.value = false
+    stopPolling()
+    return
+  }
+
+  if (attempt >= POLL_ATTEMPTS) {
+    isAwaitingConfirmation.value = false
+    isUnconfirmed.value = true
+    noticeVariant.value = 'warning'
+    noticeTitle.value = 'Taking longer than expected'
+    notice.value =
+      'PayMongo has not confirmed this payment yet. Your place is reserved and you have not been charged twice. ' +
+      'This usually clears on its own within a minute or two - press Check again, and if it does not, ' +
+      'quote the reference number below.'
     stopPolling()
     return
   }
 
   pollTimer = setTimeout(() => void pollForSettlement(attempt + 1), POLL_INTERVAL_MS)
+}
+
+/**
+ * Ask the server again, on demand.
+ *
+ * The bounded wait exists so a learner is never left watching a spinner, but ending the
+ * wait is not the same as ending the question: the webhook may still be retrying, and a
+ * duplicate delivery is absorbed rather than double-charged. So the exhausted state
+ * offers another look instead of a dead end.
+ */
+const checkAgain = async (): Promise<void> => {
+  if (isRechecking.value || settled.value) return
+  isRechecking.value = true
+  isUnconfirmed.value = false
+  isAwaitingConfirmation.value = true
+  try {
+    await readStatus()
+    if (settled.value) {
+      isAwaitingConfirmation.value = false
+      notice.value = ''
+      noticeTitle.value = ''
+    } else {
+      isAwaitingConfirmation.value = false
+      isUnconfirmed.value = true
+      noticeVariant.value = 'warning'
+      noticeTitle.value = 'Taking longer than expected'
+      notice.value =
+        'Still nothing from PayMongo. Your place is reserved and you have not been charged twice. ' +
+        'Quote the reference number below if you need to raise it.'
+    }
+  } catch {
+    isAwaitingConfirmation.value = false
+    isUnconfirmed.value = true
+    noticeVariant.value = 'warning'
+    noticeTitle.value = 'Could not reach the server'
+    notice.value =
+      'We could not check your payment just now. Your place is reserved. Press Check again in a moment.'
+  } finally {
+    isRechecking.value = false
+  }
 }
 
 const handlePay = async (): Promise<void> => {

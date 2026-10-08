@@ -150,10 +150,24 @@ Deno.serve(async (request) => {
   // endpoint, and the guard belongs to the server, not to the page that happens to call
   // it. Checked before the pending-payment lookup so the existing-session path below
   // still works for someone genuinely mid-payment.
-  const alreadyEntitled = await findEntitlement(user.id, courseId)
-  if (alreadyEntitled) {
+  const entitlement = await findEntitlement(user.id, courseId)
+  if (entitlement.enrolled || entitlement.paid) {
+    // Reported apart rather than as one flag, because the two mean different things to
+    // whoever reads it: `enrolled` is a live place on the course, while `paid` is money
+    // that has left the account even if the place was afterwards given up.
+    //
+    // The two have to be tested individually. findEntitlement returns an object, and an
+    // object is truthy whatever it holds - so `if (entitlement)` refused EVERY paid
+    // checkout, including for a student with nothing but a pending enrolment and a
+    // pending payment. That is the exact case this guard exists to allow.
     return json(
-      { error: 'you are already enrolled in this course', alreadyEnrolled: true },
+      {
+        error: entitlement.enrolled
+          ? 'you are already enrolled in this course'
+          : 'you have already paid for this course',
+        alreadyEnrolled: entitlement.enrolled,
+        alreadyPaid: entitlement.paid,
+      },
       409,
       request,
     )
