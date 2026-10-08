@@ -196,7 +196,7 @@ function submit(): void {
           Which module
           <span class="font-normal text-gray-400">(optional)</span>
         </label>
-        <select id="assignment-module" v-model="moduleId" class="formSelectClass">
+        <select id="assignment-module" v-model="moduleId" ::class="formSelectClass">
           <option value="">The whole course — not tied to one module</option>
           <option v-for="module in modules" :key="module.id" :value="module.id">
             {{ module.title }}
@@ -244,7 +244,7 @@ function submit(): void {
             id="assignment-due"
             v-model="dueAt"
             type="datetime-local"
-            class="formSelectClass"
+            ::class="formSelectClass"
             :aria-invalid="Boolean(dueAtError)"
           />
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
@@ -261,7 +261,7 @@ function submit(): void {
         <label for="assignment-status" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Visibility
         </label>
-        <select id="assignment-status" v-model="status" class="formSelectClass">
+        <select id="assignment-status" v-model="status" ::class="formSelectClass">
           <option value="draft">Draft — only you can see this</option>
           <option value="published">Published — students can see and hand this in</option>
         </select>

@@ -230,7 +230,7 @@ const isTextType = computed(() => materialIsInlineText(materialType.value))
         <label for="material-type" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           What kind of thing is it
         </label>
-        <select id="material-type" v-model="materialType" class="formSelectClass">
+        <select id="material-type" v-model="materialType" ::class="formSelectClass">
           <option v-for="option in OPTIONS" :key="option.value" :value="option.value">
             {{ materialTypeLabel(option.value) }} — {{ option.hint }}
           </option>

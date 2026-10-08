@@ -122,7 +122,7 @@ function submit(): void {
         <label for="module-status" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Visibility
         </label>
-        <select id="module-status" v-model="status" class="formSelectClass">
+        <select id="module-status" v-model="status" ::class="formSelectClass">
           <option value="draft">Draft — only you can see this</option>
           <option value="published">Published — students can see this</option>
           <option value="archived">Archived — hidden from everyone</option>

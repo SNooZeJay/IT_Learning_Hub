@@ -159,7 +159,7 @@ function submit(): void {
         <label for="lesson-type" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Kind
         </label>
-        <select id="lesson-type" v-model="lessonType" class="formSelectClass">
+        <select id="lesson-type" v-model="lessonType" ::class="formSelectClass">
           <option value="article">Reading — written notes on the page</option>
           <option value="video">Video — played on the page</option>
         </select>
@@ -235,7 +235,7 @@ function submit(): void {
           <label for="lesson-status" class="text-sm font-medium text-gray-700 dark:text-gray-300">
             Visibility
           </label>
-          <select id="lesson-status" v-model="status" class="formSelectClass">
+          <select id="lesson-status" v-model="status" ::class="formSelectClass">
             <option value="draft">Draft — only you can see this</option>
             <option value="published">Published — students can see this</option>
             <option value="archived">Archived — hidden from everyone</option>
