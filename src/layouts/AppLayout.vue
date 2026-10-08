@@ -17,9 +17,16 @@
       No transition on the margin. The sidebar animates its own width over 200ms, and a
       margin transition on top of that made the content lag behind the rail it was
       clearing, which read as the layout sliding twice.
+
+      `min-w-0` is load-bearing. `flex-1` sets `flex-basis: 0` but leaves
+      `min-width: auto`, so a flex item still refuses to shrink below its content's
+      minimum width. The admin payments table carried its own `overflow-x-auto`, which
+      is the right answer, but the column around it was already 4px wider than the
+      space the sidebar left, so the scroller had nothing left to scroll and the whole
+      page overflowed instead. Same failure as the instructor dashboard, one level up.
     -->
     <div
-      class="flex-1 transition-[margin] duration-200 ease-out"
+      class="min-w-0 flex-1 transition-[margin] duration-200 ease-out"
       :class="isSidebarWide ? 'xl:ms-(--sidebar-width)' : 'xl:ms-(--sidebar-rail-width)'"
     >
       <AppHeader />

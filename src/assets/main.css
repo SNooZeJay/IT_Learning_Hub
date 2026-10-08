@@ -674,6 +674,22 @@ layer(base);
   ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
   }
+
+  /*
+   * Tailwind's `sr-only` carries `margin: -1px`, and that negative margin widens the
+   * document's scrollable area. It is invisible - the element is 1px and clipped - but
+   * a page carrying enough of them reports a scrollbar and can be dragged sideways into
+   * empty space. The announcements pages, with fourteen screen-reader-only labels,
+   * overflowed a 375px screen by exactly 14px for this reason and nothing else: every
+   * element on the page measured inside the viewport.
+   *
+   * `margin: 0` removes the cause without touching the hiding. The element is still
+   * position:absolute at 1px with the box clipped, so it remains available to a screen
+   * reader and still occupies no layout.
+   */
+  .sr-only {
+    margin: 0;
+  }
   button:not(:disabled),
   [role='button']:not(:disabled) {
     cursor: pointer;

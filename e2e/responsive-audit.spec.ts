@@ -150,16 +150,56 @@ async function measure(page: Page) {
     }
 
     offenders.sort((a, b) => b.right - a.right)
+    // The widest thing on the page whatever its container, scroller or not. Reported
+    // separately because a page can report overflow with no element sticking out -
+    // which means the cause is the body, a negative margin, or something positioned -
+    // and the filtered list above is empty precisely when that happens.
+    let widest = { selector: 'none', right: 0, width: 0 }
+    for (const el of Array.from(document.querySelectorAll('body, body *'))) {
+      const style = getComputedStyle(el)
+      if (style.display === 'none' || style.visibility === 'hidden') continue
+      const rect = el.getBoundingClientRect()
+      if (rect.width === 0) continue
+      if (rect.right > widest.right) {
+        widest = { selector: describe(el), right: Math.round(rect.right), width: Math.round(rect.width) }
+      }
+    }
+
+    /**
+     * Everything that could extend the scroll area, including things the filtered pass
+     * deliberately skips. A page can report overflow with no visible element sticking
+     * out, and the usual reasons are exactly the things that pass skips: a zero-height
+     * row, something `visibility: hidden`, a negative margin, or a fixed-position
+     * overlay parked off-screen.
+     */
+    const suspects: string[] = []
+    for (const el of Array.from(document.querySelectorAll('body, body *'))) {
+      const style = getComputedStyle(el)
+      const rect = el.getBoundingClientRect()
+      const notes: string[] = []
+
+      if (rect.right > viewport + 0.5) notes.push(`right=${Math.round(rect.right)}`)
+      const mr = parseFloat(style.marginRight)
+      if (!Number.isNaN(mr) && mr < 0) notes.push(`margin-right=${mr}`)
+      if (style.position === 'fixed' && rect.right > viewport + 0.5) notes.push('fixed')
+      if (rect.width > viewport + 0.5) notes.push(`wider-than-viewport(${Math.round(rect.width)})`)
+
+      if (notes.length > 0) {
+        suspects.push(`${describe(el)} :: ${notes.join(' ')} [display=${style.display} vis=${style.visibility}]`)
+      }
+    }
+
     return {
       viewport,
       innerWidth: window.innerWidth,
-      // A classic scrollbar makes clientWidth narrower than the space the page was
-      // given, so a page that fits perfectly still reports an overflow equal to the
-      // scrollbar. Recorded so a small delta can be told apart from a real one.
       scrollbarWidth: window.innerWidth - viewport,
       scrollWidth: doc.scrollWidth,
+      bodyScrollWidth: document.body.scrollWidth,
+      bodyWidth: Math.round(document.body.getBoundingClientRect().width),
       overflowBy: Math.max(0, doc.scrollWidth - viewport),
       offenders: offenders.slice(0, 6),
+      widest,
+      suspects: suspects.slice(0, 10),
     }
   })
 }
@@ -170,6 +210,10 @@ type Finding = {
   overflowBy: number
   scrollWidth: number
   offenders: { selector: string; right: number; width: number }[]
+  widest: { selector: string; right: number; width: number }
+  suspects: string[]
+  bodyScrollWidth: number
+  bodyWidth: number
 }
 
 test('responsive sweep across every role and viewport', async ({ page }) => {
@@ -184,6 +228,10 @@ test('responsive sweep across every role and viewport', async ({ page }) => {
   })
 
   const audit = async (path: string) => {
+    // Lets a sweep be re-run against the pages that still fail, which is a two second
+    // job rather than the five minutes the full sweep takes.
+    const only = process.env.E2E_AUDIT_ONLY
+    if (only && !only.split(',').some((needle) => path.includes(needle))) return
     for (const vp of VIEWPORTS) {
       await page.setViewportSize({ width: vp.width, height: vp.height })
       await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded' })
@@ -205,6 +253,10 @@ test('responsive sweep across every role and viewport', async ({ page }) => {
           overflowBy: m.overflowBy,
           scrollWidth: m.scrollWidth,
           offenders: m.offenders,
+          widest: m.widest,
+          suspects: m.suspects,
+          bodyScrollWidth: m.bodyScrollWidth,
+          bodyWidth: m.bodyWidth,
         })
       }
       if (m.overflowBy > 0 && isScrollbarArtifact) {
@@ -266,10 +318,15 @@ test('responsive sweep across every role and viewport', async ({ page }) => {
   } else {
     console.log(`\n${findings.length} overflowing combinations:\n`)
     for (const f of findings) {
-      console.log(`${f.page}  [${f.viewport}]  overflows by ${f.overflowBy}px`)
+      console.log(
+        `${f.page}  [${f.viewport}]  overflows by ${f.overflowBy}px  ` +
+          `(doc=${f.scrollWidth} body=${f.bodyScrollWidth} bodyWidth=${f.bodyWidth})`,
+      )
       for (const o of f.offenders) {
-        console.log(`    ${o.selector}  (right=${o.right} width=${o.width})`)
+        console.log(`    offender  ${o.selector}  (right=${o.right} width=${o.width})`)
       }
+      console.log(`    widest    ${f.widest.selector}  (right=${f.widest.right} width=${f.widest.width})`)
+      for (const s of f.suspects) console.log(`    suspect   ${s}`)
     }
   }
   if (consoleErrors.length > 0) {
