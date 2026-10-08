@@ -50,7 +50,7 @@
       -->
       <div class="mt-6 grid gap-6 lg:grid-cols-2">
         <section class="rounded-lg border border-hairline bg-canvas p-6">
-          <h2 class="text-title-sm font-semibold text-ink">People by role</h2>
+          <h2 class="section-heading">People by role</h2>
           <p class="mt-1 text-sm text-slate">
             Every account on the platform, by the role it holds.
           </p>
@@ -72,7 +72,7 @@
         </section>
 
         <section class="rounded-lg border border-hairline bg-canvas p-6">
-          <h2 class="text-title-sm font-semibold text-ink">Courses by status</h2>
+          <h2 class="section-heading">Courses by status</h2>
           <p class="mt-1 text-sm text-slate">
             Drafts and archived courses are invisible to students but still counted here.
           </p>
@@ -96,7 +96,7 @@
 
       <div class="mt-6 grid gap-6 lg:grid-cols-2">
         <section class="rounded-lg border border-hairline bg-canvas p-6">
-          <h2 class="text-title-sm font-semibold text-ink">Money in, by month</h2>
+          <h2 class="section-heading">Money in, by month</h2>
           <p class="mt-1 text-sm text-slate">
             Settled payments only, dated by the moment the money arrived rather than by when the
             checkout began.
@@ -119,7 +119,7 @@
         </section>
 
         <section class="rounded-lg border border-hairline bg-canvas p-6">
-          <h2 class="text-title-sm font-semibold text-ink">New enrollments, by month</h2>
+          <h2 class="section-heading">New enrollments, by month</h2>
           <p class="mt-1 text-sm text-slate">
             Counted on the day the enrollment row was written, whichever status it settled into.
           </p>
@@ -143,7 +143,7 @@
 
       <div class="mt-6 grid gap-6 lg:grid-cols-2">
         <section class="rounded-lg border border-hairline bg-canvas p-6">
-          <h2 class="text-title-sm font-semibold text-ink">Enrollments by status</h2>
+          <h2 class="section-heading">Enrollments by status</h2>
           <p class="mt-1 text-sm text-slate">
             Completed is the only status that means somebody finished. Dropped is somebody who left.
           </p>
@@ -165,7 +165,7 @@
         </section>
 
         <section class="rounded-lg border border-hairline bg-canvas p-6">
-          <h2 class="text-title-sm font-semibold text-ink">Payments by status</h2>
+          <h2 class="section-heading">Payments by status</h2>
           <p class="mt-1 text-sm text-slate">
             Only settled payments count as revenue. The rest are attempts that never became money.
           </p>
@@ -188,7 +188,7 @@
       </div>
 
       <section class="mt-6 rounded-lg border border-hairline bg-canvas p-6">
-        <h2 class="text-title-sm font-semibold text-ink">How assessment is going</h2>
+        <h2 class="section-heading">How assessment is going</h2>
         <p class="mt-1 text-sm text-slate">
           Every figure is averaged from graded attempts. Nothing here is estimated.
         </p>

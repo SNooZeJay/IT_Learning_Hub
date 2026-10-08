@@ -200,7 +200,7 @@
       <section class="mt-10">
         <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 class="text-title-sm font-semibold text-ink">Payment confirmations</h2>
+            <h2 class="section-heading">Payment confirmations</h2>
             <p class="mt-1 text-sm text-slate">
               Every confirmation the payment provider sent, and what the platform concluded from
               each one.

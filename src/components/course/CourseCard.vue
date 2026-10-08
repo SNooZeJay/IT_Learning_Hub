@@ -15,7 +15,21 @@
       </span>
     </div>
 
-    <h3 class="mt-3 text-theme-sm font-medium text-gray-900 dark:text-white/90">
+    <!--
+      The card's own title, one step above the description and one below the page
+      heading. It was `text-theme-sm` at weight 500 - 14px, the same size as the
+      description underneath it, so the only thing separating "IT Support Essentials"
+      from its blurb was a half-step of weight. Two paragraphs of text at identical
+      size is what made this card read as uniformly loud: nothing in it was allowed
+      to be quieter than anything else. 16px at 600 gives the scan path a real
+      anchor while `section-subheading` keeps the description at 14px.
+
+      The description clamps to 2 lines rather than 3. In a three-column grid that was
+      the bulk of the card's height and of its visual noise, and the third line was
+      always mid-sentence. Truncation is a display choice, not an edit to the copy -
+      the full text is still on the course page and still in the database.
+    -->
+    <h3 class="mt-3 text-base font-semibold text-gray-900 dark:text-white/90">
       <router-link
         :to="`/student/courses/${course.slug}`"
         class="hover:text-brand-600 dark:hover:text-brand-400"
@@ -24,7 +38,7 @@
       </router-link>
     </h3>
 
-    <p class="mt-2 line-clamp-3 flex-1 section-subheading">
+    <p class="mt-2 line-clamp-2 flex-1 section-subheading">
       {{ course.description ?? 'No description yet.' }}
     </p>
 

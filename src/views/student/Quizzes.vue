@@ -48,7 +48,7 @@
       -->
       <section v-for="group in groups" :key="group.courseId" class="mb-8">
         <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <h2 class="text-title-sm text-ink">
+          <h2 class="section-heading">
             <RouterLink
               :to="`/student/courses/${group.courseSlug}`"
               class="transition-colors hover:text-brand-600 dark:hover:text-brand-400"

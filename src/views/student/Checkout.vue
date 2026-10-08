@@ -35,7 +35,7 @@
               <CircleCheck class="size-7 text-success-600 dark:text-success-400" />
             </span>
 
-            <h2 class="mt-4 text-title-sm font-semibold text-gray-900 dark:text-white/90">
+            <h2 class="mt-4 section-heading">
               Payment successful — you are enrolled
             </h2>
 

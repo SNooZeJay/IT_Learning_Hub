@@ -327,6 +327,44 @@ layer(base);
   --text-title-sm--line-height: clamp(31px, 5vw, 38px);
   --text-title-sm--font-weight: 600;
   --text-title-sm--letter-spacing: -0.005em;
+
+  /*
+    The page title for an APP screen - every authenticated page, via PageHeader.
+
+    A separate token from `title-lg` because those are two different jobs. `title-lg`
+    and above are the hero scale: they are sized to be the loudest thing in a
+    viewport and they are meant for a marketing page where the title IS the page.
+    On an operating screen - a dashboard, a course editor, a payments table - the
+    title is a label telling you where you are, and it competes with the content
+    below it for the same attention. At 48px it did exactly that: "Course catalogue"
+    was the biggest thing on a screen whose actual subject is six course cards.
+
+    So the app scale steps down to 22-28px and stops growing much past a laptop.
+    It still has a visible step above the 20px `theme-xl` body-emphasis size and
+    above card titles, so hierarchy is intact - it just stops shouting.
+
+    The landing hero and the 404 keep `title-lg`. Those pages have no content
+    competing with them, and that is the job the scale was drawn for.
+  */
+  --text-title-page: clamp(22px, 1.1vw + 18px, 28px);
+  --text-title-page--line-height: clamp(30px, 1.2vw + 25px, 36px);
+  --text-title-page--font-weight: 600;
+  --text-title-page--letter-spacing: -0.011em;
+
+  /*
+    A heading INSIDE a card or a section - "Recent payments", "People by role",
+    "Payment confirmations". One clear step below `title-page`.
+
+    These were on `title-sm`, which is 24-30px, so a card heading rendered at 30px
+    under a 28px page title. The hierarchy was upside down: the label for one box of
+    content was bigger than the name of the page. 18px puts the order back -
+    28 page, 18 section, 14 body, 12 meta - with a visible step at every level,
+    which is the whole point of a scale.
+  */
+  --text-title-card: 18px;
+  --text-title-card--line-height: 26px;
+  --text-title-card--font-weight: 600;
+  --text-title-card--letter-spacing: -0.006em;
   --text-theme-xl: 20px;
   --text-theme-xl--line-height: 28px;
   --text-theme-xl--font-weight: 600;
@@ -800,7 +838,7 @@ layer(base);
   `text-gray-800` and `text-gray-700`. One token, one colour.
 */
 @utility section-heading {
-  @apply text-title-sm text-gray-900 dark:text-white/90;
+  @apply text-title-card text-gray-900 dark:text-white/90;
 }
 
 /**

@@ -30,7 +30,16 @@
         that use this header with a subtitle) scrolled sideways on a 375px phone.
       -->
       <div class="min-w-0">
-        <h1 class="text-title-lg text-gray-900 dark:text-white/90">{{ title }}</h1>
+        <!--
+          `title-page`, not `title-lg`. `title-lg` is the hero scale, capped at 48px,
+          and it is correct on the landing page where the title is the page. Here it
+          made every authenticated screen lead with a 48px headline that out-shouted
+          the content underneath - "Course catalogue" was bigger than the course cards
+          it was introducing. `title-page` is the app scale: 22-28px, still a clear
+          step above the subtitle and card titles, but sized as a label rather than a
+          billboard.
+        -->
+        <h1 class="text-title-page text-gray-900 dark:text-white/90">{{ title }}</h1>
         <p v-if="subtitle" class="mt-1 section-subheading">
           {{ subtitle }}
         </p>

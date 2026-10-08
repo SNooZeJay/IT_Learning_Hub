@@ -68,7 +68,7 @@
       <!-- ============================ QUIZZES ============================ -->
       <section class="mt-6">
         <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <h2 class="text-title-sm text-ink">Quiz attempts</h2>
+          <h2 class="section-heading">Quiz attempts</h2>
           <p class="shrink-0 text-sm text-slate">
             {{ grades.quizAttempts.length }}
             {{ grades.quizAttempts.length === 1 ? 'attempt' : 'attempts' }}
@@ -162,7 +162,7 @@
       <!-- ========================== ASSIGNMENTS ========================== -->
       <section class="mt-8">
         <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <h2 class="text-title-sm text-ink">Assignments</h2>
+          <h2 class="section-heading">Assignments</h2>
           <p class="shrink-0 text-sm text-slate">
             {{ grades.assignments.length }}
             {{ grades.assignments.length === 1 ? 'assignment' : 'assignments' }}
@@ -240,7 +240,7 @@
       <!-- ========================= CERTIFICATES ========================= -->
       <section class="mt-8">
         <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <h2 class="text-title-sm text-ink">Certificates</h2>
+          <h2 class="section-heading">Certificates</h2>
           <p class="shrink-0 text-sm text-slate">
             {{ grades.certificates.length }}
             {{ grades.certificates.length === 1 ? 'certificate' : 'certificates' }}

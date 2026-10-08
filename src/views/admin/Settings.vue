@@ -45,7 +45,7 @@
 
       <!-- ============================ WHAT CAN CHANGE ============================ -->
       <section class="mt-6 rounded-lg border border-hairline bg-canvas p-6">
-        <h2 class="text-title-sm font-semibold text-ink">What can be changed, and where</h2>
+        <h2 class="section-heading">What can be changed, and where</h2>
         <p class="mt-1 text-sm text-slate">
           Everything on this screen is changed on the page it links to.
         </p>
@@ -74,7 +74,7 @@
       <!-- ============================ THE NUMBERS ============================ -->
       <div class="mt-6 grid gap-6 lg:grid-cols-2">
         <section class="rounded-lg border border-hairline bg-canvas p-6">
-          <h2 class="text-title-sm font-semibold text-ink">People</h2>
+          <h2 class="section-heading">People</h2>
           <dl class="mt-5 space-y-3">
             <div
               v-for="row in [...overview.users.byRole, ...overview.users.byStatus]"
@@ -88,7 +88,7 @@
         </section>
 
         <section class="rounded-lg border border-hairline bg-canvas p-6">
-          <h2 class="text-title-sm font-semibold text-ink">Catalogue</h2>
+          <h2 class="section-heading">Catalogue</h2>
           <dl class="mt-5 space-y-3">
             <div
               v-for="row in catalogueRows"
@@ -102,7 +102,7 @@
         </section>
 
         <section class="rounded-lg border border-hairline bg-canvas p-6">
-          <h2 class="text-title-sm font-semibold text-ink">Learning</h2>
+          <h2 class="section-heading">Learning</h2>
           <dl class="mt-5 space-y-3">
             <div
               v-for="row in learningRows"
@@ -120,7 +120,7 @@
         </section>
 
         <section class="rounded-lg border border-hairline bg-canvas p-6">
-          <h2 class="text-title-sm font-semibold text-ink">Money</h2>
+          <h2 class="section-heading">Money</h2>
           <dl class="mt-5 space-y-3">
             <div
               v-for="row in moneyRows"
@@ -146,7 +146,7 @@
             aria-hidden="true"
           />
           <div>
-            <h2 class="text-title-sm font-semibold text-ink">Rules the platform keeps</h2>
+            <h2 class="section-heading">Rules the platform keeps</h2>
             <p class="mt-1 text-sm text-slate">
               These hold whatever is set here, so there is nothing to edit on this screen.
             </p>
