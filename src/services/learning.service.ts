@@ -101,7 +101,8 @@ const NOTIFICATION_COLUMNS = 'id, user_id, type, title, body, link, read_at, cre
 // Local row types for the tables `later` reads.
 // ---------------------------------------------------------------------------
 
-export type RequirementType = 'complete_all_lessons' | 'min_quiz_average' | 'submit_all_assignments'
+export type RequirementType =
+  'complete_all_lessons' | 'pass_all_quizzes' | 'min_quiz_average' | 'submit_all_assignments'
 
 export type NotificationType =
   | 'enrolment_confirmed'
@@ -1017,6 +1018,7 @@ export async function listCompletionGaps(enrollmentId: string): Promise<Completi
 /** Requirement types as a person would name them, for the fallback detail above. */
 const REQUIREMENT_LABELS: Record<RequirementType, string> = {
   complete_all_lessons: 'Not every lesson is complete',
+  pass_all_quizzes: 'Not every quiz has been passed',
   min_quiz_average: 'Quiz average is below the required mark',
   submit_all_assignments: 'Not every assignment has been graded',
 }
