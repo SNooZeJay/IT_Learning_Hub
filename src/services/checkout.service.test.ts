@@ -14,6 +14,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
  */
 
 const invoke = vi.fn()
+const rpc = vi.fn()
 
 /**
  * The service now calls `invokeFunction`, the timeout wrapper, rather than
@@ -45,7 +46,10 @@ vi.mock('@/services/supabase/client', () => {
   }
 
   return {
-    supabase: { functions: { invoke: (...a: unknown[]) => invoke(...a) } },
+    supabase: {
+      functions: { invoke: (...a: unknown[]) => invoke(...a) },
+      rpc: (...a: unknown[]) => rpc(...a),
+    },
     FunctionTimeoutError,
     invokeFunction: async (
       functionName: string,
@@ -79,13 +83,19 @@ vi.mock('@/services/supabase/client', () => {
   }
 })
 
-import { CheckoutError, courseNeedsPayment, startCheckout } from '@/services/checkout.service'
+import {
+  CheckoutError,
+  courseNeedsPayment,
+  paymentStatus,
+  startCheckout,
+} from '@/services/checkout.service'
 
 const ok = (body: unknown) => ({ data: body, error: null })
 const fail = (status: number, body: unknown) => ({ data: null, error: { status, context: body } })
 
 beforeEach(() => {
   invoke.mockReset()
+  rpc.mockReset()
 })
 
 describe('startCheckout', () => {
@@ -109,13 +119,13 @@ describe('startCheckout', () => {
     // comes out relative. What matters is the path, the marker, and that no
     // third-party host can appear - the provider is where the learner goes next,
     // never where they are returned to.
-    expect(body.successUrl).toMatch(/\/student\/courses\/course-1\?payment=success$/)
-    expect(body.cancelUrl).toMatch(/\/student\/courses\/course-1\?payment=cancelled$/)
+    expect(body.successUrl).toMatch(/\/student\/checkout\/course-1\?payment=success$/)
+    expect(body.cancelUrl).toMatch(/\/student\/checkout\/course-1\?payment=cancelled$/)
     expect(body.successUrl).not.toMatch(/paymongo/i)
     expect(body.cancelUrl).not.toMatch(/paymongo/i)
   })
 
-  it('builds the return URL from the slug, because the course page looks up by slug', async () => {
+  it('builds the return URL from the slug, because the checkout page looks up by slug', async () => {
     // The bug this catches: the return URL was built from the course UUID while
     // `/student/courses/:id` is resolved with `.eq('slug', ...)` everywhere else -
     // CourseCard, the lesson breadcrumb, the sidebar highlight. A learner who had
@@ -142,8 +152,8 @@ describe('startCheckout', () => {
     // The API call still carries the id - that is what the function looks up.
     expect(body.courseId).toBe(uuid)
     // The return path carries the slug, because that is what the page resolves.
-    expect(body.successUrl).toContain(`/student/courses/${slug}?`)
-    expect(body.cancelUrl).toContain(`/student/courses/${slug}?`)
+    expect(body.successUrl).toContain(`/student/checkout/${slug}?`)
+    expect(body.cancelUrl).toContain(`/student/checkout/${slug}?`)
     // And never the UUID, which is the whole defect.
     expect(body.successUrl).not.toContain(uuid)
     expect(body.cancelUrl).not.toContain(uuid)
@@ -163,7 +173,7 @@ describe('startCheckout', () => {
     await startCheckout('course-1')
 
     const body = invoke.mock.calls[0][1].body
-    expect(body.successUrl).toMatch(/\/student\/courses\/course-1\?payment=success$/)
+    expect(body.successUrl).toMatch(/\/student\/checkout\/course-1\?payment=success$/)
     expect(body.successUrl).not.toContain('undefined')
   })
 
@@ -339,6 +349,82 @@ describe('startCheckout', () => {
     )
     const result = await startCheckout('course-1')
     expect(result.amountCentavos).toBe(150000)
+  })
+})
+
+describe('paymentStatus', () => {
+  // The return page decides what to say from this. If `settled` could be true for a
+  // payment that never happened, the page would tell a learner they had paid when they
+  // had not, which is the single worst thing this flow can do. So the mapping from the
+  // server's row to that flag is pinned here, case by case.
+
+  const row = (over: Record<string, unknown> = {}) => ({
+    data: [
+      {
+        course_id: 'c1',
+        course_slug: 'security-plus-exam-preparation',
+        course_title: 'Security+ Exam Preparation',
+        price_centavos: 249900,
+        enrollment_status: 'pending',
+        payment_id: 'p1',
+        payment_status: 'paid',
+        reference_number: 'ITH-abc-123',
+        amount_centavos: 249900,
+        paid_at: '2026-10-08T10:00:00Z',
+        settled: true,
+        ...over,
+      },
+    ],
+    error: null,
+  })
+
+  it('calls the user-scoped RPC with only the course id', async () => {
+    // No student id in the arguments, on purpose: the function is scoped to auth.uid(),
+    // so a caller cannot ask about anyone else's payment. Passing one would suggest the
+    // browser chooses whose payment it reads.
+    rpc.mockResolvedValue(row())
+    await paymentStatus('c1')
+    expect(rpc).toHaveBeenCalledWith('payment_status_for', { p_course_id: 'c1' })
+  })
+
+  it('reports settled only when the server says the payment is paid', async () => {
+    rpc.mockResolvedValue(row())
+    const status = await paymentStatus('c1')
+    expect(status?.settled).toBe(true)
+    expect(status?.paymentStatus).toBe('paid')
+    expect(status?.amountCentavos).toBe(249900)
+    expect(status?.referenceNumber).toBe('ITH-abc-123')
+  })
+
+  it('is not settled while the payment is still in flight', async () => {
+    // The state the learner sits in for a few seconds after authorising. Saying
+    // "enrolled successfully" here would be a lie; the page waits instead.
+    rpc.mockResolvedValue(
+      row({ payment_status: 'pending', settled: false, paid_at: null, enrollment_status: 'pending' }),
+    )
+    const status = await paymentStatus('c1')
+    expect(status?.settled).toBe(false)
+  })
+
+  it('is not settled when the payment failed, even if an enrolment is active', async () => {
+    // Defensive: a stale active enrolment must never be reported as a completed sale.
+    rpc.mockResolvedValue(
+      row({ payment_status: 'failed', settled: false, paid_at: null, enrollment_status: 'active' }),
+    )
+    const status = await paymentStatus('c1')
+    expect(status?.settled).toBe(false)
+  })
+
+  it('returns null when the course is not visible, rather than throwing', async () => {
+    rpc.mockResolvedValue({ data: [], error: null })
+    expect(await paymentStatus('nope')).toBeNull()
+  })
+
+  it('raises a CheckoutError when the status cannot be read', async () => {
+    // Swallowing this would leave the return page stuck showing nothing, and the learner
+    // would have no way to tell that from a payment that never landed.
+    rpc.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    await expect(paymentStatus('c1')).rejects.toThrow(CheckoutError)
   })
 })
 

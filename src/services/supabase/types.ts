@@ -1793,6 +1793,34 @@ export type Database = {
        * parameter to pass a fee through, which is what makes "the client cannot choose
        * the platform's cut" a property of the signature rather than a promise.
        */
+      /**
+       * What actually happened to the calling student's payment on a course.
+       *
+       * Read by the checkout page when PayMongo returns the learner. There is no
+       * student id argument on purpose: the function is scoped to `auth.uid()`, so a
+       * caller cannot ask about anybody else's payment.
+       *
+       * `settled` is the only column the page treats as proof of payment. It is
+       * computed on the server from the payment row the webhook wrote, which is why it
+       * cannot be forged from a query string.
+       */
+      payment_status_for: {
+        Args: { p_course_id: string }
+        Returns: {
+          course_id: string
+          course_slug: string
+          course_title: string
+          price_centavos: number
+          enrollment_status: Database['public']['Enums']['enrollment_status']
+          payment_id: string | null
+          payment_status: Database['public']['Enums']['payment_status'] | null
+          reference_number: string | null
+          amount_centavos: number | null
+          paid_at: string | null
+          settled: boolean
+        }[]
+      }
+
       price_a_payment: {
         Args: { in_course_id: string; in_gross_centavos: number }
         Returns: {

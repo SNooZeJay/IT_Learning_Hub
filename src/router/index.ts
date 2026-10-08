@@ -149,6 +149,16 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Course', roles: ['student'] },
       },
       {
+        // A SLUG, for the same reason as `courses/:id` above: PayMongo returns the
+        // learner here, and `checkout.service.ts` builds that return URL from the slug.
+        // The page reads `?payment=success|cancelled` on arrival and then confirms
+        // settlement against the server rather than trusting the query string.
+        path: 'checkout/:slug',
+        name: 'student-checkout',
+        component: () => import('@/views/student/Checkout.vue'),
+        meta: { title: 'Checkout', roles: ['student'] },
+      },
+      {
         path: `lessons/:id${UUID_PARAM}`,
         name: 'student-lesson',
         component: () => import('@/views/student/Lesson.vue'),

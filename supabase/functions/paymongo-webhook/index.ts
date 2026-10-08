@@ -92,7 +92,15 @@ Deno.serve(async (request) => {
 
   const paymentId = await findPayment(envelope.referenceNumber)
   const recorded = await recordEvent(rawBody, envelope, paymentId)
-  if (!recorded.ok) return json({ received: true, matched: false, error: recorded.error })
+  // 500, not 200. Failing to write the ledger row is a transient condition - a
+  // database blip, a connection that dropped - and the ledger is the idempotency key
+  // the duplicate check below depends on. Answering 200 told PayMongo the delivery
+  // succeeded, so it never retried, and the event was lost with no record that it had
+  // ever arrived. A duplicate arriving afterwards would be treated as handled.
+  if (!recorded.ok) {
+    console.error('paymongo webhook: could not record the event; asking the provider to retry')
+    return json({ received: true, matched: false, error: recorded.error }, 500)
+  }
   // A duplicate is only a duplicate if the row holding the id was itself verified.
   //
   // Any delivery that failed verification is still recorded, and still claims the
@@ -272,7 +280,12 @@ async function fail(
 
   if (error) {
     console.error('paymongo webhook: failure record failed:', error.message)
-    return 'record_failure_failed'
+    // The exact string the caller above compares against. It was previously
+    // 'record_failure_failed', which nothing ever returned a check for, so a failed
+    // fail_payment returned 200 to the provider, retrying stopped, and the payment
+    // stayed pending forever. Matching settle()'s shape keeps the two symmetric and
+    // means one place decides what a retryable failure is called.
+    return 'fail_failed'
   }
   return String(data)
 }

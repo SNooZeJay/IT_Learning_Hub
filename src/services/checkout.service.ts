@@ -1,4 +1,5 @@
 import { FunctionTimeoutError, invokeFunction, readFunctionError } from './supabase/client'
+import { supabase } from './supabase/client'
 import type { Course } from '@/types'
 
 /**
@@ -134,8 +135,16 @@ export async function startCheckout(courseId: string, returnSlug?: string): Prom
   const { data, error } = await invokeFunction<Partial<CheckoutStart>>('create-checkout', {
     body: {
       courseId,
-      successUrl: `${origin}/student/courses/${slug}?payment=success`,
-      cancelUrl: `${origin}/student/courses/${slug}?payment=cancelled`,
+      // Back to the CHECKOUT page, not the course page.
+      //
+      // The course page is where a learner decides to buy; it cannot tell them whether
+      // the purchase worked, because settlement happens asynchronously in the webhook
+      // after they leave. Returning them there produced a page that said "we are
+      // confirming your payment" and stopped, which reads as a failure even when it is
+      // a success. The checkout page is the one that waits and reports the outcome, so
+      // it is the right place to land on both paths.
+      successUrl: `${origin}/student/checkout/${slug}?payment=success`,
+      cancelUrl: `${origin}/student/checkout/${slug}?payment=cancelled`,
     },
   })
 
@@ -201,6 +210,66 @@ export async function startCheckout(courseId: string, returnSlug?: string): Prom
     checkoutUrl: body.checkoutUrl ?? undefined,
     paymentId: body.paymentId,
     reused: body.reused === true,
+  }
+}
+
+/** A payment as the server describes it, for the return page. */
+export interface PaymentStatus {
+  courseId: string
+  courseSlug: string
+  courseTitle: string
+  priceCentavos: number
+  enrollmentStatus: 'active' | 'completed' | 'dropped' | 'pending'
+  paymentId: string | null
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded' | 'cancelled' | null
+  referenceNumber: string | null
+  amountCentavos: number | null
+  paidAt: string | null
+  /**
+   * The only thing the page may treat as "paid".
+   *
+   * Not `?payment=success`, which anyone can type, and not a status string alone.
+   * This column is computed on the server from the payment row the webhook wrote.
+   */
+  settled: boolean
+}
+
+/**
+ * Ask the server what actually happened to this learner's payment.
+ *
+ * Used on the page PayMongo returns to. The browser cannot verify a payment itself -
+ * only the webhook can, and only the webhook does - so this reads the row the webhook
+ * wrote, scoped by the function to the calling student. There is no student id in the
+ * arguments on purpose: a caller cannot ask about anyone else's payment.
+ *
+ * Returns null when the course is not visible to this learner at all, which the page
+ * treats the same as "nothing to report" rather than as an error.
+ */
+export async function paymentStatus(courseId: string): Promise<PaymentStatus | null> {
+  const { data, error } = await supabase.rpc('payment_status_for', { p_course_id: courseId })
+
+  if (error) {
+    throw new CheckoutError(
+      'Your payment status could not be checked just now. Please try again.',
+      'unknown',
+    )
+  }
+
+  const row = (Array.isArray(data) ? data[0] : null) as Record<string, unknown> | null
+  if (!row) return null
+
+  return {
+    courseId: String(row.course_id),
+    courseSlug: String(row.course_slug),
+    courseTitle: String(row.course_title),
+    priceCentavos: Number(row.price_centavos),
+    enrollmentStatus: row.enrollment_status as PaymentStatus['enrollmentStatus'],
+    paymentId: row.payment_id ? String(row.payment_id) : null,
+    paymentStatus: (row.payment_status as PaymentStatus['paymentStatus']) ?? null,
+    referenceNumber: row.reference_number ? String(row.reference_number) : null,
+    amountCentavos: row.amount_centavos == null ? null : Number(row.amount_centavos),
+    paidAt: row.paid_at ? String(row.paid_at) : null,
+    settled: row.settled === true,
   }
 }
 

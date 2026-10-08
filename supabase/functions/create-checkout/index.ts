@@ -136,6 +136,29 @@ Deno.serve(async (request) => {
     return json({ error: 'payments are not configured' }, 503, request)
   }
 
+  // Refuse to open a checkout for someone who already has the course.
+  //
+  // `payments` has a partial unique index on (student_id, course_id) where status is
+  // 'paid'. Nothing before this point consulted it, so a learner who reached the button
+  // twice - or from two tabs - got a second pending payment. When that one settled, the
+  // UPDATE inside settle_payment collided with that index and raised, so the webhook
+  // answered 500, PayMongo retried twelve times, and the second payment sat at pending
+  // forever beside a real charge.
+  //
+  // The UI happened to hide the button for an enrolled student, which is a reason the
+  // bug stayed invisible and not a reason it is safe: this function is a public edge
+  // endpoint, and the guard belongs to the server, not to the page that happens to call
+  // it. Checked before the pending-payment lookup so the existing-session path below
+  // still works for someone genuinely mid-payment.
+  const alreadyEntitled = await findEntitlement(user.id, courseId)
+  if (alreadyEntitled) {
+    return json(
+      { error: 'you are already enrolled in this course', alreadyEnrolled: true },
+      409,
+      request,
+    )
+  }
+
   // Idempotency. A double-tapped button must not create two payments, or the
   // learner is charged twice for one enrolment.
   const existing = await findPendingPayment(user.id, courseId)
@@ -301,6 +324,39 @@ async function findPendingPayment(
       provider_checkout_url: string | null
     } | null) ?? null
   )
+}
+
+/**
+ * Does this student already hold the course, or already have paid for it?
+ *
+ * Both are checked because they can disagree: a paid payment whose enrolment was
+ * subsequently dropped still means the money left, and a live enrolment means the money
+ * settled at some point. Either way there is nothing left to buy.
+ */
+async function findEntitlement(
+  studentId: string,
+  courseId: string,
+): Promise<{ enrolled: boolean; paid: boolean }> {
+  const [{ data: enrolment }, { data: payment }] = await Promise.all([
+    supabase
+      .from('enrollments')
+      .select('id, status')
+      .eq('student_id', studentId)
+      .eq('course_id', courseId)
+      .in('status', ['active', 'completed'])
+      .maybeSingle(),
+    supabase
+      .from('payments')
+      .select('id')
+      .eq('student_id', studentId)
+      .eq('course_id', courseId)
+      .eq('status', 'paid')
+      .maybeSingle(),
+  ])
+  return {
+    enrolled: Boolean(enrolment),
+    paid: Boolean(payment),
+  }
 }
 
 /**

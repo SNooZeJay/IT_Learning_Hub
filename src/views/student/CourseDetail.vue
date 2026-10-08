@@ -229,20 +229,24 @@
                 You are enrolled
               </p>
 
-              <Button
+              <!--
+                A paid course goes to the checkout page, not straight to PayMongo.
+
+                This button used to call `startCheckout` and navigate out of the app
+                itself, which meant the learner never saw an order summary, and landed
+                wherever the provider sent them with no page of ours waiting to confirm
+                the result. The checkout page is now the place a payment is reviewed and
+                the place the learner returns to.
+              -->
+              <RouterLink
                 v-else-if="isPaidCourse"
-                variant="primary"
-                class="w-full justify-center"
-                :disabled="isActing"
-                @click="handleEnrol"
+                :to="{ name: 'student-checkout', params: { slug: course.slug } }"
+                class="block"
               >
-                <LoaderCircle v-if="isActing" class="size-4 animate-spin" />
-                {{
-                  isActing
-                    ? 'Opening checkout...'
-                    : `Enroll for ${formatPeso(course.priceCentavos)}`
-                }}
-              </Button>
+                <Button variant="primary" class="w-full justify-center">
+                  Enroll for {{ formatPeso(course.priceCentavos) }}
+                </Button>
+              </RouterLink>
 
               <Button
                 v-else
@@ -284,7 +288,6 @@ import CurriculumOutline from '@/components/curriculum/CurriculumOutline.vue'
 import AssignmentSubmitCard from '@/components/curriculum/AssignmentSubmitCard.vue'
 import { getCourseWithCurriculum, isPaid } from '@/services/course.service'
 import { findEnrollment, enrollInFreeCourse } from '@/services/enrollment.service'
-import { startCheckout } from '@/services/checkout.service'
 import { loadCurriculum, type Curriculum } from '@/services/curriculum.service'
 import { listQuizzesForCourse } from '@/services/quiz.service'
 import {
@@ -537,38 +540,6 @@ async function handleEnrol(): Promise<void> {
   paymentNotice.value = ''
   isActing.value = true
   try {
-    if (isPaidCourse.value) {
-      // The slug, not the id: this page resolves `/student/courses/:id` by slug,
-      // so a return URL built from the UUID lands the learner - freshly paid - on
-      // "That course does not exist".
-      const result = await startCheckout(course.value.id, course.value.slug)
-
-      if (!result.requiresPayment) {
-        // The function says this course is free, which contradicts the price on
-        // this page. Enrolling directly is the useful response to a backend and
-        // frontend disagreeing about a price, rather than sending the learner to
-        // a checkout for something that costs nothing.
-        await enrollInFreeCourse(course.value, auth.profile.id)
-        enrolledHere.value = true
-        return
-      }
-
-      if (!result.checkoutUrl) {
-        // A reused pending payment with no open session behind it. The learner
-        // already tried to pay and did not finish, so the way forward is to let
-        // them start again rather than to show a button that does nothing.
-        actionError.value = result.reused
-          ? 'You have an unfinished payment for this course. Please try again to open a new checkout - you have not been charged.'
-          : 'The payment provider did not return a checkout link. Please try again.'
-        return
-      }
-
-      // Full navigation, not a router push: this leaves the app for PayMongo's
-      // hosted page. window.location is correct here and router.push is not.
-      window.location.href = result.checkoutUrl
-      return
-    }
-
     await enrollInFreeCourse(course.value, auth.profile.id)
     enrolledHere.value = true
     toast.success('Enrolled', 'You are now enrolled in this course.')
