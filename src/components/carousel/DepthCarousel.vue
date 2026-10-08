@@ -19,15 +19,11 @@
   -->
   <div
     ref="rootRef"
-    class="flex w-full touch-pan-y cursor-grab select-none flex-col focus-visible:rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lp-accent active:cursor-grabbing"
+    class="flex w-full flex-col focus-visible:rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lp-accent"
     role="group"
     aria-roledescription="carousel"
     :aria-label="ariaLabel"
     tabindex="0"
-    @pointerdown="onPointerDown"
-    @pointermove="onPointerMove"
-    @pointerup="onPointerEnd"
-    @pointercancel="onPointerEnd"
     @keydown="onKeyDown"
   >
     <div
@@ -217,11 +213,21 @@
  *    most slides. The slot lets the caller draw the level placeholder instead.
  *    The default is unchanged for anyone who does not pass one.
  *
- * 2. The click guard after a drag was dead code. `onPointerEnd` sets `drag = null`
- *    before the browser dispatches `click`, so `if (drag?.moved) return` was
- *    always false and a drag ended in a spurious focus change. There is now a
- *    `suppressClick` flag, cleared on the next pointer-down so it cannot swallow a
- *    real click later.
+ * 2. Pointer drag and wheel steering were REMOVED. Upstream treats a drag as a
+ *    navigation gesture, and that is wrong on this page. The wheel handler called
+ *    `e.preventDefault()` on every wheel event including a vertical one, so a visitor
+ *    scrolling the landing page with the pointer anywhere over the carousel did not
+ *    scroll the page at all - the carousel swallowed it and silently advanced a
+ *    slide. Pointer drag made it worse on touch: `setPointerCapture` on a
+ *    vertically-scrolling screen can capture the gesture, so the page stops moving
+ *    under the finger. Both were "the carousel fights the page", and neither was asked
+ *    for. What remains is deliberate: the arrow buttons, the dots, the keyboard
+ *    arrows, and clicking a card. A page that only scrolls has nothing to gain from a
+ *    gesture that competes with scrolling.
+ *
+ *    `suppressClick`, the `DragState` interface and the drag projection went with
+ *    them - they existed only to distinguish a click from a drag, which cannot happen
+ *    now that there is no drag.
  *
  * 3. `stageRef` was referenced by the template but never declared. It is now
  *    declared, so the stage element is actually reachable.
@@ -238,11 +244,10 @@
  *
  * 6. `select` is emitted alongside the upstream `change`, because a card in a hero
  *    is expected to go somewhere and the click handler is the natural place to
- *    find out that it was a click rather than a drag.
+ *    find out that it was a click.
  *
- * NOT CHANGED: all the geometry maths, the drag projection, the loop wrapping, the
- * wheel handling, the autoplay pause-on-hover-or-focus, and the reduced-motion
- * handling.
+ * NOT CHANGED: all the geometry maths, the loop wrapping, the autoplay
+ * pause-on-hover-or-focus, and the reduced-motion handling.
  */
 import { ref, computed, watch, onMounted, onUnmounted, type ComponentPublicInstance } from 'vue'
 import gsap from 'gsap'
@@ -273,16 +278,6 @@ interface DepthCarouselProps {
   showIndicators?: boolean
   /** Accessible name for the whole carousel. Upstream hardcoded "Depth carousel". */
   ariaLabel?: string
-}
-
-interface DragState {
-  x: number
-  startPos: number
-  lastX: number
-  lastT: number
-  v: number
-  moved: boolean
-  id: number
 }
 
 const clamp = (v: number, min: number, max: number): number => Math.min(Math.max(v, min), max)
@@ -502,9 +497,6 @@ function paintedStackBounds(): { left: number; right: number } | null {
   return left === Infinity ? null : { left: left - stageBox.left, right: right - stageBox.left }
 }
 
-let drag: DragState | null = null
-let suppressClick = false
-let wheelTimer: ReturnType<typeof setTimeout> | null = null
 let reduced = false
 
 const layout = (p: number) => {
@@ -598,54 +590,6 @@ const setFocus = (rawIndex: number, animate = true) => {
 
 const navigateBy = (step: number) => setFocus(focusIndex + step, true)
 
-const onPointerDown = (e: PointerEvent) => {
-  if (count.value < 2) return
-  // A fresh press means the previous drag is over, so a stale suppression flag
-  // cannot eat this interaction.
-  suppressClick = false
-  tween?.kill()
-  drag = {
-    x: e.clientX,
-    startPos: pos,
-    lastX: e.clientX,
-    lastT: performance.now(),
-    v: 0,
-    moved: false,
-    id: e.pointerId,
-  }
-}
-
-const onPointerMove = (e: PointerEvent) => {
-  if (!drag) return
-  const stepPx = Math.max(props.cardWidth * 0.55 * scale, 40)
-  const dx = e.clientX - drag.x
-  if (!drag.moved && Math.abs(dx) > 4) {
-    drag.moved = true
-    rootRef.value?.setPointerCapture(drag.id)
-  }
-  if (!drag.moved) return
-  const now = performance.now()
-  const dt = Math.max(now - drag.lastT, 1)
-  drag.v = (e.clientX - drag.lastX) / dt
-  drag.lastX = e.clientX
-  drag.lastT = now
-  pos = drag.startPos - dx / stepPx
-  layout(pos)
-}
-
-const onPointerEnd = () => {
-  const d = drag
-  if (!d) return
-  drag = null
-  if (!d.moved) return
-  // The browser dispatches `click` after `pointerup`, by which point `drag` is
-  // already null - so upstream's `if (drag?.moved)` guard could never fire.
-  suppressClick = true
-  const stepPx = Math.max(props.cardWidth * 0.55 * scale, 40)
-  const projected = pos - (d.v * 180) / stepPx
-  setFocus(Math.round(projected), true)
-}
-
 const onKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'ArrowLeft') {
     e.preventDefault()
@@ -657,16 +601,11 @@ const onKeyDown = (e: KeyboardEvent) => {
 }
 
 const onCardClick = (index: number) => {
-  if (suppressClick) {
-    suppressClick = false
-    return
-  }
   setFocus(index, true)
   emit('select', index, data.value[index])
 }
 
 let ro: ResizeObserver | null = null
-let removeWheelListener: (() => void) | null = null
 let stopAutoplay: (() => void) | null = null
 
 const setupAutoplay = () => {
@@ -749,23 +688,16 @@ onMounted(() => {
     })
     if (stageRef.value) ro.observe(stageRef.value)
 
-    const onWheel = (e: WheelEvent) => {
-      if (count.value < 2) return
-      e.preventDefault()
-      tween?.kill()
-      const raw = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY
-      const delta = e.deltaMode === 1 ? raw * 24 : raw
-      const step = clamp(delta / (props.cardWidth * 0.9), -0.6, 0.6)
-      pos += step
-      layout(pos)
-      if (wheelTimer) clearTimeout(wheelTimer)
-      wheelTimer = setTimeout(() => setFocus(Math.round(pos), true), 130)
-    }
-    root.addEventListener('wheel', onWheel, { passive: false })
-    removeWheelListener = () => {
-      root.removeEventListener('wheel', onWheel)
-      if (wheelTimer) clearTimeout(wheelTimer)
-    }
+    /*
+      No wheel listener here on purpose. Upstream registered one that called
+      `e.preventDefault()` on every wheel event - including a purely vertical one -
+      because it wanted the wheel to steer the carousel. That is a reasonable choice
+      for a carousel that owns its own screen, and the wrong one for a carousel sitting
+      in the middle of a scrolling page: a visitor whose pointer happened to be over
+      the hero found the page would not scroll at all, and the carousel quietly changed
+      slide instead. Removing the listener is what gives the page its scroll back; the
+      arrows, the dots and the keyboard still navigate.
+    */
   }
 
   // `fitToStage` measures the painted cards, and the cards have no transforms worth
@@ -779,9 +711,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   tween?.kill()
-  if (wheelTimer) clearTimeout(wheelTimer)
   ro?.disconnect()
-  removeWheelListener?.()
   stopAutoplay?.()
 })
 
