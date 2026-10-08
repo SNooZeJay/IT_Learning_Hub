@@ -8,9 +8,25 @@
 
     `xl:border-b` rather than a border at every width: the toggle's own row below xl draws
     its own separator, so an unconditional border double-drawn it.
+
+    `z-[1000]`, not `z-99999`. The header used to share the sidebar's z-index exactly,
+    and in `AppLayout` the header is rendered *after* the sidebar - so with equal
+    z-index the later element won, and the header painted on top of the open drawer. On
+    a phone that left the theme toggle, the notification bell and the account menu
+    floating above the navigation panel that was meant to be covering the page, with
+    the page heading showing through the gap underneath.
+
+    Equal z-index is not a tie to be left to document order; it is a bug waiting for a
+    reordering. The header wants to sit above page content - the deepest thing on these
+    screens is `z-50`, for the account and notification menus, and those sit inside this
+    header's own stacking context anyway - and below the two things that must cover it:
+    the backdrop (`z-9999`), which dims the page and dismisses the drawer on tap, and
+    the sidebar (`z-99999`). 1000 is exactly the gap between them. Nothing changes on
+    desktop, where the sidebar is a fixed column and the content is offset clear of it,
+    so the two never overlap.
   -->
   <header
-    class="sticky top-0 z-99999 w-full border-b border-gray-200 bg-canvas/95 backdrop-blur-sm xl:border-b dark:border-gray-800"
+    class="sticky top-0 z-[1000] w-full border-b border-gray-200 bg-canvas/95 backdrop-blur-sm xl:border-b dark:border-gray-800"
   >
     <div class="flex items-center gap-3 px-3 py-2.5 sm:gap-4 sm:px-4 lg:py-3 xl:px-6">
       <!--
