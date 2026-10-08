@@ -97,11 +97,11 @@
 
       The row wraps below 375px. Measured, not eyeballed: the bar's contents are
       252px once the padding below `2xsm` is tightened, and a 320px viewport
-      leaves 264px inside the pill. Rather than shorten "Create account" to
-      "Sign up" - one link wearing two names depending on window width - the
-      actions drop to a second centred line and the pill squares up to 24px
-      corners so it no longer reads as a stadium with a row through it. From
-      375px up there is room for one line and the row is `nowrap` again.
+      leaves 264px inside the pill. Rather than give the register link a second,
+      shorter name depending on window width, the actions drop to a second
+      centred line and the pill squares up to 24px corners so it no longer reads
+      as a stadium with a row through it. From 375px up there is room for one
+      line and the row is `nowrap` again.
     -->
     <header class="sticky top-0 z-40 px-4 pt-4 md:px-6 md:pt-5">
       <div
@@ -117,8 +117,8 @@
               and it waits until `md` for a measured reason.
 
               Bar contents at 14px Inter: mark 32, theme toggle 40, Sign in 69,
-              Create account 130, plus the gaps between them - 288px once the
-              wordmark joins in at `md`, and 252px without it. 288 does not fit
+              Get Started ~103, plus the gaps between them - about 261px once the
+              wordmark joins in at `md`, and 252px without it. 261 does not fit
               the 311px left inside the padding at 375px with anything to spare,
               and it badly does not fit 320px, so the wordmark is held back to
               `md` (768px). Below that the mark alone identifies the product,
@@ -144,7 +144,7 @@
               to="/auth/register"
               class="lp-press rounded-full bg-lp-ink px-3.5 py-2 text-sm font-medium text-lp-ink-inverse shadow-lp-button transition-opacity duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:opacity-90 motion-reduce:transition-none sm:px-4 md:px-5"
             >
-              Create account
+              Get Started
             </RouterLink>
           </div>
         </div>
@@ -305,7 +305,7 @@
                 to="/auth/register"
                 class="lp-press inline-flex h-12 items-center gap-2 rounded-full border border-lp-line-strong bg-lp-card px-7 text-sm font-medium text-lp-ink transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-lp-canvas motion-reduce:transition-none"
               >
-                Create free account
+                Get Started
               </RouterLink>
             </div>
 

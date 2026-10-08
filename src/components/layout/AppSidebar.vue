@@ -194,10 +194,9 @@
           <span class="block truncate font-medium text-gray-900 dark:text-white/90">{{
             auth.profile?.fullName ?? 'My profile'
           }}</span>
-          <span
-            class="block truncate text-xs font-normal text-gray-500 capitalize dark:text-gray-400"
-            >{{ auth.role ?? '' }}</span
-          >
+          <span class="block truncate text-xs font-normal text-slate capitalize">{{
+            auth.role ?? ''
+          }}</span>
         </span>
       </router-link>
     </div>

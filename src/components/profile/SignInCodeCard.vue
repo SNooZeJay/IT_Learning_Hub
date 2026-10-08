@@ -42,13 +42,21 @@
         </p>
       </div>
 
+      <!--
+        A 24px-tall track is the right shape for a switch and the wrong target. The
+        `before` pseudo-element carries the tap area out to 44px tall without changing
+        what is drawn, because this is a control a learner turns on once and then never
+        thinks about again - and 24px is where a thumb misses. The pill stays a pill:
+        DESIGN.md reserves that radius for status badges, pill tabs, avatars and
+        toggles, so the shape is not the thing to fix.
+      -->
       <button
         type="button"
         role="switch"
         :aria-checked="codeRequired"
         :aria-label="codeRequired ? 'Turn off the sign-in code' : 'Turn on the sign-in code'"
         :disabled="isSaving || !hasSignInAddress"
-        class="relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+        class="relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50 before:absolute before:inset-x-0 before:-inset-y-2.5 before:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
         :class="
           codeRequired ? 'border-brand-500 bg-brand-500' : 'border-hairline-strong bg-surface'
         "

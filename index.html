@@ -33,6 +33,35 @@
       href="https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2"
       crossorigin
     />
+    <!--
+      Preload Source Serif 4, the landing hero's display face, latin subset, upright
+      and italic.
+
+      The hero used to shake because of this. The typewriter itself was never the
+      cause: measured through the animation, the heading held a constant 498px width
+      and a constant 54 characters, and only its opacity changed. But the heading sat
+      in the fallback serif for the first ~600ms and then re-flowed from four lines
+      to three - 68px, exactly one line at 4.1rem - shoving the whole hero down.
+
+      Inter was preloaded and this was not, so the body copy arrived early while the
+      one face that carries the hero's display size arrived late. Both URLs were read
+      out of the served Google Fonts CSS with a browser user agent; the default agent
+      is served legacy .ttf and a preload pointing at the wrong format warms nothing.
+    -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="https://fonts.gstatic.com/s/sourceserif4/v15/vEFI2_tTDB4M7-auWDN0ahZJW1gb8tc.woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="https://fonts.gstatic.com/s/sourceserif4/v15/vEFK2_tTDB4M7-auWDN0ahZJW1gewtW_Wg.woff2"
+      crossorigin
+    />
     <meta
       name="description"
       content="IT Learning Hub - practical IT training with courses, quizzes and assignments."
@@ -50,7 +79,13 @@
         align-items: center;
         justify-content: center;
         background: #ffffff;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial,
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Helvetica,
+          Arial,
           sans-serif;
       }
       html.dark #app-loading {
@@ -102,7 +137,7 @@
       The localStorage key is the one thing the two must agree on.
     -->
     <script>
-      (function () {
+      ;(function () {
         try {
           var saved = localStorage.getItem('theme')
           var dark =

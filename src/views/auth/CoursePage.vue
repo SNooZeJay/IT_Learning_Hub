@@ -63,7 +63,7 @@
               to="/auth/register"
               class="rounded-full bg-lp-ink px-3.5 py-2 text-sm font-medium text-lp-ink-inverse shadow-lp-button transition-colors hover:opacity-90 sm:px-4 md:px-5"
             >
-              Create account
+              Get Started
             </RouterLink>
           </div>
         </div>

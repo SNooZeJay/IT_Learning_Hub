@@ -788,9 +788,20 @@ layer(base);
   @apply text-title-sm text-gray-900 dark:text-white/90;
 }
 
-/** Supporting prose directly under a section heading. */
+/**
+  Supporting prose directly under a section heading.
+
+  `slate`, not `gray-500`. `gray-500` is #787671, which is 4.54:1 on pure white but
+  4.17:1 on the app's actual light surface - #f6f5f4 - and these sit on the surface,
+  not on white. Below the 4.5:1 that WCAG AA asks of 14px text, on roughly twenty-five
+  views at once.
+
+  `slate` is #5c574a: 6.61:1 on that same surface, and `controlClasses.ts` already names
+  it as the lightest step safe for small text. It carries its own dark value, so the
+  explicit `dark:` pair is not needed - `text-slate` is the whole answer in both themes.
+*/
 @utility section-subheading {
-  @apply text-sm text-gray-500 dark:text-gray-400;
+  @apply text-sm text-slate;
 }
 
 /**
@@ -935,7 +946,21 @@ layer(base);
   asked the OS for stillness.
 */
 @utility caret-tick {
-  @apply ms-[2px] inline-block h-[0.78em] w-[3px] rounded-full bg-lp-accent align-baseline animate-caret-blink;
+  /*
+    Zero WIDTH, on purpose.
+
+    This was `inline-block w-[3px] ms-[2px]` - five live pixels of inline width, and it
+    moves one character to the right on every tick of the typewriter. Five pixels is
+    enough, on a `text-balance` heading at 4.1rem, to move where the line breaks, so
+    every character typed reflowed the headline and shoved the whole hero down. The page
+    shook because the cursor was in the text flow.
+
+    It is now a zero-width box carrying a 3px inline-start border, which draws the same
+    tick and occupies no width at all. Borders overflow a zero-width box, so the tick
+    still renders. `border-s-*` rather than `border-l-*` so the caret leads the text
+    in both reading directions.
+  */
+  @apply inline-block h-[0.78em] w-0 border-s-[3px] border-solid border-lp-accent align-baseline animate-caret-blink;
 }
 
 /*
