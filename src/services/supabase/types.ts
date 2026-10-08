@@ -60,6 +60,7 @@ export type Database = {
           phone: string | null
           bio: string | null
           status: Database['public']['Enums']['account_status']
+          email_code_sign_in: boolean
           created_at: string
           updated_at: string
         }
@@ -72,6 +73,7 @@ export type Database = {
           phone?: string | null
           bio?: string | null
           status?: Database['public']['Enums']['account_status']
+          email_code_sign_in?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -83,6 +85,7 @@ export type Database = {
           phone?: string | null
           bio?: string | null
           status?: Database['public']['Enums']['account_status']
+          email_code_sign_in?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -1651,6 +1654,21 @@ export type Database = {
       /** Everything the pre-quiz screen needs, and nothing more. */
       quiz_briefing: { Args: { p_quiz_id: string }; Returns: unknown }
       can_view_profile: { Args: { target_profile: string }; Returns: boolean }
+      certificate_signatories: {
+        Args: { p_certificate_id: string }
+        Returns: {
+          adminName: string | null
+          certificateId: string
+          certificateNumber: string
+          courseTitle: string
+          finalPercentage: number
+          instructors: Json
+          issuedAt: string
+          revokeReason: string | null
+          revokedAt: string | null
+          studentName: string
+        }
+      }
       course_completion_gaps: {
         Args: { p_enrollment_id: string }
         Returns: {

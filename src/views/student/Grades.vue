@@ -287,6 +287,22 @@
             </dl>
 
             <!--
+              The certificate is a document, and a document needs somewhere to open from.
+              This used to be a row in a list with no way to see what it looked like or keep
+              a copy; the whole certificate now renders on its own route and prints to a
+              file. Labelled with the course rather than a bare "View", because the card
+              itself may be showing three of these at once.
+            -->
+            <RouterLink
+              :to="`/student/certificates/${certificate.id}`"
+              class="mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-md border border-hairline-strong bg-canvas px-3.5 py-2 text-sm font-medium text-ink transition hover:bg-surface dark:bg-white/[0.03] dark:hover:bg-white/[0.06]"
+            >
+              <FileText class="size-4" aria-hidden="true" />
+              Open certificate
+              <span class="sr-only">for {{ certificate.courseTitle }}</span>
+            </RouterLink>
+
+            <!--
               A revoked certificate stays on screen. Section 19.5 of the spec
               requires it, and hiding the row would tell the student a
               certificate they were issued never existed — while
@@ -334,6 +350,7 @@ import {
   CircleCheck,
   CircleX,
   FileClock,
+  FileText,
   GraduationCap,
   ShieldX,
 } from 'lucide-vue-next'

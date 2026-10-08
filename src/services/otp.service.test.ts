@@ -50,25 +50,54 @@ beforeEach(() => {
 })
 
 describe('requestSignInCode', () => {
-  it('returns a challenge id and no session', async () => {
-    invoke.mockResolvedValue({
-      data: { challenge_id: 'abc', expires_in_seconds: 900, resendable: true },
-      error: null,
-    })
+  const challengeResponse = {
+    data: { challenge_id: 'abc', expires_in_seconds: 900, resendable: true },
+    error: null,
+  }
 
-    const challenge = await requestSignInCode('A@B.com', 'hunter2')
+  it('returns a challenge id and no session for an account that wants a code', async () => {
+    invoke.mockResolvedValue(challengeResponse)
 
-    expect(challenge.challengeId).toBe('abc')
-    expect(challenge.expiresInSeconds).toBe(900)
+    const step = await requestSignInCode('A@B.com', 'hunter2')
+
+    expect(step.kind).toBe('challenge')
+    if (step.kind !== 'challenge') throw new Error('expected a challenge')
+    expect(step.challenge.challengeId).toBe('abc')
+    expect(step.challenge.expiresInSeconds).toBe(900)
     // The whole point: nothing token-shaped comes back at this step.
-    expect(JSON.stringify(challenge)).not.toMatch(/token|session|password/i)
+    expect(JSON.stringify(step)).not.toMatch(/token|session|password/i)
+  })
+
+  it('returns a session, and no second step, for an account with no code turned on', async () => {
+    const { supabase } = await import('@/services/supabase/client')
+    const session = { access_token: 'at', refresh_token: 'rt', user: { id: 'u1' } }
+    invoke.mockResolvedValue({ data: { session }, error: null })
+
+    const step = await requestSignInCode('a@b.com', 'hunter2')
+
+    expect(step.kind).toBe('session')
+    // The session must reach the client itself, not be handed back for the caller to
+    // file. Otherwise the two sign-in paths reach the router guard differently and the
+    // guard becomes the thing that has to know which step produced the tokens.
+    expect(supabase.auth.setSession).toHaveBeenCalledWith({
+      access_token: 'at',
+      refresh_token: 'rt',
+    })
+  })
+
+  it('treats a response with neither a challenge nor a session as a failure', async () => {
+    // The server should never produce this. Asserting it throws rather than defaulting to
+    // one branch or the other is what stops a malformed response becoming a silent
+    // sign-in.
+    invoke.mockResolvedValue({ data: {}, error: null })
+
+    await expect(requestSignInCode('a@b.com', 'hunter2')).rejects.toMatchObject({
+      reason: 'could_not_start',
+    })
   })
 
   it('normalises the address before sending it', async () => {
-    invoke.mockResolvedValue({
-      data: { challenge_id: 'abc', expires_in_seconds: 900, resendable: true },
-      error: null,
-    })
+    invoke.mockResolvedValue(challengeResponse)
 
     await requestSignInCode('  Joren@NCST.edu.ph  ', 'hunter2')
 

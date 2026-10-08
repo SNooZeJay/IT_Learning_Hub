@@ -2102,3 +2102,67 @@ pre code,
   text-align: left !important;
   unicode-bidi: isolate;
 }
+
+/* ---------------------------------------------------------------------------
+   Printing a certificate.
+
+   The only page in this app that is a document rather than an interface, and the
+   only one whose print output has to be the page. Two rules:
+
+     1. Everything that is application chrome is hidden, so "Save as PDF" produces the
+        certificate rather than a screenshot of a sidebar next to a certificate.
+     2. The certificate's own colours are forced, because printing often happens with
+        "background graphics" off, which silently drops the green rules and the seal
+        and leaves something that reads as an unstyled page.
+
+   `display: none` on the chrome rather than `visibility: hidden`, because
+   `visibility: hidden` keeps the box and leaves a page-sized gap where the sidebar
+   was, which prints as a blank first page.
+   --------------------------------------------------------------------------- */
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  /* The shell: header, sidebar, backdrop, page header, toasts, dialogs. */
+  header,
+  nav,
+  aside,
+  [role='dialog'],
+  .ToastHost,
+  .print-hide {
+    display: none !important;
+  }
+
+  /* The content column loses the sidebar offset, and the page padding. */
+  #app > div > div:last-of-type {
+    margin-inline-start: 0 !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  /* The certificate takes the whole sheet. `box-shadow` and the ring are removed
+     because a printer draws a box around a box. */
+  .sheet {
+    box-shadow: none !important;
+    outline: none !important;
+    break-inside: avoid;
+  }
+
+  /* Keep the seal and the rules when "background graphics" is off. `print-color-adjust`
+     is the standard property; the `-webkit-` prefix is what Safari honours. */
+  .sheet * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

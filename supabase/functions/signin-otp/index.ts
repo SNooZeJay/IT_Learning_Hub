@@ -1,5 +1,12 @@
 /**
- * signin-otp — the second factor on password sign-in, and nothing else.
+ * signin-otp — password sign-in, with an optional emailed code on top.
+ *
+ * Opt-in, not imposed
+ * --------------------
+ * An account that has not turned on a sign-in code gets a session from its password and
+ * nothing is emailed. An account that has turned one on gets the two-step flow below.
+ * The choice lives in `profiles.email_code_sign_in` and belongs to the account owner; see
+ * `20261008120000_sign_in_code_is_a_preference.sql` for why the default is off.
  *
  * Why the session is minted here and not in the browser
  * ----------------------------------------------------
@@ -9,9 +16,15 @@
  * A user who skips the code step keeps a working session.
  *
  * So credentials are verified *server-side*, in this function, and that session is
- * destroyed before the response is written. Only `action: 'verify'` — after the code has
- * been checked against a stored hash — returns tokens. There is no other path in the
- * platform that issues a session for a password sign-in, so there is nothing to bypass.
+ * destroyed before the response is written. Two responses can carry tokens, and only
+ * these two:
+ *
+ *   - `action: 'begin'` on an account with no code turned on. The password was checked
+ *     here; nothing was emailed; the browser has tokens it never had before.
+ *   - `action: 'verify'`, after the code matched a stored hash.
+ *
+ * There is no third path, so there is nothing to bypass for an account that has opted
+ * in: the tokens do not exist until the code is right.
  *
  * Secrets, codes and logs
  * -----------------------
@@ -395,6 +408,33 @@ async function begin(req: Request, ip: string, email: string, password: string):
   await verifier.auth.signOut().catch(() => {})
 
   const admin = adminClient()
+
+  // Two-step sign-in is a preference, not a platform rule. The password has already been
+  // verified at this point, so if this account does not want a code the session is minted
+  // here and returned, and no mail is sent at all.
+  //
+  // The lookup is by `user_id` through the service role rather than by email, because
+  // this function has the authenticated user id in hand and the profile row is keyed on
+  // it. A missing profile row reads as "no preference recorded", which is the same as
+  // off: that is the default, and an account created before the column existed must not
+  // be locked out of signing in because of it.
+  const { data: profile, error: profileError } = await admin
+    .from('profiles')
+    .select('email_code_sign_in')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (profileError) {
+    console.error('preference lookup failed', profileError.message)
+    return json({ error: 'could_not_start' }, 500, req)
+  }
+
+  if (profile?.email_code_sign_in !== true) {
+    const session = await mintSession(email)
+    if (!session) return json({ error: 'could_not_complete_sign_in' }, 500, req)
+    return json({ session }, 200, req)
+  }
+
   const code = generateCode()
   const challengeId = crypto.randomUUID()
   const codeHash = await hashCode(challengeId, code)

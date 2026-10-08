@@ -28,6 +28,7 @@
 
     <div v-if="profile" class="mt-6 flex flex-col gap-6">
       <AppearanceCard />
+      <SignInCodeCard :profile="profile" />
       <ProfileSecurityCard :profile="profile" />
     </div>
 
@@ -66,6 +67,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import AppearanceCard from '@/components/profile/AppearanceCard.vue'
 import ProfileSecurityCard from '@/components/profile/ProfileSecurityCard.vue'
+import SignInCodeCard from '@/components/profile/SignInCodeCard.vue'
 import { useAuthStore } from '@/stores/auth'
 
 /**
@@ -73,11 +75,13 @@ import { useAuthStore } from '@/stores/auth'
  *
  * Everything on this page works. There are no switches here that record a value and
  * change nothing, which is why this page is short: the honest set of preferences in this
- * project is a theme, a text direction, and a password.
+ * project is a theme, a text direction, whether signing in needs a code, and a password.
  *
  * The security card moved here from the profile page. A password is not a profile
  * detail - it is not shown next to a person's name or photo, and it is not part of how
  * their identity is displayed anywhere in the LMS - so its old home was the wrong one.
+ * The sign-in code is here for the same reason: it is a security setting, not a detail
+ * about who somebody is.
  */
 
 const auth = useAuthStore()
@@ -104,7 +108,7 @@ onMounted(async () => {
 const ABSENT: ReadonlyArray<{ title: string; why: string }> = [
   {
     title: 'Notifications',
-    why: 'Notifications are not configurable per person. There is no preference record to store a choice in, so every kind is sent to everybody it applies to.',
+    why: 'Notifications are not configurable per person. Every kind is sent to everybody it applies to, and there is no per-kind switch to turn one off.',
   },
   {
     title: 'Language',

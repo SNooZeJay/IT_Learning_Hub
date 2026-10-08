@@ -14,7 +14,7 @@ type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
 
 /** One list of columns, so a schema change is a one-line edit in this file. */
 const PROFILE_COLUMNS =
-  'id, role, full_name, email, avatar_url, phone, bio, status, created_at, updated_at'
+  'id, role, full_name, email, avatar_url, phone, bio, status, email_code_sign_in, created_at, updated_at'
 
 /**
  * A failure the person reading it can act on.
@@ -57,6 +57,7 @@ function toProfile(row: ProfileRow): Profile {
     phone: row.phone,
     bio: row.bio,
     status: row.status,
+    emailCodeSignIn: row.email_code_sign_in,
   }
 }
 
@@ -110,6 +111,40 @@ export async function updateOwnProfile(
     .single()
 
   if (error) throw new ProfileError(messageOf(error, 'Could not save your profile.'))
+  return toProfile(data as ProfileRow)
+}
+
+/**
+ * Turn the emailed sign-in code on or off for the signed-in person.
+ *
+ * Separate from `updateOwnProfile` on purpose. That function takes a bag of optional
+ * fields and writes whichever are present, which is right for a profile form and wrong
+ * here: this one value is a security decision, and folding it into a general save would
+ * let a form that did not mean to change it do so by omitting the key. It also gives the
+ * setting its own round trip, so a failed write leaves the switch showing what the
+ * database actually holds rather than what was hoped for.
+ *
+ * The row is re-read rather than assumed. A toggle that says "on" while the value is
+ * still off is the exact failure this avoids.
+ */
+export async function setOwnEmailCodeSignIn(userId: string, enabled: boolean): Promise<Profile> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ email_code_sign_in: enabled })
+    .eq('id', userId)
+    .select(PROFILE_COLUMNS)
+    .single()
+
+  if (error) {
+    throw new ProfileError(
+      messageOf(
+        error,
+        enabled
+          ? 'Could not turn on the sign-in code. Try again in a moment.'
+          : 'Could not turn off the sign-in code. Try again in a moment.',
+      ),
+    )
+  }
   return toProfile(data as ProfileRow)
 }
 

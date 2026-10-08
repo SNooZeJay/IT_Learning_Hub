@@ -96,6 +96,12 @@ export interface Profile {
   phone: string | null
   bio: string | null
   status: AccountStatus
+  /**
+   * Whether signing in needs a six-digit code emailed to this account. Off by default,
+   * set by the owner on `/settings`. Read by the sign-in function server-side; the
+   * browser copy exists so the settings switch can show what is actually stored.
+   */
+  emailCodeSignIn: boolean
 }
 
 export interface Course {

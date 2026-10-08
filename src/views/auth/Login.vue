@@ -180,10 +180,14 @@ const errorMessage = ref('')
 const fieldErrors = ref<{ email?: string; password?: string }>({})
 
 /**
- * Non-null once the password has been accepted and a code is on its way. This is the
- * whole state of "half signed in": a challenge id and nothing else. No session exists
- * until `verifySignInCode` returns one, so there is no window in which the router guard
- * would let this person through.
+ * Non-null once the password has been accepted AND a code is on its way. This is the whole
+ * state of "half signed in": a challenge id and nothing else. No session exists until
+ * `verifySignInCode` returns one, so there is no window in which the router guard would
+ * let this person through.
+ *
+ * An account with no sign-in code never reaches this. `requestSignInCode` returns a
+ * session instead of a challenge, `handleSubmit` completes the sign-in immediately, and
+ * the second screen is never rendered.
  */
 const challenge = ref<SignInChallenge | null>(null)
 
@@ -211,12 +215,22 @@ async function handleSubmit(): Promise<void> {
 
   isSubmitting.value = true
   try {
-    // Deliberately not `auth.signIn`. That mints a session immediately, which would make
-    // the code step decorative: the tokens would already exist in the browser and the
-    // router guard would admit this person before a code was ever asked for. Going
-    // through `requestSignInCode` means the password is checked server-side and that
-    // session is discarded, so `verify` is the only route to a signed-in state.
-    challenge.value = await requestSignInCode(email.value, password.value)
+    // Deliberately not `auth.signIn`. That mints a session in the browser, which would make
+    // a code step decorative for any account that has one: the tokens would already exist
+    // and the router guard would admit this person before a code was ever asked for.
+    // Going through `requestSignInCode` means the password is checked by the server, and
+    // for an account with a code turned on, `verify` is the only route to a signed-in
+    // state.
+    const step = await requestSignInCode(email.value, password.value)
+
+    if (step.kind === 'session') {
+      // No code on this account, so the password was the whole sign-in.
+      challenge.value = null
+      await completeSignIn()
+      return
+    }
+
+    challenge.value = step.challenge
     toast.info('Code sent', `We emailed a six-digit code to ${email.value}.`)
   } catch (error) {
     const message =

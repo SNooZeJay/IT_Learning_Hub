@@ -8,7 +8,7 @@ import {
   isSupabaseConfigured,
   readFunctionError,
 } from '@/services/supabase/client'
-import { fetchProfileByUserId } from '@/services/profile.service'
+import { fetchProfileByUserId, setOwnEmailCodeSignIn } from '@/services/profile.service'
 import { useUnreadNotifications } from '@/composables/useUnreadNotifications'
 import { useUnreadMessages } from '@/composables/useUnreadMessages'
 import type { Profile, Role } from '@/types'
@@ -234,6 +234,20 @@ export const useAuthStore = defineStore('auth', () => {
     if (error) throw new Error(error.message)
   }
 
+  /**
+   * Whether this account asks for an emailed code on sign-in.
+   *
+   * Replaces the whole profile object with what the database returned rather than
+   * patching one field on the copy in memory. The alternative is a switch that reads "on"
+   * while the stored value is still off, which for a security setting is the one bug
+   * worth refusing to write.
+   */
+  async function setEmailCodeSignIn(enabled: boolean): Promise<void> {
+    clearError()
+    if (!profile.value) throw new Error('Sign in before changing how you sign in.')
+    profile.value = await setOwnEmailCodeSignIn(profile.value.id, enabled)
+  }
+
   async function signOut(): Promise<void> {
     clearError()
     // Module-level state, so it survives this store being torn down. Cleared here
@@ -266,6 +280,7 @@ export const useAuthStore = defineStore('auth', () => {
     signUp,
     sendPasswordReset,
     updatePassword,
+    setEmailCodeSignIn,
     signOut,
     clearError,
   }

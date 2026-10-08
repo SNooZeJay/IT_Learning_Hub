@@ -2,11 +2,17 @@ import { supabase } from './supabase/client'
 import type { Session } from '@supabase/supabase-js'
 
 /**
- * The sign-in second factor: request a code, resend it, and exchange it for a session.
+ * Password sign-in, and the optional code on top of it.
  *
- * Three steps on purpose. `begin` checks the password but returns no session, `verify`
- * checks the code and returns the only session a password sign-in ever produces. The
- * browser cannot skip `verify` because it never holds tokens to skip it with.
+ * The password is always checked by the `signin-otp` Edge Function rather than in the
+ * browser, because a browser that calls `signInWithPassword` holds a session before any
+ * code is asked for, and a code step the user can skip is not a second factor.
+ *
+ * What step one returns depends on the account. With a sign-in code turned on, `begin`
+ * returns a challenge and no session, and `verify` is the only thing that can produce
+ * tokens. With it off, `begin` returns the session and there is no second screen at all.
+ * Both paths run in the same function, so there is no route into the app that skips a check
+ * the account asked for.
  *
  * Every failure is turned into a `SignInOtpError` carrying a machine-readable `reason`,
  * so the UI can say what to do next rather than showing one generic message for "wrong
@@ -48,10 +54,22 @@ export interface SignInChallenge {
   resendable: boolean
 }
 
+/**
+ * What step one of the password check actually produced.
+ *
+ * Two outcomes, because two-step sign-in is a preference and most accounts do not have
+ * it on. `challenge` means a code is on its way and there is deliberately no session yet.
+ * `session` means the account has no code and the password was enough. The caller cannot
+ * treat these interchangeably: only one of them requires the second screen.
+ */
+export type SignInStep =
+  { kind: 'challenge'; challenge: SignInChallenge } | { kind: 'session'; session: Session }
+
 interface BeginResponse {
   challenge_id?: string
   expires_in_seconds?: number
   resendable?: boolean
+  session?: Session | null
 }
 
 interface VerifyResponse {
@@ -158,26 +176,53 @@ async function call<T>(
   }
 }
 
-/** Step one: the password is checked, a code is emailed, no session is issued. */
-export async function requestSignInCode(email: string, password: string): Promise<SignInChallenge> {
+/**
+ * Step one: check the password.
+ *
+ * Returns a challenge when the account has a sign-in code turned on, and a session when it
+ * does not. The session is written into the Supabase client here rather than left for the
+ * caller, so `onAuthStateChange` fires once and the router guard sees a signed-in user on
+ * exactly the same footing either way.
+ */
+export async function requestSignInCode(email: string, password: string): Promise<SignInStep> {
   const { data, reason, attemptsLeft } = await call<BeginResponse>({
     action: 'begin',
     email: email.trim().toLowerCase(),
     password,
   })
 
-  if (reason || !data?.challenge_id) {
-    throw new SignInOtpError(
-      reason ?? 'could_not_start',
-      OTP_MESSAGES[reason ?? 'could_not_start'],
-      attemptsLeft,
-    )
+  if (reason) {
+    throw new SignInOtpError(reason, OTP_MESSAGES[reason], attemptsLeft)
+  }
+
+  // No challenge and no session is not a state the server should be able to produce, so
+  // it is reported as the generic failure rather than silently treated as a sign-in.
+  if (!data?.challenge_id && !data?.session) {
+    throw new SignInOtpError('could_not_start', OTP_MESSAGES.could_not_start, null)
+  }
+
+  if (data.session) {
+    const { error } = await supabase.auth.setSession({
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+    })
+    if (error) {
+      throw new SignInOtpError(
+        'could_not_complete_sign_in',
+        OTP_MESSAGES.could_not_complete_sign_in,
+        null,
+      )
+    }
+    return { kind: 'session', session: data.session }
   }
 
   return {
-    challengeId: data.challenge_id,
-    expiresInSeconds: data.expires_in_seconds ?? 900,
-    resendable: data.resendable ?? true,
+    kind: 'challenge',
+    challenge: {
+      challengeId: data.challenge_id as string,
+      expiresInSeconds: data.expires_in_seconds ?? 900,
+      resendable: data.resendable ?? true,
+    },
   }
 }
 
@@ -204,11 +249,12 @@ export async function resendSignInCode(challengeId: string): Promise<SignInChall
 }
 
 /**
- * Step two: exchange the code for the session.
+ * Exchange the code for the session.
  *
- * This is the only place a password sign-in produces tokens. The session is written
- * into the Supabase client here rather than in the store, so `onAuthStateChange` fires
- * once and the router guard sees a signed-in user exactly as it does today.
+ * Only reachable for an account that turned a code on, and only after the code matched a
+ * stored hash. The session is written into the Supabase client here rather than in the
+ * store, so `onAuthStateChange` fires once and the router guard sees a signed-in user
+ * exactly as it does today.
  */
 export async function verifySignInCode(challengeId: string, code: string): Promise<Session> {
   const trimmed = code.trim()
