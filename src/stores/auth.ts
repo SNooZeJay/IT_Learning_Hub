@@ -150,7 +150,22 @@ export const useAuthStore = defineStore('auth', () => {
     const current = session.value
     if (!current) return
 
-    if (!profile.value) {
+    // A profile belonging to somebody ELSE counts as no profile at all, not as a
+    // loaded one.
+    //
+    // This used to test `!profile.value` alone, which cannot tell "the fetch has not
+    // finished" from "the profile on hand belongs to the previous account". Signing in
+    // while already signed in - a shared machine, or just switching accounts without
+    // signing out - hits the second case: the store still holds the outgoing user's
+    // profile, so this returned without fetching anything.
+    //
+    // The consequence was that the new person's role was never read before the router
+    // moved. homePath resolved from the previous user's role, so an instructor signing
+    // in over a student was sent to /student/dashboard, and the guard then let them
+    // stay there because the route genuinely only admits students. What rendered was
+    // the student dashboard with the previous student's enrolments, progress and grades
+    // still on screen under the instructor's own navigation.
+    if (!profile.value || profile.value.id !== current.user.id) {
       await loadProfile(current.user.id)
     }
   }
