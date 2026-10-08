@@ -92,6 +92,18 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Create account', public: true },
   },
   {
+    path: '/legal/terms',
+    name: 'legal-terms',
+    component: () => import('@/views/auth/TermsOfService.vue'),
+    meta: { title: 'Terms of Service', public: true },
+  },
+  {
+    path: '/legal/privacy',
+    name: 'legal-privacy',
+    component: () => import('@/views/auth/PrivacyPolicy.vue'),
+    meta: { title: 'Privacy Policy', public: true },
+  },
+  {
     path: '/auth/forgot-password',
     name: 'forgot-password',
     component: () => import('@/views/auth/ForgotPassword.vue'),

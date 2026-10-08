@@ -69,7 +69,14 @@
     </header>
 
     <main class="flex flex-1 items-center justify-center px-4 py-12 sm:py-16">
-      <div class="w-full max-w-md">
+      <!--
+        `form` is the form width, and it is the default so every existing caller is
+        unchanged. `wide` exists for the legal documents, which are read rather than filled
+        in: at `max-w-md` a sentence wraps at roughly forty characters and the contents
+        grid has two items per line that each wrap onto two, which is not how anyone reads
+        a document.
+      -->
+      <div :class="width === 'wide' ? 'w-full max-w-3xl' : 'w-full max-w-md'">
         <!--
           The title sits above the card, centred, in the landing page's serif. The
           large logo that used to sit above it is gone: the header now carries the
@@ -144,5 +151,12 @@ defineProps<{
   title: string
   /** Optional supporting line under the heading. */
   description?: string
+  /**
+   * How wide the card is.
+   *
+   * `form` is right for anything a person types into. `wide` is for the legal documents,
+   * which are read in sentences rather than filled in fields.
+   */
+  width?: 'form' | 'wide'
 }>()
 </script>

@@ -169,6 +169,8 @@
         Sign in
       </router-link>
     </p>
+
+    <AuthConsent variant="register" />
   </AuthShell>
 </template>
 
@@ -179,6 +181,7 @@ import { Eye, EyeOff, LoaderCircle, MailCheck } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
 import { lpFieldLabelClass, lpTextInputClass } from '@/components/ui/controlClasses'
 import AuthShell from '@/components/auth/AuthShell.vue'
+import AuthConsent from '@/components/auth/AuthConsent.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 
