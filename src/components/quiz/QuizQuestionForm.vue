@@ -24,6 +24,7 @@ import { Plus, Trash2 } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import { validateQuestion } from '@/services/quizAuthoring.service'
 import type { AuthoredQuestion, QuestionDraft } from '@/services/quizAuthoring.service'
+import { formSelectClass } from '@/components/ui/controlClasses'
 import type { QuestionType } from '@/types'
 
 const props = defineProps<{
@@ -218,7 +219,7 @@ function submit(): void {
           :id="`${fieldPrefix}-type`"
           :value="questionType"
           :disabled="Boolean(question)"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90 dark:disabled:bg-white/[0.02]"
+          :class="formSelectClass"
           @change="onTypeChange"
         >
           <option v-for="(label, value) in typeLabels" :key="value" :value="value">

@@ -282,6 +282,7 @@ import { gradeSubmission, listGradingQueue } from '@/services/instructor.service
 import type { GradingQueueItem } from '@/services/instructor.service'
 import { formatDateTime } from '@/types'
 import { useAuthStore } from '@/stores/auth'
+import { selectClass } from '@/components/ui/controlClasses'
 import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
@@ -304,9 +305,6 @@ const isSaving = ref<string | null>(null)
 
 const searchClass =
   'w-full rounded border border-gray-300 bg-white py-2.5 ps-9 pe-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500'
-
-const selectClass =
-  'w-full rounded border border-gray-300 bg-white py-2.5 px-3 text-sm text-gray-900 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90'
 
 const inputClass =
   'mt-1.5 w-full rounded border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500'

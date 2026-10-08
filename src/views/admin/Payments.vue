@@ -303,6 +303,7 @@ import {
   listAdminPaymentEvents,
   listAdminPayments,
 } from '@/services/admin.service'
+import { selectClass } from '@/components/ui/controlClasses'
 import { formatDateTime, formatPeso } from '@/types'
 import type {
   AdminPayment,
@@ -325,9 +326,6 @@ const errorMessage = ref('')
 
 const searchClass =
   'w-full rounded border border-hairline-strong bg-canvas py-2.5 ps-9 pe-3 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden'
-
-const selectClass =
-  'w-full rounded-md border border-hairline-strong bg-canvas px-3 py-2 text-sm text-ink focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden'
 
 const statusToneClass: Record<AdminPaymentStatus, string> = {
   paid: 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',

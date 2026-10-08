@@ -313,6 +313,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/types'
 import type { AdminUser } from '@/services/admin.service'
+import { selectClass } from '@/components/ui/controlClasses'
 import type { AccountStatus, Role } from '@/types'
 
 const auth = useAuthStore()
@@ -332,9 +333,6 @@ const auditWarning = ref('')
 
 const searchClass =
   'w-full rounded border border-hairline-strong bg-canvas py-2.5 ps-9 pe-3 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden'
-
-const selectClass =
-  'w-full rounded-md border border-hairline-strong bg-canvas px-3 py-2 text-sm text-ink focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden'
 
 const inlineSelectClass =
   'rounded-md border border-hairline-strong bg-canvas py-1.5 ps-2.5 pe-2 text-xs font-medium focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50'

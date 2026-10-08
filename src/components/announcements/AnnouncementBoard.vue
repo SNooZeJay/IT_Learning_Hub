@@ -295,10 +295,16 @@ const errorMessage = ref('')
 const form = reactive({ courseId: '', kind: 'general' as AnnouncementKind, title: '', body: '' })
 const fieldErrors = reactive({ course: '', title: '', body: '' })
 
-const inputClass =
-  'w-full rounded-md border border-hairline-strong bg-canvas px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:bg-white/[0.03]'
-const selectClass =
-  'w-full rounded-md border border-hairline-strong bg-canvas px-3 py-2.5 text-sm text-ink focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:bg-white/[0.03]'
+/**
+ * Both controls used to be written out here, which is why this one kept a native
+ * dropdown arrow long after every other select in the app had been given the shared
+ * chevron: the name matched, so it read as already-done to anyone - including me -
+ * grepping for `selectClass` and seeing two hits rather than reading the import.
+ *
+ * A local declaration that shadows a shared one is worse than a copy, because it
+ * survives the copy being fixed. Both now come from `controlClasses.ts`.
+ */
+import { selectClass, textInputClass as inputClass } from '@/components/ui/controlClasses'
 
 /** A null course is an audience, not a missing value, so it reads as a word. */
 function audienceOf(notice: Announcement): string {

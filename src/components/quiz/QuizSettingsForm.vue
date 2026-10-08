@@ -16,6 +16,7 @@
  */
 import { computed, ref, watch } from 'vue'
 import Button from '@/components/ui/Button.vue'
+import { formSelectClass } from '@/components/ui/controlClasses'
 import type { AuthoredQuiz, QuizDraft } from '@/services/quizAuthoring.service'
 
 const props = defineProps<{
@@ -218,7 +219,7 @@ function submit(): void {
           <select
             :id="`${fieldPrefix}-attempts`"
             v-model.number="attemptsAllowed"
-            class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+            :class="formSelectClass"
           >
             <option v-for="choice in ATTEMPT_CHOICES" :key="choice" :value="choice">
               {{ choice }} attempt{{ choice === 1 ? '' : 's' }}
@@ -264,7 +265,7 @@ function submit(): void {
           <select
             :id="`${fieldPrefix}-warnings`"
             v-model.number="maxWarnings"
-            class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+            :class="formSelectClass"
           >
             <option v-for="choice in WARNING_CHOICES" :key="choice" :value="choice">
               {{ choice }} warning{{ choice === 1 ? '' : 's' }}
