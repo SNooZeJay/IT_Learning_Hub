@@ -307,7 +307,11 @@ describe('reads', () => {
 
   it('reports a load failure rather than showing an empty quiz list', async () => {
     respondByTable({ quizzes: { error: { message: 'permission denied for table quizzes' } } })
-    await expect(listQuizzesForCourse('course-1')).rejects.toThrow(/permission denied/)
+    // A failure still fails. What it says is the sentence, not the table name.
+    await expect(listQuizzesForCourse('course-1')).rejects.toThrow(
+      'You do not have access to that.',
+    )
+    await expect(listQuizzesForCourse('course-1')).rejects.not.toThrow(/permission denied/)
   })
 
   it('returns null for a quiz that does not exist', async () => {

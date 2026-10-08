@@ -161,7 +161,11 @@ async function measure(page: Page) {
       const rect = el.getBoundingClientRect()
       if (rect.width === 0) continue
       if (rect.right > widest.right) {
-        widest = { selector: describe(el), right: Math.round(rect.right), width: Math.round(rect.width) }
+        widest = {
+          selector: describe(el),
+          right: Math.round(rect.right),
+          width: Math.round(rect.width),
+        }
       }
     }
 
@@ -185,7 +189,9 @@ async function measure(page: Page) {
       if (rect.width > viewport + 0.5) notes.push(`wider-than-viewport(${Math.round(rect.width)})`)
 
       if (notes.length > 0) {
-        suspects.push(`${describe(el)} :: ${notes.join(' ')} [display=${style.display} vis=${style.visibility}]`)
+        suspects.push(
+          `${describe(el)} :: ${notes.join(' ')} [display=${style.display} vis=${style.visibility}]`,
+        )
       }
     }
 
@@ -271,9 +277,7 @@ test('responsive sweep across every role and viewport', async ({ page }) => {
       // the scrollbar and not a layout fault. Counting those as failures would bury
       // the real findings under a phantom on every long page.
       const isScrollbarArtifact =
-        m.scrollbarWidth > 0 &&
-        m.overflowBy <= m.scrollbarWidth + 1 &&
-        m.offenders.length === 0
+        m.scrollbarWidth > 0 && m.overflowBy <= m.scrollbarWidth + 1 && m.offenders.length === 0
       if (m.overflowBy > 0 && !isScrollbarArtifact) {
         findings.push({
           page: path,
@@ -355,7 +359,9 @@ test('responsive sweep across every role and viewport', async ({ page }) => {
       for (const o of f.offenders) {
         console.log(`    offender  ${o.selector}  (right=${o.right} width=${o.width})`)
       }
-      console.log(`    widest    ${f.widest.selector}  (right=${f.widest.right} width=${f.widest.width})`)
+      console.log(
+        `    widest    ${f.widest.selector}  (right=${f.widest.right} width=${f.widest.width})`,
+      )
       for (const h of f.holders) console.log(`    holder    ${h}`)
 
       for (const s of f.suspects) console.log(`    suspect   ${s}`)
@@ -363,7 +369,7 @@ test('responsive sweep across every role and viewport', async ({ page }) => {
   }
   if (consoleErrors.length > 0) {
     console.log(`\n${consoleErrors.length} console errors:`)
-    for (const e of consoleErrors.slice(0, 12)) console.log(`    ${e.page} :: ${e.text.slice(0, 160)}`)
+    for (const e of consoleErrors.slice(0, 12))
+      console.log(`    ${e.page} :: ${e.text.slice(0, 160)}`)
   }
 })
-

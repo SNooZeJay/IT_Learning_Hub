@@ -1,12 +1,13 @@
-import { supabase } from './supabase/client'
+﻿import { supabase } from './supabase/client'
+import { humanizeError } from './errors'
 
 /**
  * The names printed on a certificate.
  *
  * Read through `certificate_signatories`, not by joining profiles in the browser. That
  * function exists because Row Level Security will not let a student see the instructor
- * teaching them — `can_view_profile` covers themselves, admins, and their own students,
- * and nothing else — so a join here returns nothing and the certificate renders with
+ * teaching them â€” `can_view_profile` covers themselves, admins, and their own students,
+ * and nothing else â€” so a join here returns nothing and the certificate renders with
  * blank signature lines. It returns names only: no address, no phone, no profile id.
  *
  * The function is guarded on the caller holding the certificate, so this cannot be used
@@ -49,8 +50,7 @@ export class CertificateError extends Error {
  * sentence, which is the useful part and passes through.
  */
 function messageOf(error: { message: string } | null, fallback: string): string {
-  if (!error) return fallback
-  return error.message.replace(/^(?:ERROR:\s*|[A-Z]{5}:\s*)/, '').trim() || fallback
+  return humanizeError(error?.message ?? '', fallback)
 }
 
 /**

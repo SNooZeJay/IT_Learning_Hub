@@ -400,7 +400,12 @@ describe('paymentStatus', () => {
     // The state the learner sits in for a few seconds after authorising. Saying
     // "enrolled successfully" here would be a lie; the page waits instead.
     rpc.mockResolvedValue(
-      row({ payment_status: 'pending', settled: false, paid_at: null, enrollment_status: 'pending' }),
+      row({
+        payment_status: 'pending',
+        settled: false,
+        paid_at: null,
+        enrollment_status: 'pending',
+      }),
     )
     const status = await paymentStatus('c1')
     expect(status?.settled).toBe(false)

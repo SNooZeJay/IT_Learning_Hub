@@ -1,4 +1,5 @@
-import { supabase } from './supabase/client'
+﻿import { supabase } from './supabase/client'
+import { humanizeError } from './errors'
 
 /**
  * Platform and course announcements.
@@ -49,8 +50,7 @@ export class AnnouncementError extends Error {
  * than being flattened.
  */
 function messageOf(error: { message: string } | null, fallback: string): string {
-  if (!error) return fallback
-  return error.message.replace(/^(?:ERROR:\s*|[A-Z]{5}:\s*)/, '').trim() || fallback
+  return humanizeError(error?.message ?? '', fallback)
 }
 
 const COLUMNS = 'id, course_id, author_id, kind, title, body, published_at, created_at'

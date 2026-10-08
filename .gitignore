@@ -51,3 +51,8 @@ scripts/*.local.json
 /playwright-report/
 /blob-report/
 /.playwright/
+
+# Audit output. The sweeps write screenshots and JSON reports; they are evidence for a
+# run, not something the repository should carry.
+/audit-out/
+/reports/

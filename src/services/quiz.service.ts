@@ -1,4 +1,5 @@
-import { supabase } from './supabase/client'
+﻿import { supabase } from './supabase/client'
+import { humanizeError } from './errors'
 import type {
   AttemptStatus,
   QuestionType,
@@ -119,8 +120,7 @@ export class QuizError extends Error {
  * leading `ERROR: ` and a five-character SQLSTATE code.
  */
 function messageOf(error: { message: string } | null, fallback: string): string {
-  if (!error) return fallback
-  return error.message.replace(/^(?:ERROR:\s*|[A-Z]{5}:\s*)/, '').trim() || fallback
+  return humanizeError(error?.message ?? '', fallback)
 }
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { supabase } from '@/services/supabase/client'
+﻿import { supabase } from '@/services/supabase/client'
 import type { Database } from '@/services/supabase/types'
 import { isSafeUrl } from '@/validation'
 // The dashboard caches module ids per course; a curriculum write invalidates it.

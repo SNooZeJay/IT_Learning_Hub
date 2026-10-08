@@ -40,8 +40,8 @@
             </h2>
 
             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              {{ course.title }} is now on your dashboard, with every lesson, quiz and
-              assignment unlocked.
+              {{ course.title }} is now on your dashboard, with every lesson, quiz and assignment
+              unlocked.
             </p>
 
             <dl
@@ -59,7 +59,9 @@
                 class="flex items-center justify-between gap-4 border-t border-gray-200 pt-2 dark:border-gray-800"
               >
                 <dt class="text-xs text-gray-500 dark:text-gray-400">Paid</dt>
-                <dd class="text-xs text-gray-900 dark:text-white/90">{{ formatDateTime(paidAt) }}</dd>
+                <dd class="text-xs text-gray-900 dark:text-white/90">
+                  {{ formatDateTime(paidAt) }}
+                </dd>
               </div>
             </dl>
 
@@ -80,119 +82,121 @@
           <div class="surface-card-shell">
             <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
               <h2 class="section-heading">Confirm your purchase</h2>
-              <p class="mt-1 section-subheading">
-                Check the course and the price before you pay.
-              </p>
+              <p class="mt-1 section-subheading">Check the course and the price before you pay.</p>
             </div>
             <div class="p-6">
-            <Alert
-              v-if="notice"
-              :variant="noticeVariant"
-              :title="noticeTitle"
-              :message="notice"
-              class="mb-5"
-            />
+              <Alert
+                v-if="notice"
+                :variant="noticeVariant"
+                :title="noticeTitle"
+                :message="notice"
+                class="mb-5"
+              />
 
-            <Alert
-              v-if="actionError"
-              variant="error"
-              title="Checkout could not be opened"
-              :message="actionError"
-              class="mb-5"
-            />
+              <Alert
+                v-if="actionError"
+                variant="error"
+                title="Checkout could not be opened"
+                :message="actionError"
+                class="mb-5"
+              />
 
-            <!--
+              <!--
               The other half of the bounded wait above. When the wait runs out the learner
               is told the truth and given a way to act on it, rather than a spinner that
               never ends or a page reload that discards the reference number.
             -->
-            <div
-              v-if="isUnconfirmed && !settled"
-              class="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-brand-200 bg-brand-25 p-4 dark:border-brand-800 dark:bg-brand-900/20"
-            >
-              <RotateCw
-                class="size-5 shrink-0 text-brand-600 dark:text-brand-400"
-                :class="isRechecking ? 'animate-spin' : ''"
-                aria-hidden="true"
-              />
-              <p class="min-w-0 flex-1 text-xs text-gray-600 dark:text-gray-400">
-                Still waiting on PayMongo. Checking again costs nothing and will not charge you twice.
-              </p>
-              <button
-                type="button"
-                class="btn btn-sm shrink-0 border border-brand-300 bg-white text-brand-700 hover:bg-brand-50 disabled:opacity-60 dark:border-brand-700 dark:bg-brand-900/40 dark:text-brand-200 dark:hover:bg-brand-900/70"
-                :disabled="isRechecking"
-                @click="checkAgain"
+              <div
+                v-if="isUnconfirmed && !settled"
+                class="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-brand-200 bg-brand-25 p-4 dark:border-brand-800 dark:bg-brand-900/20"
               >
-                {{ isRechecking ? 'Checking…' : 'Check again' }}
-              </button>
-            </div>
+                <RotateCw
+                  class="size-5 shrink-0 text-brand-600 dark:text-brand-400"
+                  :class="isRechecking ? 'animate-spin' : ''"
+                  aria-hidden="true"
+                />
+                <p class="min-w-0 flex-1 text-xs text-gray-600 dark:text-gray-400">
+                  Still waiting on PayMongo. Checking again costs nothing and will not charge you
+                  twice.
+                </p>
+                <button
+                  type="button"
+                  class="btn btn-sm shrink-0 border border-brand-300 bg-white text-brand-700 hover:bg-brand-50 disabled:opacity-60 dark:border-brand-700 dark:bg-brand-900/40 dark:text-brand-200 dark:hover:bg-brand-900/70"
+                  :disabled="isRechecking"
+                  @click="checkAgain"
+                >
+                  {{ isRechecking ? 'Checking…' : 'Check again' }}
+                </button>
+              </div>
 
-            <!--
+              <!--
               Returning from PayMongo with `?payment=success` only means the provider
               thinks the payment went through. The webhook has not necessarily run yet,
               so this waits for the server rather than claiming an outcome.
             -->
-            <div
-              v-if="isAwaitingConfirmation"
-              class="flex items-start gap-3 rounded-xl border border-brand-200 bg-brand-25 p-4 dark:border-brand-800 dark:bg-brand-900/20"
-            >
-              <LoaderCircle class="mt-0.5 size-5 shrink-0 animate-spin text-brand-600 dark:text-brand-400" />
-              <div>
-                <p class="text-sm font-medium text-gray-900 dark:text-white/90">
-                  Confirming your payment with PayMongo
-                </p>
-                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  This normally takes a few seconds. Your place is already reserved, and you
-                  do not need to pay again.
-                </p>
+              <div
+                v-if="isAwaitingConfirmation"
+                class="flex items-start gap-3 rounded-xl border border-brand-200 bg-brand-25 p-4 dark:border-brand-800 dark:bg-brand-900/20"
+              >
+                <LoaderCircle
+                  class="mt-0.5 size-5 shrink-0 animate-spin text-brand-600 dark:text-brand-400"
+                />
+                <div>
+                  <p class="text-sm font-medium text-gray-900 dark:text-white/90">
+                    Confirming your payment with PayMongo
+                  </p>
+                  <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                    This normally takes a few seconds. Your place is already reserved, and you do
+                    not need to pay again.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <template v-else>
-              <dl class="space-y-3 text-sm">
-                <div class="flex items-start justify-between gap-4">
-                  <dt class="text-gray-600 dark:text-gray-400">Course</dt>
-                  <dd class="text-end font-medium text-gray-900 dark:text-white/90">
-                    {{ course.title }}
-                  </dd>
-                </div>
-                <div class="flex items-start justify-between gap-4">
-                  <dt class="text-gray-600 dark:text-gray-400">Level</dt>
-                  <dd class="text-end text-gray-900 dark:text-white/90">{{ course.level }}</dd>
-                </div>
-
-                <div class="border-t border-gray-200 pt-3 dark:border-gray-800">
+              <template v-else>
+                <dl class="space-y-3 text-sm">
                   <div class="flex items-start justify-between gap-4">
-                    <dt class="text-gray-600 dark:text-gray-400">Course price</dt>
-                    <dd class="text-end font-semibold text-gray-900 dark:text-white/90">
-                      {{ formatPeso(course.priceCentavos) }}
+                    <dt class="text-gray-600 dark:text-gray-400">Course</dt>
+                    <dd class="text-end font-medium text-gray-900 dark:text-white/90">
+                      {{ course.title }}
                     </dd>
                   </div>
+                  <div class="flex items-start justify-between gap-4">
+                    <dt class="text-gray-600 dark:text-gray-400">Level</dt>
+                    <dd class="text-end text-gray-900 dark:text-white/90">{{ course.level }}</dd>
+                  </div>
+
+                  <div class="border-t border-gray-200 pt-3 dark:border-gray-800">
+                    <div class="flex items-start justify-between gap-4">
+                      <dt class="text-gray-600 dark:text-gray-400">Course price</dt>
+                      <dd class="text-end font-semibold text-gray-900 dark:text-white/90">
+                        {{ formatPeso(course.priceCentavos) }}
+                      </dd>
+                    </div>
+                  </div>
+                </dl>
+
+                <p class="mt-5 text-xs text-gray-500 dark:text-gray-400">
+                  You will be taken to PayMongo to complete the payment, then brought straight back
+                  here. Payment is processed by PayMongo; nothing on this page charges your card.
+                </p>
+
+                <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    variant="primary"
+                    class="sm:flex-1"
+                    :disabled="isActing"
+                    @click="handlePay"
+                  >
+                    <LoaderCircle v-if="isActing" class="mr-2 size-4 animate-spin" />
+                    {{
+                      isActing ? 'Opening PayMongo...' : `Pay ${formatPeso(course.priceCentavos)}`
+                    }}
+                  </Button>
+                  <RouterLink :to="`/student/courses/${course.slug}`" class="sm:flex-1">
+                    <Button variant="outline" class="w-full">Back to the course</Button>
+                  </RouterLink>
                 </div>
-              </dl>
-
-              <p class="mt-5 text-xs text-gray-500 dark:text-gray-400">
-                You will be taken to PayMongo to complete the payment, then brought straight
-                back here. Payment is processed by PayMongo; nothing on this page charges
-                your card.
-              </p>
-
-              <div class="mt-6 flex flex-col gap-3 sm:flex-row">
-                <Button
-                  variant="primary"
-                  class="sm:flex-1"
-                  :disabled="isActing"
-                  @click="handlePay"
-                >
-                  <LoaderCircle v-if="isActing" class="mr-2 size-4 animate-spin" />
-                  {{ isActing ? 'Opening PayMongo...' : `Pay ${formatPeso(course.priceCentavos)}` }}
-                </Button>
-                <RouterLink :to="`/student/courses/${course.slug}`" class="sm:flex-1">
-                  <Button variant="outline" class="w-full">Back to the course</Button>
-                </RouterLink>
-              </div>
-            </template>
+              </template>
             </div>
           </div>
         </div>
@@ -348,7 +352,8 @@ const readStatus = async (): Promise<void> => {
     isAwaitingConfirmation.value = false
     noticeVariant.value = 'error'
     noticeTitle.value = 'Payment failed'
-    notice.value = 'That payment did not go through, so you have not been charged. You can try again.'
+    notice.value =
+      'That payment did not go through, so you have not been charged. You can try again.'
   } else if (status.paymentStatus === 'cancelled') {
     isAwaitingConfirmation.value = false
     noticeVariant.value = 'warning'
@@ -465,7 +470,9 @@ const handlePay = async (): Promise<void> => {
     window.location.href = result.checkoutUrl
   } catch (error) {
     actionError.value =
-      error instanceof CheckoutError ? error.message : 'Checkout could not be opened. Nothing has been charged.'
+      error instanceof CheckoutError
+        ? error.message
+        : 'Checkout could not be opened. Nothing has been charged.'
   } finally {
     isActing.value = false
   }

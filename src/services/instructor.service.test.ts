@@ -240,11 +240,20 @@ describe('createAssignment', () => {
       assignments: { error: { message: '42501: new row violates row-level policy' } },
     })
 
+    // The refusal must still surface - the point is never to swallow it.
     await expect(createAssignment('course-1', { title: 'Work' }, 'i-1')).rejects.toBeInstanceOf(
       InstructorError,
     )
+    // And it must not surface as SQL. This particular wording says "row-level policy"
+    // where the recognised phrase is "row-level security", so it is not a mapped
+    // refusal and takes the service's own fallback rather than the access sentence.
+    // Either is correct; leaking `42501` or a policy name to the person clicking Save
+    // is not, and this is the assertion that holds that line.
     await expect(createAssignment('course-1', { title: 'Work' }, 'i-1')).rejects.toThrow(
-      'new row violates row-level policy',
+      'Could not add the assignment.',
+    )
+    await expect(createAssignment('course-1', { title: 'Work' }, 'i-1')).rejects.not.toThrow(
+      /42501|row-level policy/,
     )
   })
 
@@ -324,6 +333,8 @@ describe('deleteAssignment', () => {
     respondByTable({
       assignments: { error: { message: 'permission denied for table assignments' } },
     })
-    await expect(deleteAssignment('a1')).rejects.toThrow(/permission denied/)
+    // The refusal still propagates, and the table name no longer travels with it.
+    await expect(deleteAssignment('a1')).rejects.toThrow('You do not have access to that.')
+    await expect(deleteAssignment('a1')).rejects.not.toThrow(/permission denied/)
   })
 })

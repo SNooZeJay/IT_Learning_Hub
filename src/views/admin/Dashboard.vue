@@ -53,11 +53,14 @@
       </div>
 
       <div class="mt-6 grid gap-6 lg:grid-cols-3">
-        <div class="lg:col-span-2">
+        <!-- `min-w-0` so a fixed-width child is clipped by the track rather than
+             widening it, which is what stops the dashboard scrolling sideways on a
+             phone. The chart beside it is the reason this matters. -->
+        <div class="min-w-0 lg:col-span-2">
           <TrendChart metric="admin_enrollment" />
         </div>
 
-        <div>
+        <div class="min-w-0">
           <div class="surface-card">
             <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <h2 class="section-heading">Recent payments</h2>

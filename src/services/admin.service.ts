@@ -1,4 +1,5 @@
-import { supabase } from './supabase/client'
+﻿import { supabase } from './supabase/client'
+import { humanizeError } from './errors'
 import type { Database } from './supabase/types'
 import type {
   AccountStatus,
@@ -137,8 +138,7 @@ export class AdminError extends Error {
  * colon of a timestamp, which cost the explanation along with the prefix.
  */
 function messageOf(error: { message: string } | null, fallback: string): string {
-  if (!error) return fallback
-  return error.message.replace(/^(?:ERROR:\s*|[A-Z]{5}:\s*)/, '').trim() || fallback
+  return humanizeError(error?.message ?? '', fallback)
 }
 
 function fail(error: { message: string } | null, fallback: string): AdminError {

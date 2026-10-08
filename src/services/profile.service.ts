@@ -1,4 +1,5 @@
-import { supabase } from './supabase/client'
+﻿import { supabase } from './supabase/client'
+import { humanizeError } from './errors'
 import type { Database } from './supabase/types'
 import type { Profile, ProfileRow } from '@/types'
 
@@ -42,8 +43,7 @@ export class ProfileError extends Error {
  * colon of a timestamp, which cost the explanation along with the prefix.
  */
 function messageOf(error: { message: string } | null, fallback: string): string {
-  if (!error) return fallback
-  return error.message.replace(/^(?:ERROR:\s*|[A-Z]{5}:\s*)/, '').trim() || fallback
+  return humanizeError(error?.message ?? '', fallback)
 }
 
 /** Row Level Security decides visibility. This throws only on transport errors. */
@@ -82,7 +82,7 @@ export async function fetchProfileByUserId(userId: string): Promise<Profile | nu
  *
  * `email` is absent for a second reason. It mirrors `auth.users.email`, there is
  * no trigger keeping the two in step, and `authenticated` has no grant on
- * `auth.users` — so a direct write here would leave the profile claiming an
+ * `auth.users` â€” so a direct write here would leave the profile claiming an
  * address the person cannot sign in with. There is deliberately no way to write
  * it from here.
  */
@@ -277,7 +277,7 @@ export async function uploadOwnAvatar(userId: string, file: File): Promise<strin
  * Drop the reference to the photo, which returns the person to their initials.
  *
  * The object itself is left in the bucket. There is no DELETE policy on
- * `avatars` for anybody — not even an administrator — so a delete would be
+ * `avatars` for anybody â€” not even an administrator â€” so a delete would be
  * refused, and calling one and ignoring the refusal is exactly the silent
  * no-op this file refuses to do. What a person sees is the column that decides
  * whether their face renders, and that is cleared here; the bytes become

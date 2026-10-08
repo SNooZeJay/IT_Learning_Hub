@@ -5,7 +5,7 @@
     </div>
     <p class="mt-1 section-subheading">{{ copy.subtitle }}</p>
 
-    <div class="mt-6">
+    <div class="mt-6 min-w-0">
       <EmptyState
         v-if="state === 'empty'"
         :title="copy.emptyTitle"
@@ -124,6 +124,22 @@ const options = computed<ApexOptions>(() => ({
     // Redraw rather than resize-only, so a parent grid that has already changed width
     // does not leave the plot squeezed into the old box.
     redrawOnParentResize: true,
+    // `100%` rather than letting Apex pick a pixel width.
+    //
+    // Left to itself Apex measures its box once and writes that measurement onto the
+    // canvas as `width: <n>px`. The measurement happens on the first frame after mount,
+    // which is not always the frame the layout settles on - and a phone that renders the
+    // dashboard before its own width is applied got a canvas wider than the screen.
+    //
+    // Worse, the lock is self-reinforcing. A grid item's automatic minimum size is its
+    // content's, so a 529px canvas inside a 358px track *stretches the track to 529*,
+    // which is the width Apex then keeps. Neither `redrawOnParentResize` nor a viewport
+    // change could undo it, because the parent had already been widened by the canvas.
+    // `100%` makes the canvas track its container instead of defining it.
+    width: '100%',
+    // The window listener that turns the percentage above back into pixels whenever the
+    // viewport genuinely changes - a rotation, a resize, a devtools device toggle.
+    redrawOnResize: true,
   },
   dataLabels: { enabled: false },
   stroke: { curve: 'straight', width: 3 },

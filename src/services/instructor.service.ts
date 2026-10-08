@@ -1,5 +1,6 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+﻿import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from './supabase/client'
+import { humanizeError } from './errors'
 import type { Database } from './supabase/types'
 import type {
   Course,
@@ -176,8 +177,7 @@ export class InstructorError extends Error {
  * person as "00:00+00" loses the sentence that explains the problem.
  */
 function messageOf(error: { message: string } | null, fallback: string): string {
-  if (!error) return fallback
-  return error.message.replace(/^(?:ERROR:\s*|[A-Z]{5}:\s*)/, '').trim() || fallback
+  return humanizeError(error?.message ?? '', fallback)
 }
 
 // ---------------------------------------------------------------------------

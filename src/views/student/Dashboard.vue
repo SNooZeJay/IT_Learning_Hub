@@ -188,7 +188,12 @@ const hasAnyActivity = computed(() => {
       </div>
 
       <div class="mt-6 grid gap-6 lg:grid-cols-3">
-        <div class="lg:col-span-2">
+        <!-- `min-w-0` on this item. A grid item's automatic minimum size is its
+             content's minimum, so any child with a fixed width - a chart canvas, a
+             wide table - widens the track rather than being clipped by it, and the
+             page starts scrolling sideways. `min-w-0` hands that decision back to
+             the grid, which is what makes the overflow wrapper below reachable. -->
+        <div class="min-w-0 lg:col-span-2">
           <!-- Continue learning. The single most useful thing on the page: where to
                go next. Everything else on a dashboard is reference. -->
           <div class="surface-card">
@@ -341,12 +346,12 @@ const hasAnyActivity = computed(() => {
             </ul>
           </div>
 
-          <div class="mt-6">
+          <div class="mt-6 min-w-0">
             <TrendChart metric="student_activity" />
           </div>
         </div>
 
-        <div>
+        <div class="min-w-0">
           <!-- Quizzes with something still to do. Passed quizzes and exhausted
                quizzes are deliberately absent: both are dead ends, and offering
                them sends a student to a screen that tells them they cannot start. -->

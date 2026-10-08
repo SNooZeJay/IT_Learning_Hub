@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+﻿import type { SupabaseClient } from '@supabase/supabase-js'
 import { describeSupabaseError, supabase } from './supabase/client'
 import type {
   Course,
@@ -55,7 +55,7 @@ import type {
  * statement below still names its columns explicitly and is still filtered by
  * the same policies, because RLS runs in Postgres and not in this file. Row types
  * are declared locally and applied to the result, so the boundary stays typed in
- * the direction that matters — out of the database.
+ * the direction that matters â€” out of the database.
  *
  * Regenerating `supabase/types.ts` deletes this alias and nothing else changes.
  */
@@ -332,7 +332,7 @@ export interface CourseDeadline {
 /**
  * A material attached to a lesson the student has not finished.
  *
- * There is no `due_at` on `lesson_materials` — the only deadline column in the
+ * There is no `due_at` on `lesson_materials` â€” the only deadline column in the
  * schema is `assignments.due_at`. `uploadedAt` is when the instructor added the
  * material, and the UI says so rather than dressing it up as a due date.
  *
@@ -366,8 +366,8 @@ export interface StudentDeadlines {
 /**
  * A failure with the message the database chose.
  *
- * `issue_certificate` raises refusals written to be read by the student — "your
- * certificate for this course was revoked on 2026-09-01: caught plagiarising" —
+ * `issue_certificate` raises refusals written to be read by the student â€” "your
+ * certificate for this course was revoked on 2026-09-01: caught plagiarising" â€”
  * and `course_completion_gaps` returns prose in its `detail` column. Replacing
  * either with a generic failure would throw away the only useful thing in the
  * response, so the text travels intact.
@@ -384,7 +384,7 @@ export class LearningError extends Error {
  *
  * The strip removes only the two forms Postgres genuinely emits: a leading
  * `ERROR: ` and a five-character SQLSTATE code. It must not reach for the first
- * colon in general, because that colon is usually inside a timestamp — "revoked on
+ * colon in general, because that colon is usually inside a timestamp â€” "revoked on
  * 2026-09-01" would arrive as "01".
  */
 function messageOf(error: { message: string } | null, fallback: string): string {
@@ -1227,9 +1227,9 @@ export async function listMyCertificates(studentId: string): Promise<Certificate
  * Ask the database to issue a certificate for a course.
  *
  * The refusals are the useful part of this function. `issue_certificate` raises a
- * specific message for each case that matters — not enrolled, already holds one,
+ * specific message for each case that matters â€” not enrolled, already holds one,
  * the existing one was revoked (with the date and the reason), or requirements are
- * unmet — and each is worth more than any check this file could write, so the text
+ * unmet â€” and each is worth more than any check this file could write, so the text
  * is carried through untouched and shown to the student as written.
  *
  * Returns the certificate it issued. Throws `LearningError` carrying the
@@ -1298,7 +1298,7 @@ export async function listNotifications(userId: string): Promise<NotificationFee
  *
  * A plain update, which is exactly what the `notifications mark read` policy
  * allows: `user_id = auth.uid()`. The `.eq('user_id', userId)` is belt and braces
- * rather than the security boundary — RLS is.
+ * rather than the security boundary â€” RLS is.
  */
 export async function markNotificationRead(id: string, userId: string): Promise<void> {
   const { error } = await later
@@ -1708,7 +1708,7 @@ export async function getStudentDeadlines(studentId: string): Promise<StudentDea
  * Materials attached to lessons that are not finished.
  *
  * Skipped entirely when a course has no modules or no lessons, because `.in([])`
- * is rejected by PostgREST rather than matching nothing — a silent empty query is
+ * is rejected by PostgREST rather than matching nothing â€” a silent empty query is
  * worth less here than one that never runs.
  */
 async function outstandingMaterials(
@@ -1828,7 +1828,7 @@ async function completedLessonIds(courseIds: string[], studentId: string): Promi
  * `record_activity` and `record_event` are SECURITY DEFINER writers that exist
  * for reporting, and a failure here must never turn a completed lesson into an
  * error the student has to act on. The error is swallowed on purpose, with a
- * console note so it is still diagnosable — the alternative is a student staring
+ * console note so it is still diagnosable â€” the alternative is a student staring
  * at "could not mark this lesson complete" when the lesson *was* marked complete.
  */
 export async function recordLearningEvent(

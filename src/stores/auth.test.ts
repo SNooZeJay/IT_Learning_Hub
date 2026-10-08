@@ -113,10 +113,7 @@ async function boot(auth: ReturnType<typeof useAuthStore>): Promise<void> {
 }
 
 /** Sign a user in the way the app does: the session changes, then the profile follows. */
-async function signInAs(
-  auth: ReturnType<typeof useAuthStore>,
-  userId: string,
-): Promise<void> {
+async function signInAs(auth: ReturnType<typeof useAuthStore>, userId: string): Promise<void> {
   authListener?.('SIGNED_IN', sessionFor(userId))
   await auth.ensureReady()
 }
@@ -124,8 +121,7 @@ async function signInAs(
 beforeEach(() => {
   setActivePinia(createPinia())
   authListener = null
-  profileFetch = async (userId: string) =>
-    userId === STUDENT.id ? STUDENT : INSTRUCTOR
+  profileFetch = async (userId: string) => (userId === STUDENT.id ? STUDENT : INSTRUCTOR)
 })
 
 describe('ensureReady with a profile from another account', () => {
@@ -175,9 +171,7 @@ describe('ensureReady with a profile from another account', () => {
   it('does not refetch when the profile already belongs to this session', async () => {
     const auth = useAuthStore()
     await boot(auth)
-    const fetchSpy = vi.fn(async (userId: string) =>
-      userId === STUDENT.id ? STUDENT : INSTRUCTOR,
-    )
+    const fetchSpy = vi.fn(async (userId: string) => (userId === STUDENT.id ? STUDENT : INSTRUCTOR))
     profileFetch = fetchSpy
 
     await signInAs(auth, STUDENT.id)

@@ -16,6 +16,7 @@ export * from '../../supabase/functions/_shared/validation'
 // `export *` puts these on the module's public surface but not in this file's own scope,
 // so anything used below has to be named explicitly as well.
 import { MAX_TEXT_LENGTH, isUuid } from '../../supabase/functions/_shared/validation'
+import { humanizeError } from '../services/errors'
 import type { Result } from '../../supabase/functions/_shared/validation'
 
 // ---------------------------------------------------------------------------
@@ -23,15 +24,23 @@ import type { Result } from '../../supabase/functions/_shared/validation'
 // ---------------------------------------------------------------------------
 
 /**
- * Strip the decoration PostgREST puts on a Postgres message.
+ * Turn a PostgREST error into a sentence a person can act on.
  *
- * `ERROR: ` and `23505: ` arrive in front of the sentence a person needs to read, and the
- * nine copies of this regex across the services had already drifted into two variants -
- * some taking `unknown`, some not. One definition, one behaviour.
+ * Two jobs, and the second is the one that matters for the UI. Stripping the
+ * `ERROR: ` prefix and the bare SQLSTATE is cosmetic - it leaves
+ * `duplicate key value violates unique constraint "categories_slug_key"` sitting
+ * in front of an administrator who clicked Save. So this hands the message to
+ * `humanizeError`, which translates the refusals this app can produce and falls
+ * back to the caller's own wording for the rest.
+ *
+ * A validation failure raised by the rules above is this codebase's own wording and
+ * passes through `humanizeError` untouched, so nothing here gets vaguer than it was.
+ *
+ * The nine copies of the bare regex this replaced had already drifted into two variants.
+ * One definition, one behaviour.
  */
 export function messageOf(error: { message: string } | null, fallback: string): string {
-  const raw = error?.message?.replace(/^(?:ERROR:\s*|[A-Z]{5}:\s*)/, '').trim()
-  return raw ? raw : fallback
+  return humanizeError(error?.message ?? '', fallback)
 }
 
 /** The same, for a caught value that is not known to be a PostgREST error. */
