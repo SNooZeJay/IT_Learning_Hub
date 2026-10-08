@@ -750,6 +750,27 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+
+    /*
+      The inherited text colour, from the token that already flips with the theme.
+
+      Nothing set one. Every visible string in this app carries an explicit
+      `text-ink` / `text-slate` / `dark:text-*` utility, so light mode looked correct -
+      black on white is what the browser defaults to, so a missing declaration and a
+      correct one are indistinguishable until the page flips.
+
+      Then it flipped. `body` carries `dark:bg-gray-900`, a near-black surface, while
+      the inherited colour stayed the browser's initial `rgb(0, 0, 0)`. Anything relying
+      on inheritance rather than a utility went invisible. Measured on `/settings` in dark:
+      the "Light", "Dark" and "System" radio labels at 1.3:1, and the inheritance chain
+      confirmed it - `span` -> `label` -> `fieldset` -> `section` -> `main` -> `body` ->
+      `html` were all `rgb(0, 0, 0)`.
+
+      `--color-ink` is `#17150f` in light and `#f6f2e8` in dark, so one declaration fixes
+      both themes and cannot drift between them. It also gives a browser that ignores
+      the stylesheet something closer to right than black-on-black.
+    */
+    color: var(--color-ink);
   }
 
   /*
@@ -2368,4 +2389,74 @@ pre code,
   font-family: 'Source Serif 4 Fallback';
   src: local('Palatino Linotype'), local('Palatino'), local('Georgia');
   size-adjust: 90.65%;
+}
+
+/* ---------------------------------------------------------------------------
+ * Fonts, served from this origin rather than from Google.
+ *
+ * The Google Fonts stylesheet was a round trip to a second origin before a single
+ * glyph could render: DNS, TLS, the CSS, then the woff2 - four steps, none of them on
+ * the connection to the app. Self-hosting collapses that to the app's own CSS plus two
+ * font files that download in parallel with everything else, and it takes two third
+ * parties off the critical path entirely.
+ *
+ * These are the exact woff2 files Google serves for this project, fetched once with a
+ * browser user agent and committed - Google serves legacy .ttf to anything else, and a
+ * .ttf behind a woff2 preload warms nothing.
+ *
+ * Only latin and latin-ext ship. Latin-ext is not optional: the peso sign U+20B1 sits
+ * outside Google's basic latin range, and this product prices every course in
+ * Philippine pesos. Without it the symbol falls back to a system font and every price
+ * on every screen renders in a different face.
+ *
+ * Declared at the END of this file on purpose. `@import` is only valid before any other
+ * rule, so putting these above `@import 'tailwindcss'` silently invalidates the import,
+ * Tailwind never runs, and the first `@apply` in the file fails with "unknown utility".
+ * At the end there is nothing to invalidate.
+ *
+ * `font-display: swap` keeps text readable in the fallback while these arrive, and each
+ * family stays on one variable weight axis, so a 600-weight headline costs no extra
+ * request.
+ * --------------------------------------------------------------------------- */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/Inter-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00ff, U+0131, U+0152-0153, U+02bb-02bc, U+02c6, U+02da, U+02dc, U+0304, U+0308, U+0329,
+    U+2000-206f, U+20ac, U+2122, U+2191, U+2193, U+2212, U+2215, U+feff, U+fffd;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/Inter-latinext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02ba, U+02bd-02c5, U+02c7-02cc, U+02ce-02d7, U+02dd-02ff, U+0304, U+0308, U+0329,
+    U+1d00-1dbf, U+1e00-1e9f, U+1ef2-1eff, U+2020, U+20a0-20ab, U+20ad-20c0, U+2113, U+2c60-2c7f,
+    U+a720-a7ff;
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/SourceSerif4-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00ff, U+0131, U+0152-0153, U+02bb-02bc, U+02c6, U+02da, U+02dc, U+0304, U+0308, U+0329,
+    U+2000-206f, U+20ac, U+2122, U+2191, U+2193, U+2212, U+2215, U+feff, U+fffd;
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/SourceSerif4-latinext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02ba, U+02bd-02c5, U+02c7-02cc, U+02ce-02d7, U+02dd-02ff, U+0304, U+0308, U+0329,
+    U+1d00-1dbf, U+1e00-1e9f, U+1ef2-1eff, U+2020, U+20a0-20ab, U+20ad-20c0, U+2113, U+2c60-2c7f,
+    U+a720-a7ff;
 }

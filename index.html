@@ -40,45 +40,7 @@
       the same file a second time.
 
     -->
-    <!--
-      The Google Fonts stylesheet, linked here rather than @imported from main.css.
-
-      An @import inside a stylesheet cannot begin until that stylesheet has been
-      fetched and parsed, so it serialised the critical path into three round trips
-      before any text could paint:
-
-          HTML -> main.css -> fonts.googleapis.com/css2 -> the woff2 files
-
-      As a <link> here the HTML parser discovers it immediately and it downloads
-      alongside the app CSS instead of after it. On a throttled connection, removing
-      a round trip from the critical path is worth more than tuning anything inside
-      the files it was fetching.
-
-      The two faces and their weight ranges are unchanged, so every page still renders
-      from the same files as before - this only changes when they start arriving, and
-      display=swap means text is readable in the fallback meanwhile.
-    -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=Source+Serif+4:opsz,wght@60,400..700&display=swap"
-      media="print"
-      onload="this.media = 'all'"
-    />
-    <noscript>
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=Source+Serif+4:opsz,wght@60,400..700&display=swap"
-      />
-    </noscript>
-    <link
-      rel="preload"
-      as="font"
-      type="font/woff2"
-      href="https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2"
-      crossorigin
-    />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/Inter-latin.woff2" crossorigin />
     <!--
       Preload Source Serif 4, the landing hero's display face, latin subset, upright
       and italic.
@@ -98,7 +60,7 @@
       rel="preload"
       as="font"
       type="font/woff2"
-      href="https://fonts.gstatic.com/s/sourceserif4/v15/vEFI2_tTDB4M7-auWDN0ahZJW1gb8tc.woff2"
+      href="/fonts/SourceSerif4-latin.woff2"
       crossorigin
     />
     <!--
