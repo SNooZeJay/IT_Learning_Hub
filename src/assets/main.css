@@ -1382,6 +1382,43 @@ span.flatpickr-weekday,
 }
 
 /* ---------------------------------------------------------------------------
+ * Select chevron.
+ *
+ * A native `<select>` paints its own arrow in the platform's style, which made it the
+ * one control on the page that ignored the design system - on a dark surface it read as
+ * a foreign widget dropped into the middle of the form. Every select now sets
+ * `appearance-none` and carries this class instead, which puts a chevron back that
+ * follows the app's own ramp.
+ *
+ * It lives here rather than as a Tailwind arbitrary value because
+ * `bg-[image:url("data:image/svg+xml,...")]` does not survive Tailwind's arbitrary
+ * value parsing: the commas and parentheses inside the data URI are read as separators
+ * and the rule is silently never generated. The control then keeps `appearance-none`
+ * and simply has no arrow at all, which is worse than the native one it replaced. Plain
+ * CSS holds the data URI exactly as written, and the dark variant is a real rule rather
+ * than a second arbitrary value.
+ *
+ * Unlayered, for the same reason as the third-party overrides below: this has to beat
+ * the utilities layer.
+ * --------------------------------------------------------------------------- */
+.select-chevron {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23787161' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  background-size: 16px 16px;
+}
+
+.dark .select-chevron {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23a4a097' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+}
+
+/* The denser variant, for a select inside a 32px table row. */
+.select-chevron-sm {
+  background-position: right 0.25rem center;
+  background-size: 14px 14px;
+}
+
+/* ---------------------------------------------------------------------------
  * Third-party overrides. Unlayered for the same reason: these have to beat the
  * utilities layer, and `@layer components` would not.
  * --------------------------------------------------------------------------- */

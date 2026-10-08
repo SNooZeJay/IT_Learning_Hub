@@ -78,20 +78,13 @@ export const searchInputClass = `${textInputClass} ps-9 pe-3`
  * That part is not ours to change; what this controls is the closed control, which is
  * what is on screen the rest of the time.
  */
-const CHEVRON_LIGHT =
-  'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22none%22 stroke=%22%23787161%22 stroke-width=%221.6%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E'
-const CHEVRON_DARK =
-  'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22none%22 stroke=%22%23a4a097%22 stroke-width=%221.6%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E'
-
 export const selectClass = [
+  'select-chevron',
   'w-full appearance-none rounded-md border border-hairline-strong bg-canvas',
-  'bg-[length:16px] bg-[position:right_0.625rem_center] bg-no-repeat',
-  `bg-[image:url(${CHEVRON_LIGHT})]`,
   'py-2 ps-3 pe-9 text-sm text-ink transition-colors',
   'focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20',
   'disabled:cursor-not-allowed disabled:opacity-60',
   'dark:bg-white/[0.03]',
-  `dark:bg-[image:url(${CHEVRON_DARK})]`,
 ].join(' ')
 
 /**
@@ -109,14 +102,12 @@ export const selectClass = [
  * `selectClass`; the six call sites now name it instead of restating it.
  */
 export const formSelectClass = [
+  'select-chevron',
   'mt-1.5 w-full appearance-none rounded-lg border border-hairline-strong bg-canvas',
-  'bg-[length:16px] bg-[position:right_0.75rem_center] bg-no-repeat',
-  `bg-[image:url(${CHEVRON_LIGHT})]`,
   'py-2.5 ps-3.5 pe-9 text-sm text-ink transition-colors',
   'focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20',
   'disabled:cursor-not-allowed disabled:opacity-60',
   'dark:bg-white/[0.03]',
-  `dark:bg-[image:url(${CHEVRON_DARK})]`,
 ].join(' ')
 
 /*
@@ -172,14 +163,12 @@ export const lpTextInputClass =
  * `pe-2` rather than `pe-9` because there is no room for nine units of inset in a cell.
  */
 export const cellSelectClass = [
+  'select-chevron select-chevron-sm',
   'appearance-none rounded-md border border-hairline-strong bg-canvas',
-  'bg-[length:14px] bg-[position:right_0.25rem_center] bg-no-repeat',
-  `bg-[image:url(${CHEVRON_LIGHT})]`,
-  'py-1.5 ps-2.5 pe-2 text-xs font-medium transition-colors',
+  'py-1.5 ps-2.5 pe-7 text-xs font-medium transition-colors',
   'focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20',
   'disabled:cursor-not-allowed disabled:opacity-60',
   'dark:bg-white/[0.03]',
-  `dark:bg-[image:url(${CHEVRON_DARK})]`,
 ].join(' ')
 
 /**
