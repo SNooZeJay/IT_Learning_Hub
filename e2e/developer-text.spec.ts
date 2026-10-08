@@ -71,7 +71,6 @@ const SEEDS: Record<string, string[]> = {
     '/admin/payments',
     '/admin/announcements',
     '/admin/analytics',
-    '/admin/settings',
     '/messages',
     '/profile',
     '/settings',

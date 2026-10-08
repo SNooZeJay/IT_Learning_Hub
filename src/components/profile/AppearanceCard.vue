@@ -29,13 +29,13 @@
           :class="
             preference === option.value
               ? 'border-brand-500 bg-brand-50/50 dark:border-brand-400 dark:bg-brand-500/10'
-              : 'border-hairline hover:border-hairline-strong'
+              : 'border-hairline hover:border-hairline-strong dark:border-white/10 dark:hover:border-white/20'
           "
         >
           <input
             type="radio"
             name="theme-preference"
-            class="mt-0.5 size-4 shrink-0 border-gray-300 text-brand-600 focus:ring-brand-500 dark:border-gray-600 dark:bg-white/[0.03]"
+            class="mt-0.5 size-4 shrink-0 border-stone text-brand-600 focus:ring-brand-500 dark:border-muted dark:bg-white/[0.03]"
             :value="option.value"
             :checked="preference === option.value"
             :aria-describedby="`theme-note-${option.value}`"

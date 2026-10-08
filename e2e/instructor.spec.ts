@@ -22,12 +22,7 @@ test.describe('Instructor', () => {
   test('cannot reach student or admin screens', async ({ page }) => {
     await signIn(page, 'instructor')
 
-    for (const forbidden of [
-      '/student/dashboard',
-      '/student/grades',
-      '/admin/users',
-      '/admin/settings',
-    ]) {
+    for (const forbidden of ['/student/dashboard', '/student/grades', '/admin/users']) {
       await page.goto(forbidden)
       await expect(page).not.toHaveURL(new RegExp(`${forbidden}$`))
       await expect(page).toHaveURL(/\/(instructor|auth)\//)

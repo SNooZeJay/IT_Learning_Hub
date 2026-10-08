@@ -355,12 +355,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/admin/Analytics.vue'),
         meta: { title: 'Platform analytics', roles: ['admin'] },
       },
-      {
-        path: 'settings',
-        name: 'admin-settings',
-        component: () => import('@/views/admin/Settings.vue'),
-        meta: { title: 'System settings', roles: ['admin'] },
-      },
     ],
   },
 

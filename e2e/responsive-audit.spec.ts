@@ -1,4 +1,4 @@
-﻿import { test, type Page } from '@playwright/test'
+import { test, type Page } from '@playwright/test'
 import { writeFileSync, mkdirSync } from 'node:fs'
 
 /**
@@ -76,7 +76,6 @@ const SEEDS: Record<string, string[]> = {
     '/admin/payments',
     '/admin/announcements',
     '/admin/analytics',
-    '/admin/settings',
   ],
 }
 

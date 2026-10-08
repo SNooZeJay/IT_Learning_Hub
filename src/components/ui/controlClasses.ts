@@ -56,9 +56,43 @@ export const textInputClass =
  */
 export const searchInputClass = `${textInputClass} ps-9 pe-3`
 
-/** Full-width select, for a filter bar. */
-export const selectClass =
-  'w-full rounded-md border border-hairline-strong bg-canvas px-3 py-2 text-sm text-ink transition-colors focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/[0.03]'
+/**
+ * Full-width select, for a filter bar.
+ *
+ * `appearance-none` plus an inline SVG chevron. A native select paints its own arrow in
+ * the platform's style, which made it the one control on the page that ignored the
+ * design system - and on a dark surface it read as a foreign widget dropped into the
+ * middle of the form. Removing the native arrow and drawing one as a background image
+ * puts it back under the app's own control language, and it follows light and dark
+ * because the two themes name a different stroke.
+ *
+ * The chevron is a background-image rather than a sibling element on purpose: every one
+ * of these selects is a bare `<select>` carrying a class, and asking twenty-eight call
+ * sites to wrap each one would be twenty-eight edits to make one decision.
+ *
+ * `ps-3 pe-9` rather than `pl-3 pr-9`, so the reserved space for the chevron is on the
+ * end side in RTL too - the arrow belongs to the trailing edge, which is the start edge
+ * when the document is mirrored.
+ *
+ * The open list itself is painted by the operating system and cannot be styled from CSS.
+ * That part is not ours to change; what this controls is the closed control, which is
+ * what is on screen the rest of the time.
+ */
+const CHEVRON_LIGHT =
+  'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22none%22 stroke=%22%23787161%22 stroke-width=%221.6%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E'
+const CHEVRON_DARK =
+  'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 20 20%22 fill=%22none%22 stroke=%22%23a4a097%22 stroke-width=%221.6%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M6 8l4 4 4-4%22/%3E%3C/svg%3E'
+
+export const selectClass = [
+  'w-full appearance-none rounded-md border border-hairline-strong bg-canvas',
+  'bg-[length:16px] bg-[position:right_0.625rem_center] bg-no-repeat',
+  `bg-[image:url(${CHEVRON_LIGHT})]`,
+  'py-2 ps-3 pe-9 text-sm text-ink transition-colors',
+  'focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20',
+  'disabled:cursor-not-allowed disabled:opacity-60',
+  'dark:bg-white/[0.03]',
+  `dark:bg-[image:url(${CHEVRON_DARK})]`,
+].join(' ')
 
 /*
   The same two controls, on the public pages' palette.
@@ -105,9 +139,23 @@ export const lpFieldLabelClass = 'mb-2 block text-sm font-medium text-lp-ink'
 export const lpTextInputClass =
   'w-full rounded-xl border border-lp-line-strong bg-lp-canvas px-4 py-3 text-sm text-lp-ink placeholder:text-lp-slate transition-[border-color,background-color,box-shadow] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus:border-lp-accent focus:shadow-[0_0_0_3px_rgba(31,107,70,0.12)] motion-reduce:transition-none disabled:cursor-not-allowed disabled:opacity-60'
 
-/** Select sitting inside a table cell, at the row's density. */
-export const cellSelectClass =
-  'rounded-md border border-hairline-strong bg-canvas py-1.5 ps-2.5 pe-2 text-xs font-medium transition-colors focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/[0.03]'
+/**
+ * Select sitting inside a table cell, at the row's density.
+ *
+ * Same treatment as `selectClass` - the native arrow is removed and a smaller chevron
+ * drawn in its place - but sized for a 32px row rather than a form field, and it keeps
+ * `pe-2` rather than `pe-9` because there is no room for nine units of inset in a cell.
+ */
+export const cellSelectClass = [
+  'appearance-none rounded-md border border-hairline-strong bg-canvas',
+  'bg-[length:14px] bg-[position:right_0.25rem_center] bg-no-repeat',
+  `bg-[image:url(${CHEVRON_LIGHT})]`,
+  'py-1.5 ps-2.5 pe-2 text-xs font-medium transition-colors',
+  'focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20',
+  'disabled:cursor-not-allowed disabled:opacity-60',
+  'dark:bg-white/[0.03]',
+  `dark:bg-[image:url(${CHEVRON_DARK})]`,
+].join(' ')
 
 /**
  * The quiet secondary button — the Refresh control every page header carries.

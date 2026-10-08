@@ -16,7 +16,6 @@ import {
   ChartColumn,
   ShieldCheck,
   FolderTree,
-  SlidersHorizontal,
 } from 'lucide-vue-next'
 import type { Role } from '@/types'
 
@@ -87,15 +86,6 @@ export const ROLE_NAVIGATION: Record<Role, NavItem[]> = {
     { label: 'Announcements', to: '/admin/announcements', icon: Megaphone },
     { label: 'Analytics', to: '/admin/analytics', icon: ChartColumn },
     { label: 'Messages', to: '/messages', icon: MessageSquare, badge: 'messages' },
-    // Named "System settings", not "Settings", and given a different icon from the
-    // per-person one in the user menu.
-    //
-    // This is platform configuration, read-only and honestly labelled as such: it reports
-    // what the database holds and where each fact can be changed. The per-person
-    // `/settings` is appearance and password. Both were reachable from a link or a menu
-    // item called "Settings" for as long as the second one existed under that name, and
-    // for an administrator the two were distinguished by nothing but the URL.
-    { label: 'System settings', to: '/admin/settings', icon: SlidersHorizontal },
   ],
 }
 
