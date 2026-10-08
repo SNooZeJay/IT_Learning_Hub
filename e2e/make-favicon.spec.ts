@@ -14,7 +14,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
  * everything else here, and it asserts the output is non-empty rather than assuming.
  */
 
-const SOURCE = 'D:/LMS_PROJECT/IT_Learning_Hub_Logo.png'
+const SOURCE = 'D:/LMS_PROJECT/IT_Learning_Hub_Logo - Edited.png'
 const OUT = 'public/favicon-src'
 const SIZES = [16, 32, 48, 180, 512]
 
