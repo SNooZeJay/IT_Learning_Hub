@@ -153,30 +153,20 @@ Deno.serve(async (request) => {
       ? await settle(paymentId, envelope)
       : await fail(paymentId, envelope, decision.action === 'cancel')
 
-  // A settlement that failed is a failure, and it is recorded as one - but the response
-  // to the provider is still 200.
+  // A failure to settle is a failure, and it has to reach the provider as one.
   //
-  // This used to return 500, so PayMongo would retry. That is defensible in isolation
-  // and it is how the enrolment-guard bug was caught at all: settle_payment raised
-  // 42501 on every event, the endpoint answered 500 every time, and PayMongo disabled
-  // the webhook outright. So the design had the consequence that a *settlement* fault
-  // could silently stop every future payment from being reported - the one failure
-  // mode that must never happen, and the one the retry was meant to help with.
+  // Returning 200 here told PayMongo the delivery succeeded, so it stopped retrying,
+  // and the learner was left charged with the payment stuck at pending and the
+  // enrolment never activated. 500 makes the provider try again, which is the only
+  // thing that can fix a transient fault.
   //
-  // The rule now:
-  //
-  //   recorded in the ledger  -> 200. We have a durable trace, the retry buys nothing
-  //                              because the same failure will recur, and the ledger
-  //                              is where an operator finds it.
-  //   not recorded at all     -> 500. No trace exists, so a retry is the only way the
-  //                              event survives. See the `recorded.error` branch above.
-  //
-  // The event id is the idempotency key, so a retry that does arrive is absorbed rather
-  // than settling twice.
+  // This is deliberately different from the unmatched-event case above, which does
+  // return 200. An event we cannot match is a permanent condition and retrying it
+  // forever achieves nothing; a settlement that failed is not, and the difference is
+  // the whole reason the status code is not uniform.
   if (outcome === 'settle_failed' || outcome === 'fail_failed') {
-    console.error(
-      'paymongo webhook: event recorded but not applied; settlement is pending reconciliation',
-    )
+    console.error('paymongo webhook: could not apply the event; asking the provider to retry')
+    return json({ received: true, matched: true, outcome }, 500)
   }
 
   return json({ received: true, matched: true, outcome })
