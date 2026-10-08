@@ -22,7 +22,14 @@
     </nav>
 
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
+      <!--
+        `min-w-0` on both children of this row. They are flex items, and a flex item
+        defaults to `min-width: auto`, so neither would shrink below its content's
+        minimum - the title block and the action row together pushed this header 14px
+        wider than the space it had, and the announcements pages (the three screens
+        that use this header with a subtitle) scrolled sideways on a 375px phone.
+      -->
+      <div class="min-w-0">
         <h1 class="text-title-lg text-gray-900 dark:text-white/90">{{ title }}</h1>
         <p v-if="subtitle" class="mt-1 section-subheading">
           {{ subtitle }}
@@ -34,7 +41,7 @@
         absent: on the `sm:flex-row` layout the action row shares the line with the
         title, and a shrinking button is a squeezed button.
       -->
-      <div v-if="$slots.actions" class="flex flex-wrap items-center gap-2">
+      <div v-if="$slots.actions" class="flex min-w-0 flex-wrap items-center gap-2">
         <slot name="actions" />
       </div>
     </div>

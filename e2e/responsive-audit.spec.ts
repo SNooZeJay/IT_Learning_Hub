@@ -1,4 +1,4 @@
-import { test, type Page } from '@playwright/test'
+﻿import { test, type Page } from '@playwright/test'
 import { writeFileSync, mkdirSync } from 'node:fs'
 
 /**
@@ -189,6 +189,32 @@ async function measure(page: Page) {
       }
     }
 
+    /**
+     * Elements whose own content is wider than their own box. This is the one that
+     * actually locates the overflow: `documentElement.scrollWidth` can exceed its
+     * clientWidth with no descendant's right edge past the viewport, and the holder
+     * of that overflow is the deepest element with `scrollWidth > clientWidth`.
+     */
+    const holders: string[] = []
+    for (const el of Array.from(document.querySelectorAll('body, body *'))) {
+      if (el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0) {
+        const style = getComputedStyle(el)
+        if (style.overflowX === 'auto' || style.overflowX === 'scroll') continue
+        // Only the DEEPEST overflowing element identifies the cause; every ancestor
+        // reports it too, and the chain is the same information repeated six times.
+        const childOverflows = Array.from(el.children).some(
+          (c) => c.scrollWidth > c.clientWidth + 1,
+        )
+        if (childOverflows) continue
+        const text = (el.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 70)
+        holders.push(
+          `${describe(el)} :: client=${el.clientWidth} scroll=${el.scrollWidth} ` +
+            `overflowX=${style.overflowX} whiteSpace=${style.whiteSpace} ` +
+            `text="${text}"`,
+        )
+      }
+    }
+
     return {
       viewport,
       innerWidth: window.innerWidth,
@@ -200,6 +226,7 @@ async function measure(page: Page) {
       offenders: offenders.slice(0, 6),
       widest,
       suspects: suspects.slice(0, 10),
+      holders: holders.slice(0, 10),
     }
   })
 }
@@ -212,6 +239,7 @@ type Finding = {
   offenders: { selector: string; right: number; width: number }[]
   widest: { selector: string; right: number; width: number }
   suspects: string[]
+  holders: string[]
   bodyScrollWidth: number
   bodyWidth: number
 }
@@ -255,6 +283,8 @@ test('responsive sweep across every role and viewport', async ({ page }) => {
           offenders: m.offenders,
           widest: m.widest,
           suspects: m.suspects,
+
+          holders: m.holders,
           bodyScrollWidth: m.bodyScrollWidth,
           bodyWidth: m.bodyWidth,
         })
@@ -326,6 +356,8 @@ test('responsive sweep across every role and viewport', async ({ page }) => {
         console.log(`    offender  ${o.selector}  (right=${o.right} width=${o.width})`)
       }
       console.log(`    widest    ${f.widest.selector}  (right=${f.widest.right} width=${f.widest.width})`)
+      for (const h of f.holders) console.log(`    holder    ${h}`)
+
       for (const s of f.suspects) console.log(`    suspect   ${s}`)
     }
   }
@@ -334,3 +366,4 @@ test('responsive sweep across every role and viewport', async ({ page }) => {
     for (const e of consoleErrors.slice(0, 12)) console.log(`    ${e.page} :: ${e.text.slice(0, 160)}`)
   }
 })
+

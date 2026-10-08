@@ -297,20 +297,34 @@ layer(base);
   --text-title-2xl--line-height: 78px;
   --text-title-2xl--font-weight: 600;
   --text-title-2xl--letter-spacing: -0.025em;
-  --text-title-xl: 60px;
-  --text-title-xl--line-height: 66px;
+  /*
+   * The title scale is fluid rather than fixed.
+   *
+   * These were fixed pixel sizes, and a page title is a single line that cannot be
+   * broken mid-word. "Announcements" is 373px wide at 48px semibold, which is wider
+   * than the 343px a 375px phone leaves inside the page padding - so the heading
+   * pushed the whole document sideways and the three announcements screens scrolled
+   * horizontally with nothing else on the page to blame.
+   *
+   * `clamp` shrinks the scale on small screens and leaves the designed value intact
+   * from the breakpoint upward, so nothing changes on a laptop or a desktop. A media
+   * query would have been the other option and would have needed one per step; this
+   * keeps the scale a scale.
+   */
+  --text-title-xl: clamp(34px, 8vw, 60px);
+  --text-title-xl--line-height: clamp(40px, 9vw, 66px);
   --text-title-xl--font-weight: 600;
   --text-title-xl--letter-spacing: -0.02em;
-  --text-title-lg: 48px;
-  --text-title-lg--line-height: 55px;
+  --text-title-lg: clamp(30px, 6.5vw, 48px);
+  --text-title-lg--line-height: clamp(36px, 7.5vw, 55px);
   --text-title-lg--font-weight: 600;
   --text-title-lg--letter-spacing: -0.015em;
-  --text-title-md: 36px;
-  --text-title-md--line-height: 43px;
+  --text-title-md: clamp(26px, 5vw, 36px);
+  --text-title-md--line-height: clamp(32px, 6vw, 43px);
   --text-title-md--font-weight: 600;
   --text-title-md--letter-spacing: -0.01em;
-  --text-title-sm: 30px;
-  --text-title-sm--line-height: 38px;
+  --text-title-sm: clamp(24px, 4vw, 30px);
+  --text-title-sm--line-height: clamp(31px, 5vw, 38px);
   --text-title-sm--font-weight: 600;
   --text-title-sm--letter-spacing: -0.005em;
   --text-theme-xl: 20px;
