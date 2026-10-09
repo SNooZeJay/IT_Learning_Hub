@@ -82,6 +82,7 @@
           <input
             v-model.trim="search"
             type="search"
+            aria-label="Search name or email"
             placeholder="Search name or email"
             :class="searchClass"
           />

@@ -28,6 +28,7 @@
           <input
             v-model.trim="search"
             type="search"
+            aria-label="Search courses"
             placeholder="Search courses"
             :class="searchClass"
           />

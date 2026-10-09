@@ -38,7 +38,7 @@ const ACCOUNTS = {
   },
   instructor: {
     email: process.env.E2E_INSTRUCTOR_EMAIL ?? 'bautista.jayzee@ncst.edu.ph',
-    password: process.env.E2E_INSTRUCTOR_PASSWORD ?? 'Student0001!!!',
+    password: process.env.E2E_INSTRUCTOR_PASSWORD ?? 'Instructor0001!!!',
   },
   admin: {
     email: process.env.E2E_ADMIN_EMAIL ?? 'jayzeeb65@gmail.com',

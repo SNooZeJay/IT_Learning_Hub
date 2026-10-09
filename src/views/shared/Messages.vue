@@ -366,12 +366,12 @@ onMounted(async () => {
                   {{ conversation.subject }}
                 </span>
                 <span
-                  class="w-full line-clamp-2 text-start text-xs text-stone"
+                  class="w-full line-clamp-2 text-start text-xs text-slate"
                   :title="conversation.lastMessagePreview ?? undefined"
                 >
                   {{ conversation.lastMessagePreview }}
                 </span>
-                <span class="text-[11px] text-stone tabular-nums">
+                <span class="text-xs text-slate tabular-nums">
                   {{ formatDateTime(conversation.lastMessageAt) }}
                 </span>
               </button>
@@ -451,7 +451,7 @@ onMounted(async () => {
                   >
                     {{ message.body }}
                   </span>
-                  <span class="text-[11px] text-stone tabular-nums">
+                  <span class="text-xs text-slate tabular-nums">
                     {{ formatDateTime(message.createdAt) }}
                   </span>
                 </li>
@@ -471,7 +471,7 @@ onMounted(async () => {
                   placeholder="Write a message"
                   :aria-invalid="Boolean(sendError)"
                   :aria-describedby="sendError ? 'message-error' : undefined"
-                  class="w-full resize-y rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-stone focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-500 dark:border-white/10 dark:bg-white/[0.04]"
+                  class="w-full resize-y rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-slate focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-500 dark:border-white/10 dark:bg-white/[0.04]"
                 ></textarea>
 
                 <p

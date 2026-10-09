@@ -66,7 +66,30 @@ export interface CalendarEvent {
   tense: EventTense
 }
 
-/** Presentation per kind. Icon and label live with the kind, not at each call site. */
+/**
+ * Presentation per kind. Icon and label live with the kind, not at each call site.
+ *
+ * Every tone below is measured, not eyeballed. These are solid badges carrying a 10px
+ * uppercase label, so they need 4.5:1 against their own fill - and five of the seven
+ * that carried `text-white` did not have it:
+ *
+ *   bg-brand-400  #7fc79f + white   1.99:1
+ *   bg-gray-400   #a4a097 + white   2.61:1
+ *   bg-success-500 #1aae39 + white  2.93:1
+ *   bg-warning-500 #dd5b00 + white  3.77:1
+ *   bg-success-600 #158c2c + white  4.36:1
+ *
+ * Two fixes, chosen per tone rather than applied blanket:
+ *
+ *   - Where the hue is dark enough to keep white, it is deepened one step instead:
+ *     warning-500 -> 600, success-500 -> 600, success-600 -> 700.
+ *   - Where the fill IS one of the palette's pale steps, the text becomes ink rather
+ *     than white. brand-400 and gray-400 are light by design, and darkening them to
+ *     make white legible would take them out of the palette. Ink measures 11.4:1 and
+ *     7.5:1 on them.
+ *
+ * The label always sits beside the colour, so no badge carries meaning by hue alone.
+ */
 export const EVENT_PRESENTATION: Record<
   CalendarEventKind,
   { label: string; /** Tailwind classes for the dot / chip. */ tone: string }
@@ -77,7 +100,7 @@ export const EVENT_PRESENTATION: Record<
   },
   quiz_attempt_due: {
     label: 'Quiz closes',
-    tone: 'bg-warning-500 text-white',
+    tone: 'bg-warning-600 text-white',
   },
   announcement: {
     label: 'Announcement',
@@ -85,19 +108,21 @@ export const EVENT_PRESENTATION: Record<
   },
   course_published: {
     label: 'Course published',
-    tone: 'bg-brand-400 text-white',
+    // A pale step of the ramp: ink, not white.
+    tone: 'bg-brand-400 text-ink',
   },
   quiz_graded: {
     label: 'Quiz graded',
-    tone: 'bg-success-600 text-white',
+    tone: 'bg-success-700 text-white',
   },
   lesson_completed: {
     label: 'Lesson completed',
-    tone: 'bg-success-500 text-white',
+    tone: 'bg-success-600 text-white',
   },
   course_started: {
     label: 'Enrolled',
-    tone: 'bg-gray-400 text-white',
+    // A pale step of the neutral ramp: ink, not white.
+    tone: 'bg-gray-400 text-ink',
   },
   course_completed: {
     label: 'Course completed',

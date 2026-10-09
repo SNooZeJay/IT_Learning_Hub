@@ -15,7 +15,8 @@
         <input
           v-model.trim="search"
           type="search"
-          placeholder="Search by student, course or assignment"
+          aria-label="Search the grading queue"
+            placeholder="Search by student, course or assignment"
           :class="searchClass"
         />
       </div>

@@ -64,6 +64,7 @@
           <input
             v-model.trim="search"
             type="search"
+            aria-label="Search instructor name, email or course"
             placeholder="Search name, email or course"
             :class="searchClass"
           />

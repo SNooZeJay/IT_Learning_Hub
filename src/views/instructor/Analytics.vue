@@ -161,7 +161,15 @@
               <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                 <!-- Null means no attempts. "0%" would claim a student scored
                      nothing, which is a different statement. -->
-                <span v-if="course.averageQuizScore === null" class="text-gray-400">—</span>
+                <!--
+                  `text-slate`, not `text-gray-400`.
+
+                  `gray-400` is #a4a097 and measures 2.61:1 on the card - this is the
+                  cell saying "no attempts recorded", which is information somebody is
+                  reading, not decoration. `slate` is 7.2:1 on white and carries its own
+                  dark value, so the explicit dark pair is not needed.
+                -->
+                <span v-if="course.averageQuizScore === null" class="text-slate">—</span>
                 <span v-else>{{ course.averageQuizScore }}%</span>
                 <p v-if="course.attempts > 0" class="text-xs text-slate">
                   {{ course.attempts }} attempt{{ course.attempts === 1 ? '' : 's' }}

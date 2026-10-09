@@ -522,7 +522,7 @@ const hasAnyActivity = computed(() => {
                       the label clearly subordinate to the `text-sm` day beside it while
                       being a size that exists on the type scale.
                     -->
-                    <span class="text-[11px] leading-none font-medium text-slate uppercase">
+                    <span class="text-xs leading-none font-medium text-slate uppercase">
                       {{ formatShortDate(item.at).split(' ')[1] }}
                     </span>
                     <span

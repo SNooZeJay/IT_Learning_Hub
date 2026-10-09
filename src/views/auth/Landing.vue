@@ -322,9 +322,36 @@
               </template>
             </h1>
 
+            <!--
+              `fade-in-lcp` rather than `lp-hero-step`, and that is a performance
+              decision as much as a visual one.
+
+              This paragraph is the largest contentful element on the page - Lighthouse
+              measured it as such, 380x78, the biggest painted block in the hero - and
+              LCP is only recorded once that element is actually painted. `lp-hero-step`
+              starts it at `opacity: 0` and runs a 560ms rise after a 120ms stagger
+              delay, so the browser waits out both before it can score the paint.
+              Measured on a throttled phone that was 4,037ms of a 4,537ms LCP: 90% render
+              delay on an element whose bytes had already arrived, with load delay and
+              load time both at zero.
+
+              So this one element fades in over the base duration instead of rising on
+              the stagger. Same easing, same opacity transition, so it still arrives as
+              part of the sequence rather than popping in; what it no longer does is
+              hold the page's headline metric hostage to a 12px vertical travel nobody
+              can see at this text size.
+
+              The utility is named `fade-in-lcp` rather than `motion-*` because Tailwind
+              reserves the `motion-` prefix for `--animate-*` tokens, and a `@utility`
+              using it is silently not emitted - the first attempt at this had no effect
+              on the rendered page at all for exactly that reason.
+
+              The rest of the hero is untouched: the eyebrow above, the buttons and the
+              stat row all still carry `lp-hero-step` and still stagger in as a group.
+            -->
             <p
               :style="{ '--stagger-i': 2 }"
-              class="lp-hero-step mt-6 max-w-xl text-base leading-relaxed text-lp-slate md:text-lg"
+              class="fade-in-lcp mt-6 max-w-xl text-base leading-relaxed text-lp-slate md:text-lg"
             >
               IT Learning Hub gives you organised learning materials, lessons and quizzes — with
               your progress tracked from the first lesson to the last.
@@ -1108,8 +1135,8 @@ git --version</code></pre>
         <div
           class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.07] pt-8 md:mt-16"
         >
-          <p class="text-xs text-slate">© {{ year }} IT Learning Hub</p>
-          <p class="text-xs text-slate">Payments processed in Philippine pesos.</p>
+          <p class="text-xs text-gray-400">© {{ year }} IT Learning Hub</p>
+          <p class="text-xs text-gray-400">Payments processed in Philippine pesos.</p>
         </div>
       </div>
     </footer>

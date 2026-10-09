@@ -194,13 +194,13 @@ function goToToday(): void {
                 />
                 <span class="truncate font-medium text-ink">{{ event.title }}</span>
               </span>
-              <span class="mt-0.5 flex items-center gap-1 text-[11px] text-slate">
+              <span class="mt-0.5 flex items-center gap-1 text-xs text-slate">
                 <Clock class="size-3 shrink-0" aria-hidden="true" />
                 {{ formatTime(event.at) }}
               </span>
               <span
                 v-if="event.courseTitle"
-                class="mt-0.5 flex items-center gap-1 truncate text-[11px] text-stone"
+                class="mt-0.5 flex items-center gap-1 truncate text-xs text-slate"
               >
                 <MapPin class="size-3 shrink-0" aria-hidden="true" />
                 {{ event.courseTitle }}
@@ -211,7 +211,7 @@ function goToToday(): void {
           <li v-if="day.past.length" class="pt-1">
             <details class="group">
               <summary
-                class="cursor-pointer list-none text-[11px] text-stone transition-colors hover:text-slate"
+                class="cursor-pointer list-none text-xs text-slate transition-colors hover:text-slate"
               >
                 {{ day.past.length }} earlier
               </summary>
@@ -219,7 +219,7 @@ function goToToday(): void {
                 <li
                   v-for="event in day.past"
                   :key="event.id"
-                  class="px-2 py-1 text-[11px] text-stone"
+                  class="px-2 py-1 text-xs text-slate"
                 >
                   <span class="flex items-center gap-1.5">
                     <span

@@ -234,9 +234,19 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
                 :class="EVENT_PRESENTATION[kind].tone.split(' ')[0]"
                 aria-hidden="true"
               />
-              <span
-                class="ms-0.5 text-[10px] font-medium text-stone tabular-nums dark:text-gray-500"
-              >
+              <!--
+                `text-slate` and `text-xs`, not `text-stone` and `text-[10px]`.
+
+                `stone` is #8b8880 and measures 3.25:1 on this app's light surface -
+                below the 4.5:1 AA asks of the copy carrying it, and this is the only
+                number telling you how much is on a given day. `slate` is 6.6:1 and
+                flips with the theme, so the explicit dark pair goes with it.
+
+                10px is also off the type scale: `main.css` sets the smallest step at
+                12px, and a count that has to be read next to a coloured dot should not
+                be the smallest text in the app.
+              -->
+              <span class="ms-0.5 text-xs font-medium text-slate tabular-nums">
                 {{ cell.events.length }}
               </span>
             </span>

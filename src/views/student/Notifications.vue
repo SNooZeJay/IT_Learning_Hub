@@ -148,7 +148,7 @@
                 <button
                   v-if="!notification.isRead"
                   type="button"
-                  class="inline-flex items-center gap-1 text-sm font-medium text-slate transition-colors hover:text-ink disabled:opacity-60"
+                  class="inline-flex min-h-6 items-center gap-1 text-sm font-medium text-slate transition-colors hover:text-ink disabled:opacity-60"
                   :disabled="actingOn === notification.id"
                   @click="markRead(notification)"
                 >
@@ -243,7 +243,7 @@ const TYPE_META: Record<NotificationType, { icon: typeof Award; label: string; w
   payment_received: {
     icon: CircleDollarSign,
     label: 'Payment',
-    wrap: 'bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-400',
+    wrap: 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400',
   },
   quiz_graded: {
     icon: ClipboardCheck,
@@ -258,12 +258,12 @@ const TYPE_META: Record<NotificationType, { icon: typeof Award; label: string; w
   course_completed: {
     icon: GraduationCap,
     label: 'Course completed',
-    wrap: 'bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-400',
+    wrap: 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400',
   },
   certificate_issued: {
     icon: BadgeCheck,
     label: 'Certificate issued',
-    wrap: 'bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-400',
+    wrap: 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400',
   },
   certificate_revoked: {
     icon: CircleX,

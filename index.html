@@ -48,7 +48,22 @@
     -->
     <link rel="icon" href="/favicon.ico?v=7031e9bd19" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=27df2f95eb" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png?v=1a69003b98" />
+    <!--
+      `icon-512.png` is NOT declared here, and that is deliberate.
+
+      It was, as `<link rel="icon" type="image/png" sizes="512x512">`, which put a
+      110 KB file in the critical path of every page load in the product - measured on
+      the landing page as the third-largest asset on the page, behind only the entry
+      chunk and one font, for an image the tab bar never shows at that size.
+
+      A browser downloads one icon for the tab. It picks the largest one the document
+      declares, so declaring the 512 here is what made every visitor fetch it.
+
+      The 512 is not decoration though: it is the installed-app icon, and it is still
+      declared - in `site.webmanifest`, which is where Android and the install prompt
+      read it from. Removing the head link costs nothing and saves 110 KB per page
+      view; the manifest is the correct home for a large icon.
+    -->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=e615013835" />
     <!--
       The manifest so the tab icon and the installed-app icon are the same file, and
@@ -116,12 +131,21 @@
       name="description"
       content="IT Learning Hub - practical IT training with courses, quizzes and assignments."
     />
-    <meta name="theme-color" content="#5645d4" />
+    <!--
+      Green, `brand-500`.
+
+      This said `#5645d4` - TailAdmin's purple, from before the brand ramp moved to
+      green. It is the colour of the browser's own UI on a mobile browser (the address
+      bar tint), so a purple bar sat above a green page. `site.webmanifest` already
+      carried `#1f6b46`; this was the two disagreeing.
+    -->
+    <meta name="theme-color" content="#1f6b46" />
     <title>IT Learning Hub</title>
     <style>
       /* Splash shown until Vue mounts. Inlined so it paints on the first frame
-         rather than after the CSS bundle arrives. Uses Carbon tokens inline
-         because main.css is not loaded yet. */
+         rather than after the CSS bundle arrives. The values are duplicated from the
+         theme rather than imported: main.css is not loaded yet, and the whole point
+         is that this paints before anything else does. */
       #app-loading {
         position: fixed;
         inset: 0;
@@ -156,7 +180,7 @@
         display: block;
         width: 40%;
         height: 100%;
-        background: #5645d4;
+        background: #1f6b46; /* brand-500, matching theme-color above */
         animation: slide 1.1s ease-in-out infinite;
       }
       @keyframes slide {

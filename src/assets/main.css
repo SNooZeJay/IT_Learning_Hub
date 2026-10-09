@@ -1109,6 +1109,31 @@
 }
 
 /*
+  A fade with no travel, and no stagger delay.
+
+  For an element that is the page's Largest Contentful Paint. LCP is recorded at the
+  moment that element is painted, and an entrance that starts at `opacity: 0` cannot be
+  painted until the animation has run - so a rise-and-fade on the LCP element spends the
+  metric on motion. Measured on the landing page, a 560ms rise after a 120ms stagger
+  delay accounted for 4,037ms of a 4,537ms LCP: 90% render delay, with load delay and
+  load time at zero, because the bytes were already there and the browser was waiting
+  for permission to show them.
+
+  `lp-stagger` is the right default and stays it. This is for the one element per page
+  that the metric is actually watching, where the same easing and the same opacity
+  transition are kept and only the transform - which is the part nobody can see on
+  body copy - is dropped.
+*/
+@utility fade-in-lcp {
+  animation: motion-fade var(--ith-motion-base) var(--ith-ease-soft) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation-name: motion-fade;
+    animation-duration: var(--ith-motion-fast);
+  }
+}
+
+/*
   THE INTERACTIVE SURFACES: what a card, a button and a field do under a pointer.
 
   Three utilities, three jobs, all at `--ith-motion-instant` or `--ith-motion-fast`:

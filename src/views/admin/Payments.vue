@@ -81,6 +81,7 @@
           <input
             v-model.trim="search"
             type="search"
+            aria-label="Search payment by name, course or reference"
             placeholder="Search name, course or reference"
             :class="searchClass"
           />

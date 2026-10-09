@@ -68,6 +68,7 @@
           <input
             v-model.trim="search"
             type="search"
+            aria-label="Search course title"
             placeholder="Search course title"
             :class="searchInputClass"
           />
@@ -244,7 +245,7 @@
                             type="button"
                             :disabled="busyId !== null"
                             :aria-label="`Remove ${instructor.fullName} from ${course.title}`"
-                            class="rounded p-0.5 text-slate transition hover:bg-surface hover:text-error-600 dark:hover:text-error-400"
+                            class="inline-flex min-h-6 min-w-6 items-center justify-center rounded-md p-1 text-slate transition hover:bg-surface hover:text-error-600 dark:hover:text-error-400"
                             @click="onUnassign(course, instructor.id)"
                           >
                             <LoaderCircle

@@ -131,7 +131,7 @@ watch(view, (next) => {
         />
         <span class="text-xs text-slate">
           {{ item.meta.label }}
-          <span class="text-stone tabular-nums">({{ item.count }})</span>
+          <span class="text-slate tabular-nums">({{ item.count }})</span>
         </span>
       </li>
     </ul>
@@ -175,7 +175,7 @@ watch(view, (next) => {
                 <span class="block text-sm font-medium text-ink">{{ event.title }}</span>
                 <span class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate">
                   <span
-                    class="rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase"
+                    class="rounded px-1.5 py-1 text-xs font-medium tracking-wide uppercase"
                     :class="EVENT_PRESENTATION[event.kind].tone"
                   >
                     {{ EVENT_PRESENTATION[event.kind].label }}

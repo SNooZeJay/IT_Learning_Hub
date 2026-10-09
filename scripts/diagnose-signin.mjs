@@ -15,9 +15,18 @@ const BASE = process.argv[2] ?? 'http://localhost:4173'
 const ROLES = process.argv.slice(3)
 
 const ACCOUNTS = {
-  student: { email: 'lalamonan.joren@ncst.edu.ph', password: 'Student0001!!!' },
-  instructor: { email: 'bautista.jayzee@ncst.edu.ph', password: 'Student0001!!!' },
-  admin: { email: 'jayzeeb65@gmail.com', password: 'Admin0817!!!' },
+  student: {
+    email: process.env.AUDIT_STUDENT_EMAIL ?? 'lalamonan.joren@ncst.edu.ph',
+    password: process.env.AUDIT_STUDENT_PASSWORD ?? 'Student0001!!!',
+  },
+  instructor: {
+    email: process.env.AUDIT_INSTRUCTOR_EMAIL ?? 'bautista.jayzee@ncst.edu.ph',
+    password: process.env.AUDIT_INSTRUCTOR_PASSWORD ?? 'Instructor0001!!!',
+  },
+  admin: {
+    email: process.env.AUDIT_ADMIN_EMAIL ?? 'jayzeeb65@gmail.com',
+    password: process.env.AUDIT_ADMIN_PASSWORD ?? 'Admin0817!!!',
+  },
 }
 
 const which = ROLES.length ? ROLES : Object.keys(ACCOUNTS)

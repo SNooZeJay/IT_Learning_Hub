@@ -43,7 +43,7 @@ const dayEvents = computed(() => props.events.filter((e) => e.at.slice(0, 10) ==
           "
         >
           <span
-            class="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase"
+            class="mt-0.5 shrink-0 rounded px-1.5 py-1 text-xs font-medium tracking-wide uppercase"
             :class="EVENT_PRESENTATION[event.kind].tone"
           >
             {{ EVENT_PRESENTATION[event.kind].label }}
