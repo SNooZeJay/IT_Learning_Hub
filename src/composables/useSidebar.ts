@@ -1,5 +1,6 @@
 import { onMounted, onUnmounted, provide, inject, readonly, ref } from 'vue'
 import type { Ref } from 'vue'
+import router from '@/router'
 
 /**
  * Where the shell switches between a persistent rail and an overlay drawer.
@@ -30,6 +31,7 @@ interface SidebarContextType {
   isMobile: Ref<boolean>
   toggleSidebar: () => void
   toggleMobileSidebar: () => void
+  closeMobileSidebar: () => void
 }
 
 const SidebarSymbol = Symbol()
@@ -104,12 +106,55 @@ export function useSidebarProvider() {
     isMobileOpen.value = !isMobileOpen.value
   }
 
+  /**
+   * Dismiss the overlay drawer.
+   *
+   * Separate from `toggleMobileSidebar` because a dismiss must never be able to
+   * *open* it. Toggling is the right behaviour for the button in the header, which
+   * is offering two states; every other caller - the backdrop, a navigation, a
+   * resize - is stating a single fact, and expressing that with a toggle means any
+   * of them can open the drawer by running the code that is supposed to close it.
+   */
+  const closeMobileSidebar = () => {
+    isMobileOpen.value = false
+  }
+
+  /**
+   * Close the drawer whenever navigation succeeds.
+   *
+   * Not from the nav items themselves, because there is more than one way to
+   * navigate: a `RouterLink` in the sidebar, a programmatic `router.push` from a
+   * view, a redirect from the auth guard, a browser back button. Wiring each of
+   * those to call `closeMobileSidebar` misses one, and the symptom of missing one is
+   * the drawer staying open over the page it just navigated to - you press a link,
+   * the URL changes, the content behind the overlay changes, and the overlay is
+   * still there covering it.
+   *
+   * `afterEach` rather than `beforeEach` because the guard has to run only for
+   * navigations that actually happened. A `beforeEach` that closes the drawer would
+   * also close it for a navigation that was then aborted, which is not what
+   * "close the drawer because you navigated" means.
+   *
+   * Guarded by `isMobile` because on desktop `isMobileOpen` is already forced false
+   * by `handleResize`, and because running it unconditionally would make the desktop
+   * path depend on a value it does not otherwise care about.
+   *
+   * Registered in the provider, which is created once, and removed on unmount -
+   * `afterEach` returns its own unregister function.
+   */
+  const removeAfterEach = router.afterEach(() => {
+    if (isMobile.value) closeMobileSidebar()
+  })
+
+  onUnmounted(removeAfterEach)
+
   const context: SidebarContextType = {
     isExpanded,
     isMobileOpen,
     isMobile: readonly(isMobile) as Ref<boolean>,
     toggleSidebar,
     toggleMobileSidebar,
+    closeMobileSidebar,
   }
 
   provide(SidebarSymbol, context)

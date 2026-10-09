@@ -83,12 +83,22 @@
               <p class="mt-1 section-subheading">Check the course and the price before you pay.</p>
             </div>
             <div class="p-6">
+              <!--
+                `dismissible`, plus the auto-clear wired up in the script.
+
+                This is an Alert, not a toast, despite reading like one - and that is
+                the whole explanation. A toast clears itself, so any visible message
+                is assumed to be temporary. This one was cleared only when the payment
+                *settled*, which for a notice about a *cancelled* payment means never.
+                Three ways out now: the timer in the script, this control, and unmount.
+              -->
               <Alert
                 v-if="notice"
                 :variant="noticeVariant"
                 :title="noticeTitle"
                 :message="notice"
                 class="mb-5"
+                dismissible
               />
 
               <Alert
@@ -236,7 +246,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { CircleCheck, LoaderCircle, RotateCw } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -278,6 +288,45 @@ const notice = ref('')
 const noticeVariant = ref<'success' | 'warning' | 'error'>('warning')
 const noticeTitle = ref('')
 const isActing = ref(false)
+
+/**
+ * How long a checkout notice survives on its own.
+ *
+ * Ten seconds is long enough to read a two-line message and act on it, and short
+ * enough that it is never still there when the person comes back to the page.
+ *
+ * The defect was not that a notice lingered - it is that a notice about a
+ * *cancelled* payment was cleared in exactly one place, `checkAgain()`, and only when
+ * the payment had **settled**. That is the one event that will never follow a
+ * cancellation, so the banner waited for the opposite of what it was about and stayed
+ * for the life of the page, with no dismiss control and no way out but a reload.
+ *
+ * Stating the rule once against `notice` fixes every producer at the same time.
+ * There are eight places that set these refs, and the timeout belongs to the ref
+ * rather than to any of them: adding a ninth notice later cannot forget it.
+ */
+const NOTICE_TIMEOUT_MS = 10_000
+
+let noticeTimer: number | null = null
+
+function clearNotice(): void {
+  if (noticeTimer !== null) {
+    window.clearTimeout(noticeTimer)
+    noticeTimer = null
+  }
+  notice.value = ''
+  noticeTitle.value = ''
+}
+
+// Restarted on every notice, so a second notice gets its own full window instead of
+// inheriting the remainder of the first one's. Clearing the previous handle first is
+// what stops a rapid sequence from leaving several live timers to clear the same
+// notice at different moments.
+watch(notice, (message) => {
+  clearNotice()
+  if (!message) return
+  noticeTimer = window.setTimeout(clearNotice, NOTICE_TIMEOUT_MS)
+})
 
 const settled = ref(false)
 const referenceNumber = ref<string | null>(null)
@@ -515,5 +564,12 @@ onMounted(async () => {
   }
 })
 
-onBeforeUnmount(stopPolling)
+onBeforeUnmount(() => {
+  stopPolling()
+  // So a notice cannot outlive the route. Without this the pending timeout fires
+  // into an unmounted component: harmless to the DOM on its own, but on a fast
+  // checkout-into-checkout navigation the old timer can clear the *new* page's
+  // notice, which is a worse failure than the one being fixed.
+  clearNotice()
+})
 </script>

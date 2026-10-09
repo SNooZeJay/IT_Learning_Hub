@@ -28,7 +28,7 @@
           name="email"
           autocomplete="email"
           required
-          placeholder="you@school.edu.ph"
+          placeholder="you@email.com"
           :class="inputClass"
         />
       </div>

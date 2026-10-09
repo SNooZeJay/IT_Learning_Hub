@@ -40,7 +40,7 @@
             name="email"
             autocomplete="email"
             required
-            placeholder="you@school.edu.ph"
+            placeholder="you@email.com"
             :class="inputClass"
             :aria-invalid="Boolean(fieldErrors.email)"
             :aria-describedby="fieldErrors.email ? 'email-error' : undefined"
@@ -70,6 +70,7 @@
               v-model="password"
               :type="showPassword ? 'text' : 'password'"
               name="password"
+              placeholder="......"
               autocomplete="current-password"
               required
               :class="[inputClass, 'pe-12']"

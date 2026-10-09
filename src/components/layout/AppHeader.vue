@@ -26,6 +26,7 @@
     so the two never overlap.
   -->
   <header
+    ref="headerEl"
     class="sticky top-0 z-[1000] w-full border-b border-gray-200 bg-canvas/95 backdrop-blur-sm xl:border-b dark:border-gray-800"
   >
     <div class="flex items-center gap-3 px-3 py-2.5 sm:gap-4 sm:px-4 lg:py-3 xl:px-6">
@@ -70,9 +71,16 @@
         Named and given `aria-expanded` for the same reason as the toggle above.
         `xl:hidden` because at xl that cluster is permanently on screen and this button
         would then control nothing.
+
+        `ms-auto` pins it to the inline end. It used to rely on `SearchBar`'s `flex-1`
+        to absorb the slack, which is an indirect way of saying the same thing and did
+        not hold: the button sat mid-row, not at the end of the bar. A control that
+        opens a panel belongs where the eye finishes scanning, and `ms-auto` states
+        that directly instead of depending on what happens to be between the start of
+        the row and the control. Logical, so it pins to the left in RTL.
       -->
       <HeaderIconButton
-        class="xl:hidden"
+        class="ms-auto xl:hidden"
         :label="isAccountMenuOpen ? 'Hide account menu' : 'Show account menu'"
         :expanded="isAccountMenuOpen"
         controls="app-header-account"
@@ -85,16 +93,30 @@
       <!--
         The account cluster.
 
-        `shadow-theme-md` used to be here, on a full-width block, below the breakpoint
-        only. It was the one decorative shadow in the header, on a surface that already
-        has a background and sits directly under a sticky bar - it read as a card floating
-        under the header rather than as part of it. The bar's own bottom border does the
-        separating.
+        This used to become `w-full flex-col` *inside* a flex row when opened. That
+        put it below the bar as a second in-flow row rather than over the page, which
+        squeezed the header taller and left the menus inside it with almost no room
+        to anchor to - on a phone the account cluster was being asked to lay itself
+        out inside the sliver of viewport left over after the sticky bar.
+
+        So below the breakpoint it is now a genuinely anchored panel: absolutely
+        positioned under the trigger's edge, `end-0` so it hangs off the same side as
+        the button that opened it and mirrors correctly in RTL, and capped at
+        `min(20rem, 100vw - 2rem)` so it cannot exceed a phone viewport no matter how
+        narrow that is.
+
+        It needs no z-index of its own. `z-50` here is inside this header's `z-[1000]`
+        stacking context, so it lands above page content and below both the backdrop
+        and the sidebar without either of those having to move - which is the whole
+        reason the header was given a z-index that sits in the gap between them.
+
+        `xl:static xl:flex` restores the inline row on desktop, where the cluster is
+        always visible and there is nothing to anchor.
       -->
       <div
         id="app-header-account"
         :class="isAccountMenuOpen ? 'flex' : 'hidden'"
-        class="w-full flex-col items-stretch gap-3 border-t border-gray-200 px-3 pb-3 pt-3 sm:px-4 xl:flex xl:w-auto xl:flex-row xl:items-center xl:gap-3 xl:border-0 xl:p-0 dark:border-gray-800"
+        class="absolute end-0 top-full z-50 w-[min(20rem,calc(100vw-2rem))] flex-col items-stretch gap-3 border border-gray-200 bg-canvas p-3 shadow-theme-lg xl:static xl:z-auto xl:flex xl:w-auto xl:flex-row xl:items-center xl:gap-3 xl:border-0 xl:bg-transparent xl:p-0 xl:shadow-none dark:border-gray-800 dark:bg-gray-900 xl:dark:bg-transparent"
       >
         <div class="flex items-center gap-1">
           <ThemeToggleButton />
@@ -116,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { Menu, MoreVertical, X } from 'lucide-vue-next'
 import { useSidebar } from '@/composables/useSidebar'
 import HeaderIconButton from '@/components/layout/HeaderIconButton.vue'
@@ -153,9 +175,62 @@ const isSidebarShowing = computed(() => (isMobile.value ? isMobileOpen.value : i
 
 const isAccountMenuOpen = ref(false)
 
+/**
+ * The header element, for outside-tap detection.
+ *
+ * The panel lives inside the header in the DOM, so "is this tap inside the thing I
+ * just opened" is answered by one `contains` check against the header rather than by
+ * the panel's own rect. That is deliberately looser: a tap on the search field also
+ * closes the menu, which is what you want from a menu that is overlaying the page.
+ */
+const headerEl = ref<HTMLElement | null>(null)
+
 function toggleAccountMenu(): void {
   isAccountMenuOpen.value = !isAccountMenuOpen.value
 }
+
+function closeAccountMenu(): void {
+  isAccountMenuOpen.value = false
+}
+
+function onPointerDownOutside(event: Event): void {
+  const el = headerEl.value
+  if (el && event.target instanceof Node && el.contains(event.target)) return
+  closeAccountMenu()
+}
+
+function onEscape(event: KeyboardEvent): void {
+  if (event.key === 'Escape') closeAccountMenu()
+}
+
+/**
+ * Close the panel on outside tap and on Escape, while it is open.
+ *
+ * Listeners are attached on open and removed on close rather than attached once and
+ * early-returning. Two listeners that do nothing most of the time are cheaper than
+ * two that do nothing most of the time, but the real cost is correctness: a
+ * permanently-attached `keydown` listener has to ignore Escape whenever the panel is
+ * closed, and then it is a second thing that can be wrong about the panel's state.
+ * Binding the lifetime of the listener to the lifetime of the panel removes the
+ * question.
+ */
+watch(isAccountMenuOpen, (open, wasOpen) => {
+  if (open === wasOpen) return
+  if (open) {
+    document.addEventListener('pointerdown', onPointerDownOutside)
+    document.addEventListener('keydown', onEscape)
+  } else {
+    document.removeEventListener('pointerdown', onPointerDownOutside)
+    document.removeEventListener('keydown', onEscape)
+  }
+})
+
+onBeforeUnmount(() => {
+  // A closed panel already detached these, but unmounting while open would leave
+  // them attached to a `document` that outlives the component.
+  document.removeEventListener('pointerdown', onPointerDownOutside)
+  document.removeEventListener('keydown', onEscape)
+})
 
 // Growing past the breakpoint reveals the account cluster permanently, so an open
 // overflow menu would be a control controlling something that is already visible.

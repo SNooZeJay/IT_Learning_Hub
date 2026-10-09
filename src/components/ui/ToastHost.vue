@@ -62,22 +62,32 @@ const icons = {
 } as const
 
 const classes = {
+  // Opaque dark surfaces, not `dark:bg-*-500/10`.
+  //
+  // At 10% the toast was not a surface at all: the page behind it read straight
+  // through, so the message was set against whatever happened to be underneath - a
+  // dark hero, a saturated button - and the contrast that made it readable in a
+  // screenshot was not there on the real page. A toast is the one surface guaranteed
+  // to appear over arbitrary content, which is exactly why it has to be the one
+  // surface that does not depend on what that content is.
+  //
+  // The variant is carried by the border and the icon instead. The light surfaces
+  // keep their tint, because they sit on the app's own canvas, which is a known
+  // colour. The dark ones cannot make that assumption.
   success: {
-    container:
-      'border-success-500/60 bg-success-50 dark:border-success-500/30 dark:bg-success-500/10',
+    container: 'border-success-500/60 bg-success-50 dark:border-success-500/50 dark:bg-gray-900',
     icon: 'text-success-500',
   },
   error: {
-    container: 'border-error-500/60 bg-error-50 dark:border-error-500/30 dark:bg-error-500/10',
+    container: 'border-error-500/60 bg-error-50 dark:border-error-500/50 dark:bg-gray-900',
     icon: 'text-error-500',
   },
   warning: {
-    container:
-      'border-warning-500/60 bg-warning-50 dark:border-warning-500/30 dark:bg-warning-500/10',
+    container: 'border-warning-500/60 bg-warning-50 dark:border-warning-500/50 dark:bg-gray-900',
     icon: 'text-warning-500',
   },
   info: {
-    container: 'border-brand-500/60 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10',
+    container: 'border-brand-500/60 bg-brand-50 dark:border-brand-500/50 dark:bg-gray-900',
     icon: 'text-brand-500',
   },
 } as const

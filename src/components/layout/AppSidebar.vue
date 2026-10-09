@@ -23,6 +23,17 @@
       // content - 208px measured in the browser, not 256 - which then animated to the
       // right width as it slid in.
       'w-(--sidebar-width)',
+      // Below the breakpoint the sidebar is an overlay, and 256px is 68% of a 375px
+      // screen. That leaves the page behind it reduced to a sliver: enough to see that
+      // something changed, not enough to tell what. Capping the drawer at 80vw keeps
+      // enough of the page visible to confirm where you have landed.
+      //
+      // Safe to do only because nothing below `xl` offsets the content by this width:
+      // `AppLayout`'s `ms-(--sidebar-width)` is `xl:`-gated precisely because below
+      // the breakpoint the sidebar floats over the page rather than beside it. Above
+      // `xl` this rule does not apply, so the rail keeps its exact token width and
+      // still matches `AppLayout`'s offset to the pixel.
+      'max-xl:w-[min(var(--sidebar-width),80vw)]',
       isRailOpen ? '' : 'xl:w-(--sidebar-rail-width)',
       // Below xl the sidebar is an overlay drawer: it slides, and `isMobileOpen` is
       // the only thing that decides whether it is on screen. Above xl the translate

@@ -1,16 +1,39 @@
 <template>
-  <div class="fixed inset-0 flex items-center justify-center overflow-y-auto z-99999">
+  <!--
+    `p-4` on the centring wrapper, and it is the load-bearing part of this component.
+
+    Both callers size their own panel - `max-w-md` in `ConfirmDialog`, `max-w-lg` in
+    the course editor - and those are 28rem and 32rem. On a 375px screen both are
+    wider than the viewport, and a flex row with no padding and no width bound lays
+    its item out at its intrinsic size: the dialog ran off both edges of the phone
+    and the buttons inside it became unreachable.
+
+    Padding alone would not have fixed it either, because a flex item can still be
+    forced past its container by its own `max-w-*`. So the wrapper also constrains
+    its own width to `100%`, which is what lets the shrink calculation happen. The
+    two together express the cap the design calls for - `min(28rem, 100vw - 2rem)` -
+    once, at the layer that owns the geometry, instead of in every panel that
+    happens to be passed through this slot today.
+  -->
+  <div class="fixed inset-0 z-99999 flex w-full items-center justify-center overflow-y-auto p-4">
     <!--
       The dim layer, and the click-outside target.
 
-      `fullScreenBackdrop` was declared here and never passed by the one caller, so
-      the only modal in the app - the course delete confirmation - rendered as a
-      white card floating over an undimmed page with the page still fully legible
-      and still clickable-looking behind it.
+      `fullScreenBackdrop` is now `true` by default. It was a prop with no default,
+      which meant a modal rendered correctly only if its author remembered to pass
+      it - and a caller who did not got a card floating over a fully legible, fully
+      clickable-looking page with no way to tell the two apart. A default that
+      describes the component's purpose is better than one that describes an
+      omission.
+
+      Semi-transparent on purpose: this is a *dim*, not a second surface. The dialog
+      panel itself is opaque (`bg-white dark:bg-gray-900` in both callers), and the
+      job of this layer is to stop the page behind it competing for attention. An
+      opaque backdrop would also hide the context the dialog was opened from.
     -->
     <div
       v-if="fullScreenBackdrop"
-      class="fixed inset-0 h-full w-full bg-gray-900/50 backdrop-blur-[2px]"
+      class="fixed inset-0 h-full w-full bg-gray-900/60 backdrop-blur-sm"
       aria-hidden="true"
       @click="emit('close')"
     ></div>
@@ -39,7 +62,11 @@ interface ModalProps {
   fullScreenBackdrop?: boolean
 }
 
-defineProps<ModalProps>()
+// `true`, not `false`. The prop exists so a caller can ask for *no* backdrop, which
+// is a rarer intent than "render the thing a modal is for".
+withDefaults(defineProps<ModalProps>(), {
+  fullScreenBackdrop: true,
+})
 const emit = defineEmits<{ close: [] }>()
 
 function onKeydown(event: KeyboardEvent): void {

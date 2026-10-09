@@ -71,7 +71,7 @@
           name="email"
           autocomplete="email"
           required
-          placeholder="you@school.edu.ph"
+          placeholder="you@email.com"
           :class="inputClass"
           :aria-invalid="Boolean(fieldErrors.email)"
           :aria-describedby="fieldErrors.email ? 'email-error' : undefined"
@@ -94,10 +94,11 @@
             :type="showPassword ? 'text' : 'password'"
             name="password"
             autocomplete="new-password"
+            placeholder="......"
             required
             :class="[inputClass, 'pe-12']"
             :aria-invalid="Boolean(fieldErrors.password)"
-            :aria-describedby="fieldErrors.password ? 'password-error' : undefined"
+            :aria-describedby="`password-hint${fieldErrors.password ? ' password-error' : ''}`"
           />
           <!--
             Full-height, 44px wide, corner-matched to the field with `rounded-e-xl`.
@@ -115,6 +116,24 @@
             <Eye v-else class="size-5" aria-hidden="true" />
           </button>
         </div>
+        <!--
+          The length requirement, stated before it is failed.
+
+          Six dots in a placeholder cannot tell anybody how long a password has to
+          be, and the alternative was finding out by submitting a four-character
+          password and being told why. The number comes from `MIN_PASSWORD_LENGTH`,
+          which is the same constant the server enforces - this file previously
+          declared its own `const MIN_PASSWORD_LENGTH = 8`, and a copy of that
+          constant in the one file a person reads before choosing a password is
+          exactly where it would drift.
+
+          Always rendered rather than only on error: it is a requirement, not a
+          complaint, and `aria-describedby` points at it so a screen reader announces
+          it with the field instead of only after a failed submit.
+        -->
+        <p id="password-hint" class="mt-1.5 text-xs text-lp-slate">
+          At least {{ MIN_PASSWORD_LENGTH }} characters.
+        </p>
         <p
           v-if="fieldErrors.password"
           id="password-error"
@@ -130,6 +149,7 @@
           id="confirmPassword"
           v-model="confirmPassword"
           type="password"
+          placeholder="......"
           name="confirmPassword"
           autocomplete="new-password"
           required
@@ -184,6 +204,7 @@ import AuthShell from '@/components/auth/AuthShell.vue'
 import AuthConsent from '@/components/auth/AuthConsent.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
+import { MIN_PASSWORD_LENGTH } from '@/validation'
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -210,7 +231,6 @@ const fieldLabelClass = lpFieldLabelClass
  * The only place a password policy is expressed. Supabase enforces its own
  * minimum length too; this catches the obvious cases before a round trip.
  */
-const MIN_PASSWORD_LENGTH = 8
 
 function validate(): boolean {
   const errors: typeof fieldErrors.value = {}

@@ -31,26 +31,32 @@
 
     <!-- Dropdown Start -->
     <!--
-      Width below `xl`.
+      Anchored to the bell's inline END, and sized against the viewport rather than
+      against anything in the header.
 
-      The header's second row is `flex justify-between`, so the group holding the
-      theme toggle and this bell is shrink-to-fit and the bell's own box is one
-      button wide. A panel sized against that box collapses to 44px — which is
-      exactly what `w-full` on the root produced when this was measured at 375px.
-      So below `xl` the width is taken from the viewport instead.
+      It used to be `start-0` with `calc(100vw - 6rem)`. That `6rem` was the bell's
+      own offset from the start of the header - the row's padding, plus a 44px theme
+      toggle, plus a gap - measured once and hard-coded into a component that does
+      not own the header's spacing. The header's padding and its row structure have
+      both changed since, the arithmetic stopped holding, and the panel ran off the
+      end of a 375px screen. A sibling's layout, written down as a constant, is a
+      measurement waiting to go stale.
 
-      `6rem` is that group's start offset: the row's `px-5` inset (1.25rem) plus
-      the 44px theme toggle plus the 12px gap, so the bell begins 96px in. From
-      1280px the row is no longer justified apart and a fixed width anchored to
-      the button's own end takes over.
+      `end-0` makes the panel hang off the same edge as the control that opened it,
+      which is where the eye already is, and a viewport-derived width then bounds it
+      correctly no matter where the bell sits. It is logical, so it mirrors under RTL
+      without a second rule.
 
-      This couples to AppHeader's spacing, which another component owns. If that
-      inset changes, this has to change with it.
+      `max-h` bounds the panel against the viewport height so the list scrolls inside
+      it. Unbounded, the panel is as tall as its content: five rows of notification
+      text ran the footer - the one control that says "see everything" - past the
+      bottom of a phone screen. The list is already `min-h-0 flex-1 overflow-y-auto`,
+      so it inherits the bound and scrolls within it.
     -->
     <div
       v-if="dropdownOpen"
       id="notification-menu-dropdown"
-      class="absolute start-0 top-full z-50 mt-4 flex w-[min(22rem,calc(100vw-6rem))] flex-col rounded-lg border border-hairline bg-canvas p-3 shadow-theme-lg animate-fadeIn xl:w-[22rem] xl:start-auto xl:end-0 dark:bg-surface"
+      class="absolute end-0 top-full z-50 mt-4 flex max-h-[min(32rem,calc(100dvh-6rem))] w-[min(22rem,calc(100vw-1.5rem))] flex-col rounded-lg border border-hairline bg-canvas p-3 shadow-theme-lg animate-fadeIn dark:bg-surface"
     >
       <div class="flex items-center justify-between gap-2 border-b border-hairline-soft pb-3">
         <h5 class="text-theme-xl text-ink dark:text-gray-100">
