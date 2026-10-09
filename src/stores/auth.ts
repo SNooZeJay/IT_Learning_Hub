@@ -39,10 +39,64 @@ const RECOVERY_WAIT_MS = 5000
 export interface RecoveryLinkProbe {
   /** A token of either flow was present. */
   hasToken: boolean
+  /**
+   * The `token_hash` form, when that is what arrived.
+   *
+   * This is the form the reset email actually carries. `send-email` mints the link
+   * with the admin API and emails
+   *
+   *     .../auth/reset-password?token_hash=<hashed_token>&type=recovery
+   *
+   * which is not the PKCE `?code=` or the implicit `#access_token=` this probe was
+   * originally written for. Neither of those is ever produced by our own mailer, so
+   * a link from our email was recognised as carrying no token at all and the page
+   * told the reader it "needs the one-time code from your reset email" - on a link
+   * that came from exactly that email. That is the loop: ask again, get the same
+   * mail, be told the same thing.
+   *
+   * Kept separate from `hasToken` because the form decides how it is redeemed.
+   * A `token_hash` is not a session and must be exchanged through `verifyOtp`
+   * before `updateUser({ password })` will accept it.
+   */
+  tokenHash: string | null
   errorCode: string | null
   errorDescription: string | null
   /** `type=recovery` marks the link as a reset rather than a sign-in. */
   isRecovery: boolean
+}
+
+/**
+ * Read the recovery parameters out of a query string and a fragment.
+ *
+ * Both halves are read because the flows put them in different places: PKCE sends
+ * `?code=`, the implicit flow sends `#access_token=`, and our own mailer sends
+ * `?token_hash=`. In-app browsers - Gmail's embedded view especially - have been
+ * observed to preserve one and drop the other, so whichever survived is worth looking
+ * at.
+ *
+ * Pure, and takes both halves as arguments rather than reading `window`, so the real
+ * link the mailer produces can be pinned in a test without a browser. That matters
+ * because this function and `send-email` have to agree about the shape of a reset
+ * link, and the bug this replaced was precisely them disagreeing.
+ */
+export function parseRecoveryParams(search: string, fragment: string): RecoveryLinkProbe {
+  const params = new URLSearchParams(`${search}&${fragment}`)
+
+  const errorCode = params.get('error_code') ?? params.get('error')
+  const errorDescription = params.get('error_description')
+  const tokenHash = params.get('token_hash')
+
+  return {
+    tokenHash,
+    hasToken:
+      Boolean(params.get('access_token')) ||
+      Boolean(params.get('refresh_token')) ||
+      Boolean(params.get('code')) ||
+      Boolean(tokenHash),
+    errorCode,
+    errorDescription,
+    isRecovery: params.get('type') === 'recovery',
+  }
 }
 
 /**
@@ -327,25 +381,48 @@ export const useAuthStore = defineStore('auth', () => {
    * the other, so whichever survived is worth looking at.
    */
   function probeRecoveryLink(): RecoveryLinkProbe {
-    const query = window.location.search
-    const fragment = window.location.hash.startsWith('#')
-      ? window.location.hash.slice(1)
-      : window.location.hash
+    return parseRecoveryParams(
+      window.location.search,
+      window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash,
+    )
+  }
 
-    const params = new URLSearchParams(`${query}&${fragment}`)
+  /**
+   * Exchange a `token_hash` from the reset email for a real recovery session.
+   *
+   * Without this the whole reset flow is unreachable. `token_hash` is a one-time
+   * token, not a credential: it does not sign anybody in, and `updateUser` refuses
+   * to run without a session. `verifyOtp` is the supported way to redeem it, and
+   * it is the only call in this codebase that does so.
+   *
+   * `type: 'recovery'` rather than `'email'`: both are accepted by Supabase for a
+   * recovery token, but the link says `type=recovery` and naming it precisely means
+   * a token minted for a different purpose cannot be redeemed here.
+   *
+   * Failures are reported, not thrown. An expired or already-used token must land on
+   * the reset page's own error state with its resend button - which is the only way
+   * out of it - rather than escaping to a caller that cannot offer one.
+   */
+  async function redeemRecoveryToken(tokenHash: string): Promise<RecoverySessionOutcome> {
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: 'recovery',
+    })
 
-    const errorCode = params.get('error_code') ?? params.get('error')
-    const errorDescription = params.get('error_description')
-
-    return {
-      hasToken:
-        Boolean(params.get('access_token')) ||
-        Boolean(params.get('refresh_token')) ||
-        Boolean(params.get('code')),
-      errorCode,
-      errorDescription,
-      isRecovery: params.get('type') === 'recovery',
+    if (error || !data.session) {
+      // Once the attempt is made the token is spent either way, so it must not be
+      // left in the address bar for a refresh to replay.
+      stripRecoveryFragment()
+      return {
+        status: 'expired',
+        detail: error?.message ?? 'That reset link is no longer valid.',
+      }
     }
+
+    // The exchange is done; the token has no further use and should not stay in the
+    // URL where it can be copied, logged, or replayed on refresh.
+    stripRecoveryFragment()
+    return { status: 'ready' }
   }
 
   /** Supabase's codes for a one-time link that has already been spent. */
@@ -369,11 +446,23 @@ export const useAuthStore = defineStore('auth', () => {
     // fresh "this link is not valid" alert. So the spent parameter goes too.
     const params = new URLSearchParams(window.location.search)
     params.delete('code')
+    // The form our own reset email sends. Left in the address bar it survives a
+    // refresh and is offered to `verifyOtp` a second time, which fails because it
+    // is single-use - so a person who had already reset their password would be
+    // shown a fresh "this link is not valid" for a link that worked.
+    params.delete('token_hash')
+    params.delete('type')
     params.delete('error_code')
     params.delete('error_description')
     const search = params.toString()
 
-    if (!hash && !window.location.search.includes('code=')) return
+    if (
+      !hash &&
+      !window.location.search.includes('code=') &&
+      !window.location.search.includes('token_hash=')
+    ) {
+      return
+    }
     window.history.replaceState(null, '', `${pathname}${search ? `?${search}` : ''}`)
   }
 
@@ -415,12 +504,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     // No token anywhere. An in-app webview that stripped the fragment lands
+    // A `token_hash` is not a session, and nothing turns it into one by itself, so
+    // it is redeemed here rather than waited for. This is the branch our own reset
+    // email takes. Without it the wait below would sit out its full timeout and
+    // then report "no token" - because the thing that arrived is not one of the two
+    // forms that appear as a session on their own.
+    if (probe.tokenHash) {
+      return redeemRecoveryToken(probe.tokenHash)
+    }
+
     // exactly here, and so does someone who navigated to this URL by hand.
     if (!probe.hasToken) {
       return {
         status: 'no-token',
         detail:
-          'This page needs the one-time code from your reset email. Opening the link from the email keeps it intact.',
+          'Open the link from your reset email. This page cannot reset a password on its own - it needs that link.',
       }
     }
 
