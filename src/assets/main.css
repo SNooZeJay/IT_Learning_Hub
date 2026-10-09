@@ -1055,7 +1055,7 @@
     the whole stylesheet fail to compile, which the dev server reports as a 500 for
     main.css and the app never mounts.
   */
-  @apply pointer-events-none absolute start-full bottom-0 h-[0.78em] w-[3px] rounded-full bg-lp-accent animate-caret-blink;
+  @apply pointer-events-none absolute start-full bottom-[0.22em] h-[0.66em] w-[2px] rounded-full bg-lp-accent animate-caret-blink;
 }
 
 /*
