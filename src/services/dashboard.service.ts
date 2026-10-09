@@ -520,6 +520,52 @@ export interface InstructorDashboard {
  * number an instructor would recognise.
  */
 export async function loadInstructorDashboard(): Promise<InstructorDashboard> {
+  // The aggregates used to be bare `head: true` counts over the whole table. That
+  // reads correctly by accident for anything RLS narrows - enrolments and attempts
+  // are already filtered to `is_instructor_of` - but a course row is readable by
+  // any signed-in account, because the catalogue is public. So the course, quiz
+  // and material counts were the whole platform: an instructor with four courses
+  // was told they had six, next to a quiz count that was correctly their own four
+  // courses' worth, which is worse than either number alone. RLS scopes reads; it
+  // cannot scope a count whose filter was never written.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const taughtCourseIds = user
+    ? (
+        (await rowsOf(() =>
+          supabase.from('course_instructors').select('course_id').eq('instructor_id', user.id),
+        )) as unknown as Array<{ course_id: string }>
+      ).map((row) => row.course_id)
+    : []
+
+  // An instructor with no courses yet gets null rather than 0. A dash says the
+  // question was not answered; a zero would assert they teach nothing.
+  const nothingTaught = taughtCourseIds.length === 0
+
+  // A material hangs off a lesson, a lesson off a module, and a module off a
+  // course. `lesson_materials` has no `course_id` of its own, so filtering it by
+  // course is a 400, not a zero. Resolve the lessons first, then count by lesson.
+  const taughtLessonIds = nothingTaught
+    ? []
+    : (async () => {
+        const moduleRows = (await rowsOf(() =>
+          supabase.from('modules').select('id').in('course_id', taughtCourseIds),
+        )) as unknown as Array<{ id: string }>
+        if (moduleRows.length === 0) return []
+        const lessonRows = (await rowsOf(() =>
+          supabase
+            .from('lessons')
+            .select('id')
+            .in(
+              'module_id',
+              moduleRows.map((row) => row.id),
+            ),
+        )) as unknown as Array<{ id: string }>
+        return lessonRows.map((row) => row.id)
+      })()
+
   const [
     courses,
     publishedCourses,
@@ -530,23 +576,55 @@ export async function loadInstructorDashboard(): Promise<InstructorDashboard> {
     quizAttempts,
     average,
   ] = await Promise.all([
-    countOf(() => supabase.from('courses').select('*', { count: 'exact', head: true })),
-    countOf(() =>
-      supabase
-        .from('courses')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'published'),
-    ),
-    countOf(() =>
-      supabase.from('courses').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
-    ),
+    nothingTaught
+      ? Promise.resolve(null)
+      : countOf(() =>
+          supabase
+            .from('courses')
+            .select('*', { count: 'exact', head: true })
+            .in('id', taughtCourseIds),
+        ),
+    nothingTaught
+      ? Promise.resolve(null)
+      : countOf(() =>
+          supabase
+            .from('courses')
+            .select('*', { count: 'exact', head: true })
+            .in('id', taughtCourseIds)
+            .eq('status', 'published'),
+        ),
+    nothingTaught
+      ? Promise.resolve(null)
+      : countOf(() =>
+          supabase
+            .from('courses')
+            .select('*', { count: 'exact', head: true })
+            .in('id', taughtCourseIds)
+            .eq('status', 'draft'),
+        ),
     (async () => {
       const rows = await rowsOf(() => supabase.from('enrollments').select('student_id'))
       if (rows.length === 0) return 0
       return new Set((rows as Array<{ student_id: string }>).map((r) => r.student_id)).size
     })(),
-    countOf(() => supabase.from('lesson_materials').select('*', { count: 'exact', head: true })),
-    countOf(() => supabase.from('quizzes').select('*', { count: 'exact', head: true })),
+    (async () => {
+      const lessonIds = await taughtLessonIds
+      if (lessonIds.length === 0) return null
+      return countOf(() =>
+        supabase
+          .from('lesson_materials')
+          .select('*', { count: 'exact', head: true })
+          .in('lesson_id', lessonIds),
+      )
+    })(),
+    nothingTaught
+      ? Promise.resolve(null)
+      : countOf(() =>
+          supabase
+            .from('quizzes')
+            .select('*', { count: 'exact', head: true })
+            .in('course_id', taughtCourseIds),
+        ),
     countOf(() => supabase.from('quiz_attempts').select('*', { count: 'exact', head: true })),
     (async () => {
       const rows = await rowsOf(() =>
