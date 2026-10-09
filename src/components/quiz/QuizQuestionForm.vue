@@ -24,7 +24,7 @@ import { Plus, Trash2 } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import { validateQuestion } from '@/services/quizAuthoring.service'
 import type { AuthoredQuestion, QuestionDraft } from '@/services/quizAuthoring.service'
-import { formSelectClass } from '@/components/ui/controlClasses'
+import { formSelectClass, textareaClass } from '@/components/ui/controlClasses'
 import type { QuestionType } from '@/types'
 
 const props = defineProps<{
@@ -226,7 +226,7 @@ function submit(): void {
             {{ label }}
           </option>
         </select>
-        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-1.5 text-xs text-slate">
           <template v-if="question">
             A question keeps the kind it was created with, because the options and accepted answers
             stored for it belong to that kind.
@@ -247,7 +247,7 @@ function submit(): void {
           v-model="prompt"
           rows="3"
           placeholder="Which HTTP status code means the request succeeded?"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          :class="['mt-1.5', textareaClass]"
         />
       </div>
 
@@ -255,7 +255,7 @@ function submit(): void {
            one of the options is the key, which is a choice, not six toggles. -->
       <fieldset v-if="questionType === 'true_false'">
         <legend class="text-sm font-medium text-gray-700 dark:text-gray-300">The answer is</legend>
-        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-0.5 text-xs text-slate">
           One of these two is correct. Their wording is fixed, so every true-or-false question reads
           the same way to the student.
         </p>
@@ -285,7 +285,7 @@ function submit(): void {
            fall through to nothing. -->
       <fieldset v-else>
         <legend class="text-sm font-medium text-gray-700 dark:text-gray-300">Options</legend>
-        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-0.5 text-xs text-slate">
           Select the one that is correct. Students see these in the order shown here, and the first
           one is not marked correct for them.
         </p>
@@ -305,7 +305,7 @@ function submit(): void {
               type="text"
               maxlength="500"
               placeholder="200 OK"
-              class="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+              class="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
             />
 
             <div class="flex items-center justify-between gap-3 sm:justify-end">
@@ -345,10 +345,10 @@ function submit(): void {
             <Plus class="size-4" aria-hidden="true" />
             Add an option
           </button>
-          <p v-else class="text-xs text-gray-500 dark:text-gray-400">
+          <p v-else class="text-xs text-slate">
             Six options is the maximum a question can carry.
           </p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
+          <p class="text-xs text-slate">
             Two options is the minimum, and a question cannot be published with none marked correct.
           </p>
         </div>
@@ -368,7 +368,7 @@ function submit(): void {
             type="number"
             min="0"
             step="0.5"
-            class="w-28 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+            class="w-28 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
           />
           <span class="shrink-0 section-subheading"> must be more than zero </span>
         </div>
@@ -382,7 +382,7 @@ function submit(): void {
           Explanation
           <span class="font-normal text-gray-400">(optional)</span>
         </label>
-        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-0.5 text-xs text-slate">
           Shown to the student after they submit, when the quiz reveals answers. Leave it empty and
           they are told only whether they got it right.
         </p>
@@ -392,7 +392,7 @@ function submit(): void {
           rows="2"
           maxlength="2000"
           placeholder="2xx means the request succeeded; 4xx means you sent something wrong."
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          :class="['mt-1.5', textareaClass]"
         />
       </div>
     </div>

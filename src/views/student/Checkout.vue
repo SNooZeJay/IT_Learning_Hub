@@ -47,7 +47,7 @@
               class="mt-6 w-full space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-4 text-start dark:border-gray-800 dark:bg-white/[0.03]"
             >
               <div class="flex items-center justify-between gap-4">
-                <dt class="text-xs text-gray-500 dark:text-gray-400">Reference</dt>
+                <dt class="text-xs text-slate">Reference</dt>
                 <dd class="font-mono text-xs text-gray-900 dark:text-white/90">
                   {{ referenceNumber }}
                 </dd>
@@ -56,7 +56,7 @@
                 v-if="paidAt"
                 class="flex items-center justify-between gap-4 border-t border-gray-200 pt-2 dark:border-gray-800"
               >
-                <dt class="text-xs text-gray-500 dark:text-gray-400">Paid</dt>
+                <dt class="text-xs text-slate">Paid</dt>
                 <dd class="text-xs text-gray-900 dark:text-white/90">
                   {{ formatDateTime(paidAt) }}
                 </dd>
@@ -76,7 +76,7 @@
       </div>
 
       <div v-else class="grid gap-6 lg:grid-cols-3">
-        <div class="lg:col-span-2">
+        <div class="min-w-0 lg:col-span-2">
           <div class="surface-card-shell">
             <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
               <h2 class="section-heading">Confirm your purchase</h2>
@@ -192,7 +192,7 @@
                   which page the charge technically happens on; they need to know where to
                   type their card, which is the thing they are about to be asked for.
                 -->
-                <p class="mt-5 text-xs text-gray-500 dark:text-gray-400">
+                <p class="mt-5 text-xs text-slate">
                   You will be taken to PayMongo to complete the payment, then brought straight back
                   here. Enter your card details on PayMongo's secure checkout page.
                 </p>

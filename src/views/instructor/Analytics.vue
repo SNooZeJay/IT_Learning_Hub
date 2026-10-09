@@ -108,7 +108,7 @@
                 v-for="heading in HEADINGS"
                 :key="heading"
                 scope="col"
-                class="px-6 py-3 text-start text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+                class="px-6 py-3 text-start text-xs font-medium tracking-wide text-slate uppercase"
               >
                 {{ heading }}
               </th>
@@ -127,7 +127,7 @@
                 >
                   {{ course.courseTitle }}
                 </router-link>
-                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                <p class="mt-0.5 text-xs text-slate">
                   {{ courseStatusLabel(course.status) }}
                 </p>
               </td>
@@ -163,7 +163,7 @@
                      nothing, which is a different statement. -->
                 <span v-if="course.averageQuizScore === null" class="text-gray-400">—</span>
                 <span v-else>{{ course.averageQuizScore }}%</span>
-                <p v-if="course.attempts > 0" class="text-xs text-gray-500 dark:text-gray-400">
+                <p v-if="course.attempts > 0" class="text-xs text-slate">
                   {{ course.attempts }} attempt{{ course.attempts === 1 ? '' : 's' }}
                 </p>
               </td>
@@ -196,6 +196,8 @@ import type { ApexOptions } from 'apexcharts'
 import type { ApexFormatterOpts } from 'apexcharts'
 import { ChartColumn, CircleCheckBig, Library, Users } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { BRAND_500 } from '@/components/common/chartTokens'
+import { useTheme } from '@/composables/useTheme'
 import StatCard from '@/components/common/StatCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
@@ -206,6 +208,9 @@ import { courseStatusLabel } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
+
+/** The RESOLVED theme, so "system" still produces a dark chart on a dark OS. */
+const { theme } = useTheme()
 
 /**
  * Starts as a zeroed figure rather than null.
@@ -263,8 +268,17 @@ const enrolmentSeries = computed(() => [
 ])
 
 const enrolmentOptions = computed<ApexOptions>(() => ({
-  chart: { fontFamily: FONT_FAMILY, type: 'bar', toolbar: { show: false } },
-  colors: ['#5645d4'],
+  chart: {
+    fontFamily: FONT_FAMILY,
+    type: 'bar',
+    toolbar: { show: false },
+    key: theme.value,
+    width: '100%',
+    redrawOnResize: true,
+    redrawOnParentResize: true,
+  },
+  theme: { mode: theme.value },
+  colors: [BRAND_500],
   plotOptions: {
     bar: { horizontal: false, columnWidth: '45%', borderRadius: 0, borderRadiusApplication: 'end' },
   },
@@ -307,8 +321,17 @@ const scoreSeries = computed(() => [
 ])
 
 const scoreOptions = computed<ApexOptions>(() => ({
-  chart: { fontFamily: FONT_FAMILY, type: 'bar', toolbar: { show: false } },
-  colors: ['#5645d4', '#1aae39'],
+  chart: {
+    fontFamily: FONT_FAMILY,
+    type: 'bar',
+    toolbar: { show: false },
+    key: theme.value,
+    width: '100%',
+    redrawOnResize: true,
+    redrawOnParentResize: true,
+  },
+  theme: { mode: theme.value },
+  colors: [BRAND_500, '#1aae39'],
   plotOptions: {
     bar: { horizontal: false, columnWidth: '38%', borderRadius: 0, borderRadiusApplication: 'end' },
   },

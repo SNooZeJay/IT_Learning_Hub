@@ -495,7 +495,7 @@ onBeforeUnmount(() => {
               <p class="truncate text-sm font-medium text-gray-900 dark:text-white/90">
                 {{ briefing.title }}
               </p>
-              <p class="text-xs text-gray-500 dark:text-gray-400">
+              <p class="text-xs text-slate">
                 Attempt {{ attempt.attemptNumber }} of {{ attempt.attemptsAllowed }}
                 <template v-if="attempt.warningCount > 0">
                   <span class="text-warning-600 dark:text-warning-400">

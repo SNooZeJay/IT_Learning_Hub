@@ -196,7 +196,7 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
         >
           <button
             type="button"
-            class="flex h-full w-full flex-col items-start gap-1 p-2 text-start transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset--2 focus-visible:outline-brand-500 dark:hover:bg-white/[0.04]"
+            class="flex h-full w-full flex-col items-start gap-1 p-2 text-start transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:hover:bg-white/[0.04]"
             :class="[
               cell.inMonth ? '' : 'opacity-45',
               cell.iso === selectedDate ? 'bg-brand-50 dark:bg-brand-500/10' : '',

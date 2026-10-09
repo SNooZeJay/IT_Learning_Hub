@@ -89,7 +89,7 @@
                   · <span class="break-all">{{ item.studentEmail }}</span>
                 </template>
               </p>
-              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              <p class="mt-1 text-xs text-slate">
                 {{ item.courseTitle }} · out of {{ item.maxPoints }} points · submitted
                 {{ formatDateTime(item.submittedAt) }}
                 <template v-if="isOverdue(item)">
@@ -116,7 +116,7 @@
                  judgement made without the criteria. -->
             <div v-if="item.assignmentInstructions" class="mb-5">
               <h3
-                class="text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+                class="text-xs font-medium tracking-wide text-slate uppercase"
               >
                 What was asked
               </h3>
@@ -129,7 +129,7 @@
 
             <!-- The submission itself. -->
             <h3
-              class="text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+              class="text-xs font-medium tracking-wide text-slate uppercase"
             >
               Submission
             </h3>
@@ -178,7 +178,7 @@
                     {{ item.feedback }}
                   </p>
                   <p v-else class="mt-2 section-subheading">No written feedback.</p>
-                  <p v-if="item.gradedAt" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  <p v-if="item.gradedAt" class="mt-2 text-xs text-slate">
                     Graded {{ formatDateTime(item.gradedAt) }}
                   </p>
                 </div>
@@ -220,7 +220,7 @@
                     shows whatever it says rather than assuming its own check was
                     the one that mattered.
                   -->
-                  <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  <p class="mt-1.5 text-xs text-slate">
                     0 to {{ item.maxPoints }}
                   </p>
                 </div>
@@ -237,7 +237,7 @@
                     v-model="feedbacks[item.id]"
                     rows="4"
                     placeholder="Optional. What worked, and what to do next."
-                    class="w-full rounded border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500"
+                    :class="textInputClass"
                   ></textarea>
                 </div>
               </div>
@@ -258,7 +258,7 @@
                 instructor will hit: the trigger refuses any change once a
                 submission is graded. A student replacing their work reopens it.
               -->
-              <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+              <p class="mt-3 text-xs text-slate">
                 A grade is kept as a record and cannot be changed afterwards. If the student
                 resubmits, it reopens for grading.
               </p>
@@ -282,7 +282,7 @@ import { gradeSubmission, listGradingQueue } from '@/services/instructor.service
 import type { GradingQueueItem } from '@/services/instructor.service'
 import { formatDateTime } from '@/types'
 import { useAuthStore } from '@/stores/auth'
-import { selectClass } from '@/components/ui/controlClasses'
+import { searchInputClass, selectClass, textInputClass } from '@/components/ui/controlClasses'
 import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
@@ -304,10 +304,10 @@ const gradeErrors = ref<Record<string, string>>({})
 const isSaving = ref<string | null>(null)
 
 const searchClass =
-  'w-full rounded border border-gray-300 bg-white py-2.5 ps-9 pe-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500'
+  searchInputClass
 
 const inputClass =
-  'mt-1.5 w-full rounded border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500'
+  [textInputClass, 'mt-1.5']
 
 const filtered = computed(() => {
   const term = search.value.toLowerCase()

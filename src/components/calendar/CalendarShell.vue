@@ -137,7 +137,7 @@ watch(view, (next) => {
     </ul>
 
     <div class="mt-5 grid gap-6 lg:grid-cols-3">
-      <div class="lg:col-span-2">
+      <div class="min-w-0 lg:col-span-2">
         <CalendarMonth
           v-if="view === 'month'"
           :events="events"

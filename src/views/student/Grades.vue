@@ -77,7 +77,7 @@
 
         <div
           v-if="grades.quizAttempts.length"
-          class="mt-3 overflow-hidden rounded-lg border border-hairline bg-canvas dark:bg-white/[0.03]"
+          class="mt-3 surface-card-shell"
         >
           <!--
             A list rather than a table. On a phone a table of six columns is
@@ -171,7 +171,7 @@
 
         <div
           v-if="grades.assignments.length"
-          class="mt-3 overflow-hidden rounded-lg border border-hairline bg-canvas dark:bg-white/[0.03]"
+          class="mt-3 surface-card-shell"
         >
           <ul class="divide-y divide-hairline">
             <li v-for="item in grades.assignments" :key="item.assignmentId" class="px-5 py-4">

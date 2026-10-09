@@ -1,6 +1,6 @@
 <template>
   <section
-    class="rounded-lg border border-hairline bg-canvas p-5 sm:p-6 dark:bg-white/[0.03]"
+    class="surface-card p-5 sm:p-6"
     aria-labelledby="profile-photo-heading"
   >
     <div class="flex flex-col items-start gap-5 sm:flex-row sm:items-center">

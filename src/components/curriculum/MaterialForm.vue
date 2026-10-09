@@ -196,7 +196,7 @@ const isTextType = computed(() => materialIsInlineText(materialType.value))
     novalidate
     @submit.prevent="submit"
   >
-    <h3 class="text-theme-sm text-gray-900 dark:text-white/90">
+    <h3 class="section-heading">
       {{ material ? 'Edit material' : 'New material' }}
       <span v-if="lessonTitle" class="font-normal text-gray-500 dark:text-gray-400">
         on {{ lessonTitle }}
@@ -218,7 +218,7 @@ const isTextType = computed(() => materialIsInlineText(materialType.value))
           type="text"
           maxlength="255"
           placeholder="Starter file"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
           :aria-invalid="Boolean(titleError)"
         />
         <p v-if="titleError" class="mt-1.5 text-sm text-error-600 dark:text-error-400">
@@ -252,14 +252,14 @@ const isTextType = computed(() => materialIsInlineText(materialType.value))
           />
           {{ bodyLabel }}
         </label>
-        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ bodyHint }}</p>
+        <p class="mt-0.5 text-xs text-slate">{{ bodyHint }}</p>
         <textarea
           v-if="isTextType"
           id="material-body"
           v-model="contentText"
           rows="6"
           :placeholder="materialType === 'code' ? 'def greet(name):' : 'Write the reading here.'"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
           :class="materialType === 'code' ? 'font-mono text-xs' : ''"
         />
         <input
@@ -268,7 +268,7 @@ const isTextType = computed(() => materialIsInlineText(materialType.value))
           v-model="externalUrl"
           type="url"
           placeholder="https://docs.python.org/3/"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
         />
       </div>
 
@@ -280,7 +280,7 @@ const isTextType = computed(() => materialIsInlineText(materialType.value))
           <component :is="icon" class="size-4" aria-hidden="true" />
           File
         </label>
-        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-0.5 text-xs text-slate">
           Up to 10 MB. Stored privately and served only to enrolled learners.
           <template v-if="material?.filePath">
             Currently: {{ material.filePath.split('/').pop() }}. Choosing a new file replaces it.

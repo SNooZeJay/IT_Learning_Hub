@@ -687,7 +687,7 @@ watch(
               </p>
 
               <dl
-                class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-xs text-gray-500 dark:text-gray-400"
+                class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate"
               >
                 <div class="flex items-center gap-1.5">
                   <dt>Pass mark</dt>
@@ -778,7 +778,7 @@ watch(
                       </p>
 
                       <p
-                        class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400"
+                        class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate"
                       >
                         <span>{{ questionTypeLabels[question.questionType] }}</span>
                         <span>

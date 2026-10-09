@@ -61,6 +61,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { BookOpen, Search } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { searchInputClass } from '@/components/ui/controlClasses'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
@@ -113,7 +114,7 @@ const isLoading = ref(true)
 const errorMessage = ref('')
 
 const searchClass =
-  'w-full rounded border border-gray-300 bg-white py-2.5 ps-9 pe-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500'
+  searchInputClass
 
 const filtered = computed(() => {
   const term = search.value.toLowerCase()

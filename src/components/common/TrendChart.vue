@@ -6,16 +6,32 @@
     <p class="mt-1 section-subheading">{{ copy.subtitle }}</p>
 
     <div class="mt-6 min-w-0">
+      <!--
+        The loading branch.
+
+        `state` computes `'loading'` and the template never branched on it, so the
+        `v-else-if="isMounted"` fell through to the chart on the first paint with an
+        empty series: a 280px plot area with no line in it, which then snapped to data
+        a moment later. Every other panel on these dashboards shows a skeleton for the
+        same reason, so this is the one place a student watched a chart build itself.
+      -->
+      <LoadingState
+        v-if="state === 'loading'"
+        label="Loading the trend"
+        class="border-0 bg-transparent dark:bg-transparent"
+      />
       <EmptyState
-        v-if="state === 'empty'"
+        v-else-if="state === 'empty'"
         :title="copy.emptyTitle"
         :description="copy.emptyDescription"
         :icon="ChartColumn"
+        bare
       />
       <ErrorState
         v-else-if="state === 'error'"
         title="The trend could not be read"
         :message="message ?? 'This series could not be loaded. Try again in a moment.'"
+        bare
         @retry="load"
       />
       <VueApexCharts
@@ -36,8 +52,10 @@ import type { ApexOptions } from 'apexcharts'
 import VueApexCharts from 'vue3-apexcharts'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
+import LoadingState from '@/components/common/LoadingState.vue'
 import { useTheme } from '@/composables/useTheme'
 import { loadTrend, TREND_COPY, type TrendMetric, type TrendPoint } from '@/services/trend.service'
+import { BRAND_500 } from '@/components/common/chartTokens'
 
 /**
  * The monthly trend, identical in behaviour across all three dashboards.
@@ -111,7 +129,16 @@ const series = computed(() => [
 ])
 
 const options = computed<ApexOptions>(() => ({
-  colors: ['#5645d4'],
+  /*
+    Brand green, not TailAdmin purple.
+
+    `#5645d4` was TailAdmin's primary. The brand ramp in `main.css` is green
+    (`--color-brand-500: #1f6b46`), which is what every button, link and focus ring in
+    the app draws with, so a purple series was the only purple object on all three
+    dashboards. The value is `brand-500` resolved - Apex needs a literal colour, and
+    this is the same hex the token emits.
+  */
+  colors: [BRAND_500],
   theme: { mode: theme.value },
   chart: {
     fontFamily:

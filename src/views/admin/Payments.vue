@@ -138,7 +138,7 @@
         :icon="Search"
       />
 
-      <div v-else class="mt-4 overflow-hidden rounded-lg border border-hairline bg-canvas">
+      <div v-else class="mt-4 surface-card-shell">
         <div class="overflow-x-auto custom-scrollbar">
           <table class="min-w-full text-start text-sm">
             <caption class="sr-only">
@@ -162,8 +162,24 @@
                 class="transition-colors hover:bg-surface-soft"
               >
                 <td class="px-5 py-4">
-                  <code class="font-mono text-xs text-ink">{{ payment.referenceNumber }}</code>
-                  <p v-if="payment.providerPaymentId" class="mt-0.5 font-mono text-xs text-slate">
+                  <!--
+                    `break-all` on every provider identifier here.
+
+                    These are unbounded, unbroken strings: a PayMongo checkout id is
+                    `paymongo unusable:` followed by a 64-character hash. Monospace at
+                    12px renders 64 of those at ~7px each, so one cell measured 316px
+                    inside a 358px card and pushed the whole page to 519px - 129px of
+                    horizontal scroll on a 390px phone.
+
+                    `break-all` rather than `break-words` because the string has no
+                    break opportunity in it at all: `overflow-wrap: break-word` only
+                    breaks at a soft wrap point, and a hash has none.
+                  -->
+                  <code class="font-mono text-xs break-all text-ink">{{ payment.referenceNumber }}</code>
+                  <p
+                    v-if="payment.providerPaymentId"
+                    class="mt-0.5 font-mono text-xs break-all text-slate"
+                  >
                     {{ payment.providerPaymentId }}
                   </p>
                   <p class="mt-1 text-xs text-slate">
@@ -188,7 +204,7 @@
                 </td>
                 <td class="px-5 py-4 text-slate">
                   {{ payment.provider }}
-                  <p v-if="payment.providerCheckoutId" class="mt-0.5 font-mono text-xs">
+                  <p v-if="payment.providerCheckoutId" class="mt-0.5 font-mono text-xs break-all">
                     {{ payment.providerCheckoutId }}
                   </p>
                 </td>
@@ -233,7 +249,7 @@
           <li
             v-for="event in events"
             :key="event.id"
-            class="rounded-lg border border-hairline bg-canvas p-5"
+            class="surface-card p-5"
           >
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div class="min-w-0">
@@ -241,7 +257,7 @@
                   <span>{{ event.eventType }}</span>
                   <span class="text-sm font-normal text-slate">{{ event.provider }}</span>
                 </p>
-                <p class="mt-1 font-mono text-xs text-slate">{{ event.eventId }}</p>
+                <p class="mt-1 font-mono text-xs break-all text-slate">{{ event.eventId }}</p>
                 <p class="mt-2 text-sm text-slate">
                   Received {{ formatDateTime(event.receivedAt) }}
                   <template v-if="event.processedAt">
@@ -308,7 +324,7 @@ import {
   listAdminPaymentEvents,
   listAdminPayments,
 } from '@/services/admin.service'
-import { selectClass } from '@/components/ui/controlClasses'
+import { searchInputClass, selectClass } from '@/components/ui/controlClasses'
 import { formatDateTime, formatPeso } from '@/types'
 import type {
   AdminPayment,
@@ -329,8 +345,9 @@ const providerFilter = ref<string>('all')
 const isLoading = ref(true)
 const errorMessage = ref('')
 
-const searchClass =
-  'w-full rounded border border-hairline-strong bg-canvas py-2.5 ps-9 pe-3 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden'
+/* See `controlClasses.ts`: the canonical search field. This was a local copy that
+   drifted to 4px corners and a placeholder below AA contrast. */
+const searchClass = searchInputClass
 
 const statusToneClass: Record<AdminPaymentStatus, string> = {
   paid: 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',

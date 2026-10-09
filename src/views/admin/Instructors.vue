@@ -115,7 +115,7 @@
         <article
           v-for="instructor in filtered"
           :key="instructor.id"
-          class="rounded-lg border border-hairline bg-canvas p-5"
+          class="surface-card p-5"
         >
           <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div class="flex min-w-0 items-center gap-3">
@@ -221,7 +221,7 @@ import {
 } from '@/services/admin.service'
 import { formatDate } from '@/types'
 import type { AdminInstructor } from '@/services/admin.service'
-import { selectClass } from '@/components/ui/controlClasses'
+import { searchInputClass, selectClass } from '@/components/ui/controlClasses'
 import type { AccountStatus, CourseStatus } from '@/types'
 import type { Component } from 'vue'
 
@@ -235,8 +235,9 @@ const loadFilter = ref<LoadFilter>('all')
 const isLoading = ref(true)
 const errorMessage = ref('')
 
-const searchClass =
-  'w-full rounded border border-hairline-strong bg-canvas py-2.5 ps-9 pe-3 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden'
+/* See `controlClasses.ts`: the canonical search field. This was a local copy that
+   drifted to 4px corners and a placeholder below AA contrast. */
+const searchClass = searchInputClass
 
 const statusToneClass: Record<AccountStatus, string> = {
   active: 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',

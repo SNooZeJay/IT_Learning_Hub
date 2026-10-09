@@ -175,7 +175,7 @@ function onRemoveMaterial(materialId: string): void {
         v-if="summary.completionPercent !== null"
         class="flex items-center gap-2 section-subheading"
       >
-        <span class="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500"
+        <span class="text-xs tracking-wide text-slate uppercase"
           >Progress</span
         >
         <span class="font-medium text-gray-900 dark:text-white/90"
@@ -235,7 +235,7 @@ function onRemoveMaterial(materialId: string): void {
           </p>
 
           <p
-            class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400 dark:text-gray-500"
+            class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate"
           >
             <span>
               {{ module.lessons.length }}
@@ -267,7 +267,7 @@ function onRemoveMaterial(materialId: string): void {
           </button>
           <button
             type="button"
-            class="rounded px-2 py-1 text-xs font-medium text-gray-500 hover:bg-white hover:text-error-600 dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-error-400"
+            class="rounded px-2 py-1 text-xs font-medium text-slate hover:bg-white hover:text-error-600 dark:hover:bg-white/[0.06] dark:hover:text-error-400"
             @click="emit('removeModule', module.id)"
           >
             Remove
@@ -292,7 +292,7 @@ function onRemoveMaterial(materialId: string): void {
             <!-- Position and marker. The number is the lesson's place in the
                  module, matching the old system's "Lesson {{ position }}". -->
             <span
-              class="mt-0.5 flex size-6 shrink-0 items-center justify-center text-xs font-medium text-gray-400 dark:text-gray-500"
+              class="mt-0.5 flex size-6 shrink-0 items-center justify-center text-xs font-medium text-slate"
             >
               <Check
                 v-if="lessonState(lesson) === 'done'"
@@ -330,13 +330,13 @@ function onRemoveMaterial(materialId: string): void {
                    system had this column for exactly that reason. -->
               <p
                 v-if="lesson.summary"
-                class="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400"
+                class="mt-1 text-sm leading-6 text-slate"
               >
                 {{ lesson.summary }}
               </p>
 
               <p
-                class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400 dark:text-gray-500"
+                class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate"
               >
                 <span class="inline-flex items-center gap-1">
                   <PlayCircle
@@ -402,7 +402,7 @@ function onRemoveMaterial(materialId: string): void {
               </button>
               <button
                 type="button"
-                class="rounded px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-error-600 dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-error-400"
+                class="rounded px-2 py-1 text-xs font-medium text-slate hover:bg-gray-50 hover:text-error-600 dark:hover:bg-white/[0.06] dark:hover:text-error-400"
                 @click="emit('removeLesson', lesson.id)"
               >
                 Remove

@@ -56,7 +56,8 @@
           </p>
           <div class="mt-6">
             <EmptyState
-              v-if="!isMounted || analytics.usersByRole.every((slice) => slice.count === 0)"
+      bare
+      v-if="!isMounted || analytics.usersByRole.every((slice) => slice.count === 0)"
               title="No accounts yet"
               description="The split by role appears as soon as somebody registers."
               :icon="Users"
@@ -78,7 +79,8 @@
           </p>
           <div class="mt-6">
             <EmptyState
-              v-if="!isMounted || analytics.coursesByStatus.every((slice) => slice.count === 0)"
+      bare
+      v-if="!isMounted || analytics.coursesByStatus.every((slice) => slice.count === 0)"
               title="No courses yet"
               description="The split by status appears once an instructor has drafted something."
               :icon="Library"
@@ -103,7 +105,8 @@
           </p>
           <div class="mt-6">
             <EmptyState
-              v-if="!isMounted || !analytics.revenueByMonth.some((month) => month.centavos > 0)"
+      bare
+      v-if="!isMounted || !analytics.revenueByMonth.some((month) => month.centavos > 0)"
               title="No money collected in these six months"
               description="Free enrollments never create a payment, so this panel stays empty until a paid course is checked out."
               :icon="Wallet"
@@ -125,7 +128,8 @@
           </p>
           <div class="mt-6">
             <EmptyState
-              v-if="!isMounted || !analytics.enrollmentsByMonth.some((month) => month.count > 0)"
+      bare
+      v-if="!isMounted || !analytics.enrollmentsByMonth.some((month) => month.count > 0)"
               title="No enrollments in these six months"
               description="This panel fills in as students open courses. It counts every status, including pending and dropped."
               :icon="ChartColumn"
@@ -149,7 +153,8 @@
           </p>
           <div class="mt-6">
             <EmptyState
-              v-if="!isMounted || analytics.enrollment.total === 0"
+      bare
+      v-if="!isMounted || analytics.enrollment.total === 0"
               title="No enrollments yet"
               description="Nothing has enrolled in anything, so there is no split to draw."
               :icon="BookOpen"
@@ -171,7 +176,8 @@
           </p>
           <div class="mt-6">
             <EmptyState
-              v-if="!isMounted || analytics.paymentsByStatus.every((slice) => slice.count === 0)"
+      bare
+      v-if="!isMounted || analytics.paymentsByStatus.every((slice) => slice.count === 0)"
               title="No payments raised"
               description="Payments appear when a paid course is checked out."
               :icon="Wallet"
@@ -218,7 +224,7 @@
             :key="stat.label"
           >
             <dt class="text-xs tracking-wide text-slate uppercase">{{ stat.label }}</dt>
-            <dd class="mt-1 text-lg font-semibold text-ink">{{ stat.value }}</dd>
+            <dd class="mt-1 text-xl font-semibold text-ink tabular-nums">{{ stat.value }}</dd>
           </div>
         </dl>
 
@@ -254,6 +260,7 @@ import {
   Wallet,
 } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { BRAND_500, CATEGORICAL_PALETTE } from '@/components/common/chartTokens'
 import StatCard from '@/components/common/StatCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
@@ -293,7 +300,7 @@ const isMounted = ref(false)
 const FONT = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 
 /** Brand, success, warning, error, then the neutral steps for the long tails. */
-const PALETTE = ['#5645d4', '#1aae39', '#dd5b00', '#e03131', '#787671', '#a4a097']
+const PALETTE = CATEGORICAL_PALETTE
 
 const analyticsData = computed(() => analytics.value)
 
@@ -314,6 +321,8 @@ const roleChartOptions = computed<ApexOptions>(() => ({
     // Re-render on a theme change rather than leaving the previous palette on screen.
     key: theme.value,
     redrawOnParentResize: true,
+    width: '100%',
+    redrawOnResize: true,
     type: 'donut',
   },
   stroke: { width: 0 },
@@ -366,6 +375,8 @@ const courseChartOptions = computed<ApexOptions>(() => ({
     // Re-render on a theme change rather than leaving the previous palette on screen.
     key: theme.value,
     redrawOnParentResize: true,
+    width: '100%',
+    redrawOnResize: true,
     type: 'donut',
   },
   stroke: { width: 0 },
@@ -411,12 +422,14 @@ const revenueChartSeries = computed(() => [
 ])
 
 const revenueChartOptions = computed<ApexOptions>(() => ({
-  colors: ['#5645d4'],
+  colors: [BRAND_500],
   theme: { mode: theme.value },
   chart: {
     fontFamily: FONT,
     key: theme.value,
     redrawOnParentResize: true,
+    width: '100%',
+    redrawOnResize: true,
     type: 'bar',
     toolbar: { show: false },
   },
@@ -444,12 +457,14 @@ const enrolmentChartSeries = computed(() => [
 ])
 
 const enrolmentChartOptions = computed<ApexOptions>(() => ({
-  colors: ['#5645d4'],
+  colors: [BRAND_500],
   theme: { mode: theme.value },
   chart: {
     fontFamily: FONT,
     key: theme.value,
     redrawOnParentResize: true,
+    width: '100%',
+    redrawOnResize: true,
     type: 'area',
     toolbar: { show: false },
   },
@@ -475,12 +490,14 @@ const enrolmentStatusChartSeries = computed(() => [
 ])
 
 const enrolmentStatusChartOptions = computed<ApexOptions>(() => ({
-  colors: ['#5645d4'],
+  colors: [BRAND_500],
   theme: { mode: theme.value },
   chart: {
     fontFamily: FONT,
     key: theme.value,
     redrawOnParentResize: true,
+    width: '100%',
+    redrawOnResize: true,
     type: 'bar',
     toolbar: { show: false },
   },
@@ -503,12 +520,14 @@ const paymentStatusChartSeries = computed(() => [
 ])
 
 const paymentStatusChartOptions = computed<ApexOptions>(() => ({
-  colors: ['#5645d4'],
+  colors: [BRAND_500],
   theme: { mode: theme.value },
   chart: {
     fontFamily: FONT,
     key: theme.value,
     redrawOnParentResize: true,
+    width: '100%',
+    redrawOnResize: true,
     type: 'bar',
     toolbar: { show: false },
   },

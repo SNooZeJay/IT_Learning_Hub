@@ -71,7 +71,7 @@
         validation and the error handling for no benefit.
       -->
       <form
-        class="mt-6 rounded-lg border border-hairline bg-canvas p-5"
+        class="mt-6 surface-card p-5"
         novalidate
         @submit.prevent="submit"
       >
@@ -117,7 +117,7 @@
             </p>
           </div>
 
-          <div class="lg:col-span-2">
+          <div class="min-w-0 lg:col-span-2">
             <label for="category-description" class="mb-1 block text-sm font-medium text-ink">
               Description
             </label>
@@ -198,7 +198,7 @@
         <li
           v-for="category in categories"
           :key="category.id"
-          class="rounded-lg border border-hairline bg-canvas p-5"
+          class="surface-card p-5"
         >
           <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div class="min-w-0">

@@ -109,25 +109,25 @@ const state = computed<'passed' | 'resume' | 'exhausted' | 'ready'>(() => {
       class="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-gray-200 bg-gray-200 sm:grid-cols-4 dark:border-gray-800 dark:bg-gray-800"
     >
       <div class="bg-white px-4 py-3 dark:bg-white/[0.03]">
-        <dt class="text-xs text-gray-500 dark:text-gray-400">Questions</dt>
+        <dt class="text-xs text-slate">Questions</dt>
         <dd class="mt-1 text-lg font-semibold text-gray-900 tabular-nums dark:text-white/90">
           {{ briefing.questionCount }}
         </dd>
       </div>
       <div class="bg-white px-4 py-3 dark:bg-white/[0.03]">
-        <dt class="text-xs text-gray-500 dark:text-gray-400">To pass</dt>
+        <dt class="text-xs text-slate">To pass</dt>
         <dd class="mt-1 text-lg font-semibold text-gray-900 tabular-nums dark:text-white/90">
           {{ briefing.passingScore }}%
         </dd>
       </div>
       <div class="bg-white px-4 py-3 dark:bg-white/[0.03]">
-        <dt class="text-xs text-gray-500 dark:text-gray-400">Attempts</dt>
+        <dt class="text-xs text-slate">Attempts</dt>
         <dd class="mt-1 text-lg font-semibold text-gray-900 tabular-nums dark:text-white/90">
           {{ briefing.attemptsUsed }} of {{ briefing.attemptsAllowed }}
         </dd>
       </div>
       <div class="bg-white px-4 py-3 dark:bg-white/[0.03]">
-        <dt class="text-xs text-gray-500 dark:text-gray-400">Time limit</dt>
+        <dt class="text-xs text-slate">Time limit</dt>
         <dd class="mt-1 text-lg font-semibold text-gray-900 tabular-nums dark:text-white/90">
           <template v-if="briefing.timeLimitMinutes">
             {{ briefing.timeLimitMinutes }} min

@@ -112,7 +112,7 @@ function submit(): void {
     novalidate
     @submit.prevent="submit"
   >
-    <h3 class="text-theme-sm text-gray-900 dark:text-white/90">
+    <h3 class="section-heading">
       {{ lesson ? 'Edit lesson' : 'New lesson' }}
       <span v-if="moduleTitle" class="font-normal text-gray-500 dark:text-gray-400">
         in {{ moduleTitle }}
@@ -130,7 +130,7 @@ function submit(): void {
           type="text"
           maxlength="255"
           placeholder="What a program actually is"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
           :aria-invalid="Boolean(titleError)"
         />
         <p v-if="titleError" class="mt-1.5 text-sm text-error-600 dark:text-error-400">
@@ -142,7 +142,7 @@ function submit(): void {
         <label for="lesson-summary" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           One-line summary
         </label>
-        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-0.5 text-xs text-slate">
           Shown under the title in the course outline. This is what makes the outline scannable.
         </p>
         <input
@@ -151,7 +151,7 @@ function submit(): void {
           type="text"
           maxlength="255"
           placeholder="Instructions in order, and why the order is the whole idea."
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
         />
       </div>
 
@@ -176,7 +176,7 @@ function submit(): void {
           :aria-invalid="Boolean(videoUrlError)"
           :aria-describedby="videoUrlError ? 'lesson-video-error' : 'lesson-video-help'"
           placeholder="https://example.com/lesson.mp4"
-          class="mt-1.5 w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:outline-none dark:bg-white/[0.03] dark:text-white/90"
           :class="
             videoUrlError
               ? 'border-error-500 focus:border-error-500 dark:border-error-500'
@@ -190,7 +190,7 @@ function submit(): void {
         >
           {{ videoUrlError }}
         </p>
-        <p v-else id="lesson-video-help" class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <p v-else id="lesson-video-help" class="mt-1.5 text-xs text-slate">
           A direct link to a video file plays on the page. A link to a YouTube page opens in a new
           tab — attach that as a material instead.
         </p>
@@ -200,7 +200,7 @@ function submit(): void {
         <label for="lesson-content" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Lesson notes
         </label>
-        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-0.5 text-xs text-slate">
           Leave a blank line between paragraphs. Text only — no formatting is interpreted.
         </p>
         <textarea
@@ -208,7 +208,7 @@ function submit(): void {
           v-model="content"
           rows="8"
           placeholder="A program is a list of instructions, and the computer follows them strictly from top to bottom."
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
         />
       </div>
 
@@ -225,7 +225,7 @@ function submit(): void {
               min="0"
               step="1"
               placeholder="15"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
             />
             <span class="shrink-0 section-subheading">minutes</span>
           </div>
@@ -255,7 +255,7 @@ function submit(): void {
           />
           <span>
             Required
-            <span class="block text-xs text-gray-500 dark:text-gray-400">
+            <span class="block text-xs text-slate">
               Counts toward this student's course progress and toward the certificate.
             </span>
           </span>
@@ -269,7 +269,7 @@ function submit(): void {
           />
           <span>
             Free preview
-            <span class="block text-xs text-gray-500 dark:text-gray-400">
+            <span class="block text-xs text-slate">
               Anyone can read this lesson without enrolling. Use it for the first lesson.
             </span>
           </span>

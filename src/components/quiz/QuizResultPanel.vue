@@ -124,7 +124,7 @@ const percent = computed(() => Number(props.result.percentage ?? 0))
           >
             {{ percent }}%
           </p>
-          <p class="mt-0.5 text-xs text-gray-500 tabular-nums dark:text-gray-400">
+          <p class="mt-0.5 text-xs text-slate tabular-nums">
             {{ result.score }} of {{ result.maxScore }} points
           </p>
         </div>
@@ -152,25 +152,25 @@ const percent = computed(() => Number(props.result.percentage ?? 0))
       class="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-gray-200 bg-gray-200 sm:grid-cols-4 dark:border-gray-800 dark:bg-gray-800"
     >
       <div class="bg-white px-4 py-3 dark:bg-white/[0.03]">
-        <dt class="text-xs text-gray-500 dark:text-gray-400">Pass mark</dt>
+        <dt class="text-xs text-slate">Pass mark</dt>
         <dd class="mt-1 text-lg font-semibold text-gray-900 tabular-nums dark:text-white/90">
           {{ result.passingScore }}%
         </dd>
       </div>
       <div class="bg-white px-4 py-3 dark:bg-white/[0.03]">
-        <dt class="text-xs text-gray-500 dark:text-gray-400">Correct</dt>
+        <dt class="text-xs text-slate">Correct</dt>
         <dd class="mt-1 text-lg font-semibold text-gray-900 tabular-nums dark:text-white/90">
           {{ result.revealAnswers ? correctCount : '—' }}
         </dd>
       </div>
       <div class="bg-white px-4 py-3 dark:bg-white/[0.03]">
-        <dt class="text-xs text-gray-500 dark:text-gray-400">Answered</dt>
+        <dt class="text-xs text-slate">Answered</dt>
         <dd class="mt-1 text-lg font-semibold text-gray-900 tabular-nums dark:text-white/90">
           {{ answeredCount }}
         </dd>
       </div>
       <div class="bg-white px-4 py-3 dark:bg-white/[0.03]">
-        <dt class="text-xs text-gray-500 dark:text-gray-400">Attempts left</dt>
+        <dt class="text-xs text-slate">Attempts left</dt>
         <dd class="mt-1 text-lg font-semibold text-gray-900 tabular-nums dark:text-white/90">
           {{ result.attemptsRemaining }}
         </dd>
@@ -183,7 +183,7 @@ const percent = computed(() => Number(props.result.percentage ?? 0))
       class="mt-6 surface-card"
       aria-labelledby="quiz-review-heading"
     >
-      <h2 id="quiz-review-heading" class="text-theme-sm text-gray-900 dark:text-white/90">
+      <h2 id="quiz-review-heading" class="section-heading">
         Review
       </h2>
       <p class="mt-1 section-subheading">

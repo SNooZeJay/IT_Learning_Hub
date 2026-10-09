@@ -32,7 +32,18 @@
 
       <form class="flex flex-col gap-5" novalidate @submit.prevent="handleSubmit">
         <div>
-          <label :for="email" :class="fieldLabelClass">Email address</label>
+          <!--
+            `for="email"`, a literal.
+
+            This was `for="email"`, which binds the `email` ref - the value the person
+            has typed - rather than the input's id. So the label pointed at nothing,
+            `input.labels` was empty, and a screen reader announced an unlabelled
+            email field. Clicking the visible "Email address" text did nothing either.
+
+            The password field below already had the literal, which is why only this one
+            was affected.
+          -->
+          <label for="email" :class="fieldLabelClass">Email address</label>
           <input
             id="email"
             v-model.trim="email"
@@ -56,7 +67,7 @@
 
         <div>
           <div class="mb-2 flex items-center justify-between gap-3">
-            <label :for="password" class="block text-sm font-medium text-lp-ink"> Password </label>
+            <label for="password" class="block text-sm font-medium text-lp-ink"> Password </label>
             <router-link
               to="/auth/forgot-password"
               class="text-xs font-medium text-lp-accent hover:underline"

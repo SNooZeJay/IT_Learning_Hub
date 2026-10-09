@@ -35,7 +35,7 @@
 
       <form class="grid gap-6 lg:grid-cols-3" @submit.prevent="save">
         <!-- ======================= DETAILS ======================= -->
-        <div class="space-y-6 lg:col-span-2">
+        <div class="min-w-0 space-y-6 lg:col-span-2">
           <div class="surface-card">
             <h2 class="section-heading">Course details</h2>
 
@@ -96,7 +96,7 @@
                   being a silent identifier, because changing it after
                   publication breaks the link a student already has.
                 -->
-                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <p class="mt-1.5 text-xs text-slate">
                   Lowercase letters, numbers and hyphens. Becomes
                   <span class="break-all">/courses/{{ form.slug || '…' }}</span>
                 </p>
@@ -120,7 +120,7 @@
                   v-model.trim="form.description"
                   rows="5"
                   placeholder="What a student will be able to do by the end."
-                  class="w-full rounded border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500"
+                  :class="textInputClass"
                 ></textarea>
               </div>
 
@@ -179,7 +179,7 @@
                     placeholder="0"
                     :class="inputClass"
                   />
-                  <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">0 means free.</p>
+                  <p class="mt-1.5 text-xs text-slate">0 means free.</p>
                 </div>
 
                 <div>
@@ -245,7 +245,7 @@
                     <span class="text-gray-700 dark:text-gray-300">{{ option.label }}</span>
                   </label>
                 </div>
-                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                <p class="mt-2 text-xs text-slate">
                   {{ STATUS_HINTS[form.status] }}
                 </p>
               </div>
@@ -269,7 +269,7 @@
                 Cancel
               </router-link>
 
-              <p class="text-xs text-gray-500 dark:text-gray-400">{{ FIELD_HELP }}</p>
+              <p class="text-xs text-slate">{{ FIELD_HELP }}</p>
             </div>
           </div>
 
@@ -647,7 +647,7 @@
                   v-model="lessonDraft.content"
                   rows="8"
                   placeholder="The lesson body."
-                  class="w-full rounded border border-gray-300 bg-white px-3 py-2.5 font-mono text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500"
+                  :class="[textInputClass, 'font-mono']"
                 ></textarea>
               </div>
 
@@ -684,7 +684,7 @@
                 </div>
               </div>
 
-              <p class="text-xs text-gray-500 dark:text-gray-400">
+              <p class="text-xs text-slate">
                 A preview lesson is readable without enrolling.
               </p>
 
@@ -735,7 +735,7 @@
               </div>
             </dl>
 
-            <p class="mt-5 text-xs text-gray-500 dark:text-gray-400">
+            <p class="mt-5 text-xs text-slate">
               Changes to modules and lessons save immediately. Course details save with the button
               above.
             </p>
@@ -851,7 +851,7 @@ import { forgetModuleCache } from '@/services/dashboard.service'
 import type { CourseLevel, CourseStatus, Lesson, LessonType } from '@/types'
 import { courseStatusLabel, formatPeso } from '@/types'
 import { useAuthStore } from '@/stores/auth'
-import { selectClass } from '@/components/ui/controlClasses'
+import { selectClass, textInputClass } from '@/components/ui/controlClasses'
 import { useConfirm } from '@/composables/useConfirm'
 
 const route = useRoute()
@@ -965,10 +965,10 @@ const lessonDraft = ref({
 })
 
 const inputClass =
-  'mt-1.5 w-full rounded border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500'
+  [textInputClass, 'mt-1.5']
 
 const textAreaClass =
-  'mt-1.5 w-full rounded border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500'
+  [textInputClass, 'mt-1.5']
 
 const LEVELS: CourseLevel[] = ['beginner', 'intermediate', 'advanced']
 

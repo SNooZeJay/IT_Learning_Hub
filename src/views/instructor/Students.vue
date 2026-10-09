@@ -94,7 +94,7 @@
                   v-for="heading in HEADINGS"
                   :key="heading"
                   scope="col"
-                  class="px-6 py-3 text-start text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+                  class="px-6 py-3 text-start text-xs font-medium tracking-wide text-slate uppercase"
                   :class="heading === 'Progress' ? 'w-56' : ''"
                 >
                   {{ heading }}
@@ -126,7 +126,7 @@
                       -->
                       <p
                         v-if="row.studentEmail"
-                        class="truncate text-xs text-gray-500 dark:text-gray-400"
+                        class="truncate text-xs text-slate"
                       >
                         {{ row.studentEmail }}
                       </p>
@@ -160,7 +160,7 @@
                     progressed through.
                   -->
                   <template v-if="row.progressPercent === null">
-                    <p class="text-xs text-gray-500 dark:text-gray-400">No lessons yet</p>
+                    <p class="text-xs text-slate">No lessons yet</p>
                   </template>
                   <template v-else>
                     <div class="flex items-center gap-3">
@@ -187,7 +187,7 @@
                         {{ row.progressPercent }}%
                       </span>
                     </div>
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <p class="mt-1 text-xs text-slate">
                       {{ row.lessonsCompleted }} of {{ row.lessonsTotal }} lessons
                     </p>
                   </template>
@@ -216,7 +216,7 @@ import { listInstructorStudents } from '@/services/instructor.service'
 import type { InstructorStudentRow } from '@/services/instructor.service'
 import type { EnrollmentStatus } from '@/types'
 import { enrollmentStatusLabel, formatDate } from '@/types'
-import { selectClass } from '@/components/ui/controlClasses'
+import { searchInputClass, selectClass } from '@/components/ui/controlClasses'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -230,7 +230,7 @@ const errorMessage = ref('')
 const HEADINGS = ['Student', 'Course', 'Status', 'Progress', 'Enrolled']
 
 const searchClass =
-  'w-full rounded border border-gray-300 bg-white py-2.5 ps-9 pe-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 dark:placeholder:text-gray-500'
+  searchInputClass
 
 const filtered = computed(() => {
   const term = search.value.toLowerCase()

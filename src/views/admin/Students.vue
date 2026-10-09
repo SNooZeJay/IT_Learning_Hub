@@ -112,7 +112,7 @@
         :icon="Search"
       />
 
-      <div v-else class="mt-4 overflow-hidden rounded-lg border border-hairline bg-canvas">
+      <div v-else class="mt-4 surface-card-shell">
         <div class="overflow-x-auto custom-scrollbar">
           <table class="min-w-full text-start text-sm">
             <caption class="sr-only">
@@ -186,7 +186,7 @@ import LoadingState from '@/components/common/LoadingState.vue'
 import { ACCOUNT_STATUSES, ACCOUNT_STATUS_LABELS, listAllStudents } from '@/services/admin.service'
 import { formatDate } from '@/types'
 import type { AdminStudent } from '@/services/admin.service'
-import { selectClass } from '@/components/ui/controlClasses'
+import { searchInputClass, selectClass } from '@/components/ui/controlClasses'
 import type { AccountStatus } from '@/types'
 
 type EnrolmentFilter = 'all' | 'none' | 'some' | 'completed'
@@ -199,8 +199,9 @@ const enrolmentFilter = ref<EnrolmentFilter>('all')
 const isLoading = ref(true)
 const errorMessage = ref('')
 
-const searchClass =
-  'w-full rounded border border-hairline-strong bg-canvas py-2.5 ps-9 pe-3 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden'
+/* See `controlClasses.ts`: the canonical search field. This was a local copy that
+   drifted to 4px corners and a placeholder below AA contrast. */
+const searchClass = searchInputClass
 
 const statusToneClass: Record<AccountStatus, string> = {
   active: 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',

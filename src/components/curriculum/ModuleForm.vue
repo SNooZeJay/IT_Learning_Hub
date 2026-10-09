@@ -68,7 +68,7 @@ function submit(): void {
     novalidate
     @submit.prevent="submit"
   >
-    <h3 class="text-theme-sm text-gray-900 dark:text-white/90">
+    <h3 class="section-heading">
       {{ module ? 'Edit module' : 'New module' }}
     </h3>
     <p class="mt-1 section-subheading">
@@ -87,7 +87,7 @@ function submit(): void {
           type="text"
           maxlength="255"
           placeholder="Getting started"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
           :aria-invalid="Boolean(titleError)"
           :aria-describedby="titleError ? 'module-title-error' : undefined"
         />
@@ -114,7 +114,7 @@ function submit(): void {
           rows="2"
           maxlength="2000"
           placeholder="One line so learners know what they are about to start."
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
         />
       </div>
 

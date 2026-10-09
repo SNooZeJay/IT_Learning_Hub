@@ -16,7 +16,7 @@
  */
 import { computed, ref, watch } from 'vue'
 import Button from '@/components/ui/Button.vue'
-import { formSelectClass } from '@/components/ui/controlClasses'
+import { formSelectClass, textInputClass, textareaClass } from '@/components/ui/controlClasses'
 import type { AuthoredQuiz, QuizDraft } from '@/services/quizAuthoring.service'
 
 const props = defineProps<{
@@ -138,7 +138,7 @@ function submit(): void {
           type="text"
           maxlength="255"
           placeholder="Module 3 check-in"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          :class="['mt-1.5', textInputClass]"
         />
       </div>
 
@@ -150,7 +150,7 @@ function submit(): void {
           Description
           <span class="font-normal text-gray-400">(optional)</span>
         </label>
-        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-0.5 text-xs text-slate">
           One line about what this quiz covers. Shown where the quiz is listed.
         </p>
         <textarea
@@ -159,7 +159,7 @@ function submit(): void {
           rows="2"
           maxlength="2000"
           placeholder="Covers the request methods and status codes from the lesson."
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          :class="['mt-1.5', textInputClass]"
         />
       </div>
 
@@ -171,7 +171,7 @@ function submit(): void {
           Instructions
           <span class="font-normal text-gray-400">(optional)</span>
         </label>
-        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-0.5 text-xs text-slate">
           Shown to the student before they start. Put the rules here.
         </p>
         <textarea
@@ -180,7 +180,7 @@ function submit(): void {
           rows="4"
           maxlength="4000"
           placeholder="You have 10 minutes and 3 attempts. Leaving the tab warns you, and three warnings ends the attempt."
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          :class="['mt-1.5', textareaClass]"
         />
       </div>
 
@@ -204,7 +204,7 @@ function submit(): void {
             />
             <span class="shrink-0 section-subheading">%</span>
           </div>
-          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mt-1.5 text-xs text-slate">
             From 1 to 100. A pass mark of 0 is not allowed.
           </p>
         </div>
@@ -225,7 +225,7 @@ function submit(): void {
               {{ choice }} attempt{{ choice === 1 ? '' : 's' }}
             </option>
           </select>
-          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mt-1.5 text-xs text-slate">
             How many times a student may sit this quiz.
           </p>
         </div>
@@ -246,11 +246,11 @@ function submit(): void {
               min="1"
               step="1"
               placeholder="No limit"
-              class="w-28 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+              class="w-28 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
             />
             <span class="shrink-0 section-subheading">minutes</span>
           </div>
-          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mt-1.5 text-xs text-slate">
             Blank means no limit. The time is enforced on the server, not in the browser.
           </p>
         </div>
@@ -271,7 +271,7 @@ function submit(): void {
               {{ choice }} warning{{ choice === 1 ? '' : 's' }}
             </option>
           </select>
-          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mt-1.5 text-xs text-slate">
             A warning is raised when a student leaves the quiz tab.
           </p>
         </div>
@@ -290,7 +290,7 @@ function submit(): void {
           />
           <span>
             Shuffle the questions
-            <span class="block text-xs text-gray-500 dark:text-gray-400">
+            <span class="block text-xs text-slate">
               Each student gets them in a different order. Turn it off when a question refers to the
               one before it.
             </span>
@@ -309,7 +309,7 @@ function submit(): void {
           />
           <span>
             Reveal the answers after submitting
-            <span class="block text-xs text-gray-500 dark:text-gray-400">
+            <span class="block text-xs text-slate">
               On, the student sees what they got wrong and any explanation you wrote. Off, they see
               only whether they passed.
             </span>

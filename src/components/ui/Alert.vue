@@ -41,10 +41,29 @@
         <p class="section-subheading">{{ message }}</p>
 
         <div class="mt-3 flex flex-wrap items-center gap-3">
+          <!--
+            The action slot.
+
+            This component never declared one, and three call sites passed content into
+            it: the admin dashboard's payments panel passed a "Try again" button, and
+            the student certificate error state passed a "Back to My grades" link. Vue
+            drops content sent to a slot the component does not render, silently - so
+            the payments panel showed an error with no way to retry it, and the
+            certificate error state was a dead end.
+
+            A failure you cannot recover from on screen is a much worse failure than
+            one you can, so the outlet exists now. It renders alongside `showLink`
+            rather than replacing it: `showLink` is the declarative form used where the
+            destination is static, the slot is for the case where the action is a
+            handler.
+          -->
+          <slot name="action" />
+          <slot />
+
           <router-link
             v-if="showLink"
             :to="linkHref"
-            class="inline-block text-sm font-medium text-gray-500 underline dark:text-gray-400"
+            class="inline-flex min-h-6 items-center text-sm font-medium text-slate underline underline-offset-2 hover:text-ink"
           >
             {{ linkText }}
           </router-link>
@@ -63,7 +82,7 @@
           <button
             v-if="dismissible"
             type="button"
-            class="inline-flex items-center gap-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:text-gray-400 dark:hover:text-gray-100"
+            class="inline-flex min-h-6 items-center gap-1 text-sm font-medium text-slate transition-colors hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
             :aria-label="`Dismiss: ${title}`"
             @click="handleDismiss"
           >

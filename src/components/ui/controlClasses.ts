@@ -57,6 +57,21 @@ export const textInputClass =
 export const searchInputClass = `${textInputClass} ps-9 pe-3`
 
 /**
+ * Textarea.
+ *
+ * The same field as `textInputClass` with looser leading, for the places a paragraph of
+ * text is expected: a lesson's summary, an assignment's instructions, a quiz question.
+ * Body leading is 1.55 (see `main.css`), and a textarea inherits `normal` from the UA
+ * stylesheet rather than it, so without this a multi-line field set tight while the
+ * prose above and below it sat loose.
+ *
+ * It is a composition rather than a fourth literal because a textarea that drifts from
+ * the inputs beside it is the same defect as a search box that drifts from the select
+ * beside it - which is what `searchInputClass` exists to end.
+ */
+export const textareaClass = `${textInputClass} leading-relaxed`
+
+/**
  * Full-width select, for a filter bar.
  *
  * `appearance-none` plus an inline SVG chevron. A native select paints its own arrow in

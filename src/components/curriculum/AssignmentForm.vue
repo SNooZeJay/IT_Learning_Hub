@@ -143,7 +143,7 @@ function submit(): void {
     novalidate
     @submit.prevent="submit"
   >
-    <h3 class="text-theme-sm text-gray-900 dark:text-white/90">
+    <h3 class="section-heading">
       {{ assignment ? 'Edit assignment' : 'New assignment' }}
     </h3>
     <p class="mt-1 section-subheading">
@@ -163,7 +163,7 @@ function submit(): void {
           type="text"
           maxlength="255"
           placeholder="Reflection on the first module"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
           :aria-invalid="Boolean(titleError)"
         />
         <p v-if="titleError" class="mt-1.5 text-sm text-error-600 dark:text-error-400">
@@ -179,7 +179,7 @@ function submit(): void {
           Instructions
           <span class="font-normal text-gray-400">(optional)</span>
         </label>
-        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-0.5 text-xs text-slate">
           What the student is being asked for. This is the whole brief they read before typing.
         </p>
         <textarea
@@ -187,7 +187,7 @@ function submit(): void {
           v-model="instructions"
           rows="5"
           placeholder="Write 300 words on the one idea from this module you would explain to someone starting out."
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
         />
       </div>
 
@@ -202,7 +202,7 @@ function submit(): void {
             {{ module.title }}
           </option>
         </select>
-        <p v-if="modules.length === 0" class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <p v-if="modules.length === 0" class="mt-1.5 text-xs text-slate">
           This course has no modules yet, so the assignment will belong to the course as a whole.
         </p>
       </div>
@@ -222,12 +222,12 @@ function submit(): void {
               type="number"
               min="0"
               step="1"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
               :aria-invalid="Boolean(pointsError)"
             />
             <span class="shrink-0 section-subheading">points</span>
           </div>
-          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mt-1.5 text-xs text-slate">
             Must be more than zero. A grade above this is refused.
           </p>
           <p v-if="pointsError" class="mt-1 text-sm text-error-600 dark:text-error-400">
@@ -247,7 +247,7 @@ function submit(): void {
             ::class="formSelectClass"
             :aria-invalid="Boolean(dueAtError)"
           />
-          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mt-1.5 text-xs text-slate">
             Left blank, the assignment has no deadline. A deadline with no date is not a calendar
             event, so it will not appear on yours.
           </p>

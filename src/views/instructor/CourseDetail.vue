@@ -34,7 +34,7 @@
 
       <div class="grid gap-6 lg:grid-cols-3">
         <!-- Curriculum -->
-        <div class="space-y-6 lg:col-span-2">
+        <div class="min-w-0 space-y-6 lg:col-span-2">
           <div class="surface-card">
             <div class="mb-5 border-b border-gray-200 pb-4 dark:border-gray-800">
               <h2 class="section-heading">Curriculum</h2>
@@ -326,7 +326,7 @@
                       <p class="text-theme-sm font-medium text-gray-900 dark:text-white/90">
                         {{ assignment.title }}
                       </p>
-                      <p class="mt-0.5 text-xs text-gray-500 tabular-nums dark:text-gray-400">
+                      <p class="mt-0.5 text-xs text-slate tabular-nums">
                         {{ assignment.maxPoints }} points ·
                         {{
                           assignment.dueAt
@@ -365,7 +365,7 @@
                       </button>
                       <button
                         type="button"
-                        class="rounded px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-error-600 dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-error-400"
+                        class="rounded px-2 py-1 text-xs font-medium text-slate hover:bg-gray-50 hover:text-error-600 dark:hover:bg-white/[0.06] dark:hover:text-error-400"
                         @click="confirmRemoveAssignment(assignment.id)"
                       >
                         Remove
@@ -435,7 +435,7 @@
                   :style="{ width: `${completionRate}%` }"
                 />
               </div>
-              <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <p class="mt-2 text-xs text-slate">
                 {{
                   course.enrolledCount === 0
                     ? 'No students enrolled yet, so there is nothing to complete.'

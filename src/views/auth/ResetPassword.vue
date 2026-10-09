@@ -82,7 +82,7 @@
       @submit.prevent="handleSubmit"
     >
       <div>
-        <label :for="password" :class="fieldLabelClass">New password</label>
+        <label for="password" :class="fieldLabelClass">New password</label>
         <input
           id="password"
           v-model="password"
@@ -105,7 +105,7 @@
       </div>
 
       <div>
-        <label :for="confirmPassword" :class="fieldLabelClass">Confirm new password</label>
+        <label for="confirmPassword" :class="fieldLabelClass">Confirm new password</label>
         <input
           id="confirmPassword"
           v-model="confirmPassword"

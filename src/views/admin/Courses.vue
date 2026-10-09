@@ -116,7 +116,7 @@
         :icon="Search"
       />
 
-      <div v-else class="mt-4 overflow-hidden rounded-lg border border-hairline bg-canvas">
+      <div v-else class="mt-4 surface-card-shell">
         <div class="overflow-x-auto custom-scrollbar">
           <table class="min-w-full text-start text-sm">
             <caption class="sr-only">

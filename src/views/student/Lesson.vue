@@ -25,7 +25,7 @@
     <template v-else>
       <div class="grid gap-6 lg:grid-cols-3">
         <!-- ============================== LESSON ============================== -->
-        <div class="lg:col-span-2">
+        <div class="min-w-0 lg:col-span-2">
           <!-- Progress banner. Every state the database can hold is named
                separately, so "in progress" is never presented as complete. -->
           <div
@@ -75,7 +75,7 @@
           -->
           <section
             v-if="lesson.lessonType === 'video' && lesson.videoUrl"
-            class="mt-6 rounded-lg border border-hairline bg-canvas p-6 dark:bg-white/[0.03]"
+            class="mt-6 surface-card"
           >
             <h2 class="text-theme-sm text-ink">{{ lesson.title }}</h2>
 
@@ -137,7 +137,7 @@
           <!-- Content -->
           <section
             v-if="lesson.content"
-            class="mt-6 rounded-lg border border-hairline bg-canvas p-6 dark:bg-white/[0.03]"
+            class="mt-6 surface-card"
           >
             <h2 class="text-theme-sm text-ink">Lesson notes</h2>
             <!--
@@ -154,7 +154,7 @@
           </section>
 
           <!-- Materials -->
-          <section class="mt-6 rounded-lg border border-hairline bg-canvas dark:bg-white/[0.03]">
+          <section class="mt-6 surface-card-shell">
             <div class="border-b border-hairline px-6 py-4">
               <h2 class="text-theme-sm text-ink">Learning materials</h2>
               <p class="mt-1 text-sm text-slate">
@@ -195,7 +195,7 @@
         <!-- ============================== OUTLINE ============================== -->
         <div>
           <div
-            class="sticky top-6 rounded-lg border border-hairline bg-canvas dark:bg-white/[0.03]"
+            class="sticky top-6 surface-card-shell"
           >
             <div class="border-b border-hairline px-5 py-4">
               <div class="flex items-baseline justify-between gap-2">

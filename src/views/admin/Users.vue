@@ -130,7 +130,7 @@
         :icon="Search"
       />
 
-      <div v-else class="mt-6 overflow-hidden rounded-lg border border-hairline bg-canvas">
+      <div v-else class="mt-6 surface-card-shell">
         <div class="overflow-x-auto custom-scrollbar">
           <table class="min-w-full text-start text-sm">
             <caption class="sr-only">
@@ -320,7 +320,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/types'
 import type { AdminUser } from '@/services/admin.service'
-import { cellSelectClass, selectClass } from '@/components/ui/controlClasses'
+import { cellSelectClass, searchInputClass, selectClass } from '@/components/ui/controlClasses'
 import type { AccountStatus, Role } from '@/types'
 
 const auth = useAuthStore()
@@ -338,8 +338,9 @@ const rowNotices = ref<Record<string, string>>({})
 const rowNoticeTone = ref<Record<string, 'success' | 'error'>>({})
 const auditWarning = ref('')
 
-const searchClass =
-  'w-full rounded border border-hairline-strong bg-canvas py-2.5 ps-9 pe-3 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden'
+/* See `controlClasses.ts`: the canonical search field. This was a local copy that
+   drifted to 4px corners and a placeholder below AA contrast. */
+const searchClass = searchInputClass
 
 const actionButtonClass =
   'inline-flex items-center gap-1.5 rounded-md border border-hairline-strong bg-canvas px-2.5 py-1.5 text-xs font-medium text-ink transition hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50'

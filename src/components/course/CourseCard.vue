@@ -87,7 +87,7 @@
       compressed below its content, and "3h 20m" turning into "3h…" is the kind of
       truncation nobody notices happening.
     -->
-    <dl class="mt-4 flex shrink-0 items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+    <dl class="mt-4 flex shrink-0 items-center gap-4 text-xs text-slate">
       <div v-if="course.durationMinutes" class="flex shrink-0 items-center gap-1.5">
         <Clock class="size-4 shrink-0" />
         <dt class="sr-only">Duration</dt>

@@ -340,7 +340,7 @@ const hasAnyActivity = computed(() => {
                       {{ grade.quizTitle }}
                     </span>
                     <span
-                      class="mt-0.5 line-clamp-2 text-xs text-gray-500 dark:text-gray-400"
+                      class="mt-0.5 line-clamp-2 text-xs text-slate"
                       :title="`${grade.courseTitle} · ${formatDateTime(grade.submittedAt)}`"
                     >
                       {{ grade.courseTitle }} · {{ formatDateTime(grade.submittedAt) }}
@@ -414,7 +414,7 @@ const hasAnyActivity = computed(() => {
                           {{ quiz.title }}
                         </span>
                         <span
-                          class="mt-0.5 line-clamp-2 text-xs text-gray-500 dark:text-gray-400"
+                          class="mt-0.5 line-clamp-2 text-xs text-slate"
                           :title="quiz.courseTitle"
                         >
                           {{ quiz.courseTitle }}
@@ -546,7 +546,7 @@ const hasAnyActivity = computed(() => {
                     >
                       {{ item.title }}
                     </span>
-                    <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
+                    <span class="mt-0.5 block text-xs text-slate">
                       {{ EVENT_PRESENTATION[item.kind].label }}
                       <template v-if="item.courseTitle"> · {{ item.courseTitle }}</template>
                     </span>
@@ -574,7 +574,7 @@ const hasAnyActivity = computed(() => {
               <span class="block text-sm font-medium text-gray-900 dark:text-white/90">
                 Grades and certificates
               </span>
-              <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
+              <span class="mt-0.5 block text-xs text-slate">
                 Every score, and any certificate you have earned
               </span>
             </span>

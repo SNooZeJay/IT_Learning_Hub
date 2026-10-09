@@ -110,7 +110,7 @@ function submit(): void {
         <h3 class="text-theme-sm font-medium text-gray-900 dark:text-white/90">
           {{ assignment.title }}
         </h3>
-        <p class="mt-0.5 text-xs text-gray-500 tabular-nums dark:text-gray-400">
+        <p class="mt-0.5 text-xs text-slate tabular-nums">
           {{ assignment.maxPoints }} points ·
           <template v-if="assignment.dueAt"> due {{ formatDateTime(assignment.dueAt) }} </template>
           <template v-else>no deadline</template>
@@ -176,7 +176,7 @@ function submit(): void {
       </p>
       <p v-else class="mt-3 section-subheading">No written feedback on this one.</p>
 
-      <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+      <p class="mt-3 text-xs text-slate">
         Marked
         {{ assignment.submission.gradedAt ? formatDateTime(assignment.submission.gradedAt) : '' }}.
         A mark is a record: ask your instructor to reopen it if it needs to change.
@@ -191,7 +191,7 @@ function submit(): void {
       >
         Your answer
       </label>
-      <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+      <p class="mt-0.5 text-xs text-slate">
         <template v-if="assignment.submission">
           Handed in {{ formatDateTime(assignment.submission.submittedAt) }}. Handing in again
           replaces it, right up until it is marked.
@@ -203,7 +203,7 @@ function submit(): void {
         v-model="text"
         rows="7"
         placeholder="Write your answer here, or attach a file below."
-        class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+        class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
         :aria-invalid="Boolean(textError)"
         :aria-describedby="textError ? `submission-error-${assignment.id}` : undefined"
       />
@@ -220,7 +220,7 @@ function submit(): void {
         >
           Or attach a file
         </label>
-        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-0.5 text-xs text-slate">
           Up to {{ Math.round(SUBMISSION_FILE_MAX_BYTES / (1024 * 1024)) }} MB. Handing in again
           replaces whatever is attached.
         </p>

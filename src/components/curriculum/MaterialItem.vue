@@ -127,7 +127,7 @@ watch(
     <div class="min-w-0 flex-1">
       <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <p class="font-medium text-gray-900 dark:text-white/90">{{ material.title }}</p>
-        <span class="text-xs text-gray-400 dark:text-gray-500">
+        <span class="text-xs text-slate">
           {{ materialTypeLabel(material.materialType) }}
           <template v-if="isFile && material.fileSize !== null">
             · {{ formatFileSize(material.fileSize) }}
@@ -189,7 +189,7 @@ watch(
         an edge case: it is what a learner who has lost access to the course sees.
       -->
       <div v-if="isFile && material.filePath" class="mt-2">
-        <p v-if="urlState.status === 'loading'" class="text-xs text-gray-400 dark:text-gray-500">
+        <p v-if="urlState.status === 'loading'" class="text-xs text-slate">
           Preparing the download…
         </p>
 
@@ -215,7 +215,7 @@ watch(
 
       <!-- Metadata line. When the instructor added it, which is useful and is
            deliberately not what organises the page. -->
-      <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">
+      <p class="mt-2 text-xs text-slate">
         Added {{ formatDate(material.createdAt) }}
       </p>
     </div>

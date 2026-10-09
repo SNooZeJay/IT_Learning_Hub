@@ -155,7 +155,7 @@ onMounted(load)
       -->
       <div class="mt-8 grid gap-6 lg:grid-cols-3">
         <section
-          class="rounded-lg border border-hairline bg-canvas p-6 dark:border-white/10 dark:bg-white/[0.03]"
+          class="surface-card"
           aria-labelledby="instructor-needs-grading"
         >
           <h2 id="instructor-needs-grading" class="text-theme-sm text-ink">Needs grading</h2>
@@ -190,7 +190,7 @@ onMounted(load)
         </section>
 
         <section
-          class="rounded-lg border border-hairline bg-canvas p-6 dark:border-white/10 dark:bg-white/[0.03]"
+          class="surface-card"
           aria-labelledby="instructor-soonest"
         >
           <h2 id="instructor-soonest" class="text-theme-sm text-ink">Soonest first</h2>
@@ -232,7 +232,7 @@ onMounted(load)
           instructor finds out they never set one.
         -->
         <section
-          class="rounded-lg border border-hairline bg-canvas p-6 dark:border-white/10 dark:bg-white/[0.03]"
+          class="surface-card"
           aria-labelledby="instructor-undated"
         >
           <h2 id="instructor-undated" class="text-theme-sm text-ink">No deadline set</h2>

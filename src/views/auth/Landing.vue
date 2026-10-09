@@ -435,7 +435,7 @@
                 aria-live="polite"
               >
                 <LoaderCircle class="size-6 animate-spin text-lp-slate" />
-                <p class="mt-4 text-sm text-lp-slate">Loading the catalogueâ€¦</p>
+                <p class="mt-4 text-sm text-lp-slate">Loading the catalogue…</p>
               </div>
 
               <div
@@ -541,8 +541,18 @@
                         />
                       </div>
 
-                      <span
-                        class="absolute start-4 top-4 rounded-full bg-lp-ink/85 px-3 py-1.5 text-[11px] font-medium text-lp-ink-inverse backdrop-blur-sm"
+                      <!--
+  `bg-lp-card` and `text-lp-ink`, matching the level badges on the catalogue grid a few
+  sections up.
+
+  This was `bg-lp-ink/85` with `text-lp-ink-inverse` - a dark surface carrying dark text.
+  In dark mode both tokens resolve dark (#17150f on #17150f at 85%), and the label
+  measured 2.54:1 against what was behind it, well under the 4.5:1 AA asks of 11px text.
+  It was the one badge in the file still on the old pairing, which is what made it read
+  as a smudge rather than as a label.
+-->
+<span
+  class="absolute start-4 top-4 rounded-full bg-lp-card/90 px-3 py-1.5 text-[11px] font-medium text-lp-ink backdrop-blur-sm"
                       >
                         {{ LEVEL_LABELS[courseAt(index)!.level] }}
                       </span>
@@ -1098,8 +1108,8 @@ git --version</code></pre>
         <div
           class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.07] pt-8 md:mt-16"
         >
-          <p class="text-xs text-gray-400">© {{ year }} IT Learning Hub</p>
-          <p class="text-xs text-gray-400">Payments processed in Philippine pesos.</p>
+          <p class="text-xs text-slate">© {{ year }} IT Learning Hub</p>
+          <p class="text-xs text-slate">Payments processed in Philippine pesos.</p>
         </div>
       </div>
     </footer>

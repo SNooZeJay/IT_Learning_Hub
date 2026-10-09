@@ -40,7 +40,7 @@
 
     <form v-else class="flex flex-col gap-5" novalidate @submit.prevent="handleSubmit">
       <div>
-        <label :for="fullName" :class="fieldLabelClass">Full name</label>
+        <label for="fullName" :class="fieldLabelClass">Full name</label>
         <input
           id="fullName"
           v-model.trim="fullName"
@@ -63,7 +63,7 @@
       </div>
 
       <div>
-        <label :for="email" :class="fieldLabelClass">Email address</label>
+        <label for="email" :class="fieldLabelClass">Email address</label>
         <input
           id="email"
           v-model.trim="email"
@@ -86,7 +86,7 @@
       </div>
 
       <div>
-        <label :for="password" :class="fieldLabelClass">Password</label>
+        <label for="password" :class="fieldLabelClass">Password</label>
         <div class="relative">
           <input
             id="password"
@@ -144,7 +144,7 @@
       </div>
 
       <div>
-        <label :for="confirmPassword" :class="fieldLabelClass">Confirm password</label>
+        <label for="confirmPassword" :class="fieldLabelClass">Confirm password</label>
         <input
           id="confirmPassword"
           v-model="confirmPassword"

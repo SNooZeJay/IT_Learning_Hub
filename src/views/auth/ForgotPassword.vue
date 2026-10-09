@@ -20,7 +20,7 @@
 
     <form v-if="!sent" class="flex flex-col gap-5" novalidate @submit.prevent="handleSubmit">
       <div>
-        <label :for="email" :class="fieldLabelClass">Email address</label>
+        <label for="email" :class="fieldLabelClass">Email address</label>
         <input
           id="email"
           v-model.trim="email"

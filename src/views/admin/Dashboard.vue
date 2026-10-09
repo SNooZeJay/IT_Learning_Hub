@@ -146,7 +146,7 @@
                     so both lines of a payment row are readable at phone width.
                   -->
                   <p
-                    class="mt-0.5 line-clamp-2 text-xs text-gray-500 dark:text-gray-400"
+                    class="mt-0.5 line-clamp-2 text-xs text-slate"
                     :title="`${payment.studentName} · ${PAYMENT_STATUS_LABELS[payment.status]} · ${formatDateTime(payment.paidAt ?? payment.createdAt)}`"
                   >
                     {{ payment.studentName }} · {{ PAYMENT_STATUS_LABELS[payment.status] }} ·
@@ -176,7 +176,7 @@
               -->
               <p
                 v-if="paymentsTruncated && payments.length > 0"
-                class="mt-3 text-xs text-gray-500 dark:text-gray-400"
+                class="mt-3 text-xs text-slate"
               >
                 Showing the {{ payments.length }} most recent. Older charges are on the payments
                 page.

@@ -150,11 +150,11 @@ function scoreLabel(attempt: AttemptSummary): string {
                 {{ scoreLabel(attempt) }}
                 <span
                   v-if="attempt.percentage !== null"
-                  class="block text-xs text-gray-400 dark:text-gray-500"
+                  class="block text-xs text-slate"
                 >
                   {{ attempt.percentage }}%
                 </span>
-                <span v-else class="block text-xs text-gray-400 dark:text-gray-500">—</span>
+                <span v-else class="block text-xs text-slate">—</span>
               </td>
               <td class="py-2.5 pe-4">
                 <span

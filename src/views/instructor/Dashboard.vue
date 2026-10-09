@@ -255,7 +255,7 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                       :key="`${attempt.studentId ?? attempt.studentName}-${attempt.submittedAt}`"
                     >
                       <td class="px-6 py-3.5">
-                        <span class="block font-medium text-gray-900 dark:text-white/90">
+                        <span class="block text-sm font-medium text-gray-900 dark:text-white/90">
                           {{ attempt.studentName ?? 'Unknown student' }}
                         </span>
                       </td>
@@ -263,7 +263,7 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                         <span class="block text-gray-700 dark:text-gray-200">
                           {{ attempt.quizTitle }}
                         </span>
-                        <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
+                        <span class="mt-0.5 block text-xs text-slate">
                           {{ attempt.courseTitle }}
                         </span>
                       </td>
@@ -344,7 +344,7 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                     >
                       {{ material.materialTitle }}
                     </span>
-                    <span class="mt-0.5 block truncate text-xs text-gray-500 dark:text-gray-400">
+                    <span class="mt-0.5 block truncate text-xs text-slate">
                       {{ materialTypeLabel(material.materialType) }} · {{ material.courseTitle }} ·
                       {{ formatDateTime(material.createdAt) }}
                     </span>
@@ -392,7 +392,7 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                     >
                       {{ entry.studentName ?? 'Unknown student' }}
                     </span>
-                    <span class="mt-0.5 block truncate text-xs text-gray-500 dark:text-gray-400">
+                    <span class="mt-0.5 block truncate text-xs text-slate">
                       {{ entry.courseTitle }}
                     </span>
                     <span

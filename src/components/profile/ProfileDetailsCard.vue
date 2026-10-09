@@ -1,6 +1,6 @@
 <template>
   <section
-    class="rounded-lg border border-hairline bg-canvas p-5 sm:p-6 dark:bg-white/[0.03]"
+    class="surface-card p-5 sm:p-6"
     aria-labelledby="details-heading"
   >
     <h2 id="details-heading" class="text-theme-xl text-ink">Details</h2>

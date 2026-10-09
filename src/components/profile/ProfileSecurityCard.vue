@@ -1,6 +1,6 @@
 <template>
   <section
-    class="rounded-lg border border-hairline bg-canvas p-5 sm:p-6 dark:bg-white/[0.03]"
+    class="surface-card p-5 sm:p-6"
     aria-labelledby="security-heading"
   >
     <h2 id="security-heading" class="text-theme-xl text-ink">Security</h2>
@@ -26,13 +26,28 @@
     />
 
     <dl class="mt-5 divide-y divide-hairline-soft">
+      <!--
+        The label is `w-full` on a phone and `sm:w-40` above it, not a flat `w-40
+        shrink-0`.
+
+        `shrink-0` refused to give the 160px back, so beside a value like an email
+        address the pair needed more than the 358px a 390px phone has inside its
+        padding, and the page scrolled 23px sideways. It is the only row on this card
+        whose value is an unbounded string, and it is the row that broke.
+
+        Stacking below `sm` also reads correctly: "Sign-in address" above the address
+        is a normal description pair, and it is what the row becomes at every width a
+        person actually holds a phone at.
+      -->
       <div
         v-for="row in facts"
         :key="row.label"
         class="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3"
       >
-        <dt class="w-40 shrink-0 text-sm text-slate">{{ row.label }}</dt>
-        <dd class="min-w-0 flex-1 text-sm font-medium text-ink">{{ row.value }}</dd>
+        <dt class="w-full text-sm text-slate sm:w-40 sm:shrink-0">{{ row.label }}</dt>
+        <dd class="min-w-0 flex-1 text-sm font-medium break-words text-ink">
+          {{ row.value }}
+        </dd>
       </div>
     </dl>
 

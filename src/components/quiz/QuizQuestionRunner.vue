@@ -142,10 +142,10 @@ function typeLabel(type: QuestionType): string {
       <legend class="sr-only">Question {{ currentIndex + 1 }}</legend>
 
       <div class="flex items-center justify-between gap-3">
-        <p class="text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400">
+        <p class="text-xs font-medium tracking-wide text-slate uppercase">
           {{ typeLabel(current.questionType) }}
         </p>
-        <span class="text-xs text-gray-400 dark:text-gray-500">
+        <span class="text-xs text-slate">
           {{ current.points }} {{ current.points === 1 ? 'point' : 'points' }}
         </span>
       </div>
