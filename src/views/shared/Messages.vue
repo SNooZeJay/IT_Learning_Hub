@@ -248,6 +248,30 @@ const nobodyToMessage = computed(
     isComposing.value && !isLoadingPeople.value && people.value.length === 0 && !composeError.value,
 )
 
+/**
+ * What this account could have written to, had anybody been there.
+ *
+ * The sentence used to be one fixed line describing the instructor's position - "the
+ * instructors of your courses, and to the students in the courses you teach". It was
+ * wrong for two of the three roles: an administrator teaches nothing, and a student
+ * is in neither half of it. An administrator who opened the picker and found nobody
+ * was told a sentence about teaching a course they do not teach.
+ *
+ * Each role is told what is actually true of them, and the student case names the
+ * genuine reason it can be empty - they have no live enrolment, so there is no
+ * instructor to write to - rather than restating a rule that does not apply to them.
+ */
+const emptyStateHint = computed(() => {
+  switch (auth.profile?.role) {
+    case 'admin':
+      return 'There is nobody to message yet. You can write to the instructors and the students attached to any course on the platform.'
+    case 'instructor':
+      return 'There is nobody to message yet. You can write to the students in the courses you teach.'
+    default:
+      return 'There is nobody to message yet. You can write to the instructors of the courses you are enrolled in.'
+  }
+})
+
 onMounted(async () => {
   await auth.ensureReady()
   await load()
@@ -554,10 +578,7 @@ onMounted(async () => {
         <div v-else-if="nobodyToMessage" class="mt-4">
           <p class="flex items-start gap-2 text-sm text-slate">
             <TriangleAlert class="mt-0.5 size-4 shrink-0 text-stone" aria-hidden="true" />
-            <span>
-              There is nobody to message yet. You can write to the instructors of your courses, and
-              to the students in the courses you teach.
-            </span>
+            <span>{{ emptyStateHint }}</span>
           </p>
         </div>
 
