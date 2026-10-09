@@ -144,7 +144,20 @@ async function load(): Promise<void> {
       auth.profile ? listMyEnrollments(auth.profile.id) : Promise.resolve([]),
     ])
     courses.value = all.filter((course) => course.status === 'published')
-    enrolledIds.value = new Set(mine.filter((e) => e.status === 'active').map((e) => e.courseId))
+    // `completed` counts as enrolled. A finished course is the one a student most
+    // wants back into - to read their certificate, revisit a lesson, or see their
+    // result - and this filter was the only thing standing between them and it.
+    // Filtering on `active` alone rendered a certified course as "View course"
+    // with no Enrolled badge, while the detail page, reading a different source,
+    // correctly said "You are enrolled" at 100%. Two screens, both reading the
+    // database, disagreeing because one of them dropped a status.
+    //
+    // `pending` and `dropped` are deliberately still excluded: a pending seat is an
+    // abandoned checkout and a dropped one was left on purpose, and neither is a
+    // place the student holds.
+    enrolledIds.value = new Set(
+      mine.filter((e) => e.status === 'active' || e.status === 'completed').map((e) => e.courseId),
+    )
   } catch (error) {
     errorMessage.value =
       error instanceof Error ? error.message : 'Could not load the course catalogue.'

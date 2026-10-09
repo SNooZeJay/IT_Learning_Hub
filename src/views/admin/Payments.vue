@@ -19,21 +19,19 @@
     </PageHeader>
 
     <!--
-      Stated at the top rather than discovered, because an administrator who has just
-      taken a refund request will look for the button to do it with.
+      Refunds were removed from this screen on purpose.
 
-      The wording is the behaviour, not an apology for the screen. "Nothing on this
-      screen can move money, so nothing here will claim to" is a sentence about this
-      page's own construction - it explains the design to the person reading it rather
-      than telling them anything they can act on. Naming where a refund actually happens
-      answers the real question, which is "what do I do now?".
+      The panel here described a workflow this application does not have: it told an
+      administrator that a refund they issued at the provider "shows up on this list
+      as refunded". Nothing writes that status. There is no refund button, no refund
+      RPC, and no code path anywhere that can set it - `payment_status` carried a
+      `refunded` value that no payment had ever held, so the tile below could only
+      ever have read zero.
+
+      Describing a feature that does not exist is worse than omitting it. An
+      administrator who read that panel during a demo would reasonably conclude
+      refunds were supported, and would be asked about one.
     -->
-    <Alert
-      variant="info"
-      title="How a refund works"
-      message="Refunds are issued by the payment provider and take effect once the provider confirms them. A refund you issue there shows up on this list as refunded."
-      class="mb-6"
-    />
 
     <LoadingState v-if="isLoading" label="Loading payments" />
 
@@ -51,12 +49,6 @@
           :value="formatPeso(money.paidCentavos)"
           :icon="Wallet"
           :hint="`${money.paidCount} settled payment${money.paidCount === 1 ? '' : 's'}`"
-        />
-        <StatCard
-          label="Refunded"
-          :value="formatPeso(money.refundedCentavos)"
-          :icon="Undo2"
-          :hint="`${money.refundedCount} refunded payment${money.refundedCount === 1 ? '' : 's'}`"
         />
         <StatCard
           label="Awaiting"
@@ -308,7 +300,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Clock, CircleX, RotateCcw, Search, Undo2, Wallet, Webhook } from 'lucide-vue-next'
+import { Clock, CircleX, RotateCcw, Search, Wallet, Webhook } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatCard from '@/components/common/StatCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -352,7 +344,6 @@ const statusToneClass: Record<AdminPaymentStatus, string> = {
   paid: 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',
   pending: 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400',
   failed: 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400',
-  refunded: 'bg-surface text-slate',
   cancelled: 'bg-surface text-slate',
 }
 
@@ -372,12 +363,10 @@ const providers = computed(() =>
 const money = computed(() => {
   const total = {
     paidCentavos: 0,
-    refundedCentavos: 0,
     pendingCentavos: 0,
     failedCentavos: 0,
     cancelledCentavos: 0,
     paidCount: 0,
-    refundedCount: 0,
   }
 
   for (const payment of payments.value) {
@@ -385,10 +374,6 @@ const money = computed(() => {
       case 'paid':
         total.paidCentavos += payment.amountCentavos
         total.paidCount += 1
-        break
-      case 'refunded':
-        total.refundedCentavos += payment.amountCentavos
-        total.refundedCount += 1
         break
       case 'pending':
         total.pendingCentavos += payment.amountCentavos

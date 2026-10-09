@@ -399,7 +399,6 @@ const PAYMENT_STATUS_NAMES: Record<PaymentStatus, string> = {
   pending: 'Awaiting payment',
   paid: 'Paid',
   failed: 'Payment failed',
-  refunded: 'Refunded',
   cancelled: 'Cancelled',
 }
 

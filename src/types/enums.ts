@@ -79,7 +79,15 @@ export function materialIsLink(type: MaterialType): boolean {
 
 export type ProgressStatus = 'not_started' | 'in_progress' | 'completed'
 
-export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'cancelled'
+/**
+ * The states a payment can be in.
+ *
+ * There is no `refunded`. It was in the database enum and in this type, and nothing
+ * anywhere could set it: there is no refund action, no refund endpoint, and no
+ * payment had ever held it. It existed only to render a tile that always read zero
+ * and a panel that described a workflow the application does not have.
+ */
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled'
 
 export type QuizStatus = 'draft' | 'published'
 

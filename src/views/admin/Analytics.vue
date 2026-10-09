@@ -27,7 +27,7 @@
           label="Revenue collected"
           :value="formatPeso(analytics.revenue.paidCentavos)"
           :icon="Wallet"
-          :hint="`${analytics.revenue.paidCount} settled, ${formatPeso(analytics.revenue.refundedCentavos)} refunded`"
+          :hint="`${analytics.revenue.paidCount} settled payment${analytics.revenue.paidCount === 1 ? '' : 's'}`"
         />
         <StatCard
           label="Enrollments"

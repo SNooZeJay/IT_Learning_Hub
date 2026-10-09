@@ -229,7 +229,7 @@ export const TONE = {
   info: 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400',
   /** Suspended, failed, revoked. */
   stop: 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400',
-  /** Archived, refunded, cancelled, ignored. Carries no semantic colour. */
+  /** Archived, cancelled, ignored. Carries no semantic colour. */
   quiet: 'bg-surface text-slate',
 } as const
 

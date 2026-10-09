@@ -163,7 +163,6 @@ export const PAYMENT_STATUSES: readonly AdminPaymentStatus[] = [
   'pending',
   'paid',
   'failed',
-  'refunded',
   'cancelled',
 ] as const
 
@@ -206,7 +205,6 @@ export const PAYMENT_STATUS_LABELS: Record<AdminPaymentStatus, string> = {
   pending: 'Pending',
   paid: 'Paid',
   failed: 'Failed',
-  refunded: 'Refunded',
   cancelled: 'Cancelled',
 }
 
@@ -364,12 +362,10 @@ export interface PlatformAnalytics {
   paymentsByStatus: CountByLabel[]
   revenue: {
     paidCentavos: number
-    refundedCentavos: number
     pendingCentavos: number
     failedCentavos: number
     cancelledCentavos: number
     paidCount: number
-    refundedCount: number
   }
   enrollment: {
     total: number
@@ -422,12 +418,10 @@ export interface PlatformOverview {
   }
   money: {
     paidCentavos: number
-    refundedCentavos: number
     pendingCentavos: number
     failedCentavos: number
     cancelledCentavos: number
     paidCount: number
-    refundedCount: number
   }
 }
 
@@ -601,9 +595,9 @@ export function slugify(value: string): string {
 /**
  * One row per enum value, so a status with a count of zero still appears.
  *
- * A chart or a filter that silently omits "0 refunded" reads as "no refunds
- * happen" rather than "no refunds have happened yet", and the two are different
- * facts. Every value in the enum is listed, zero included.
+ * A chart or a filter that silently omits a zero-count status reads as "that never
+ * happens" rather than "that has not happened yet", and the two are different facts.
+ * Every value in the enum is listed, zero included.
  */
 function countBy<T extends string>(
   keys: readonly T[],
@@ -1100,12 +1094,10 @@ export async function listAdminPaymentEvents(): Promise<{
 function emptyMoney() {
   return {
     paidCentavos: 0,
-    refundedCentavos: 0,
     pendingCentavos: 0,
     failedCentavos: 0,
     cancelledCentavos: 0,
     paidCount: 0,
-    refundedCount: 0,
   }
 }
 
@@ -1119,10 +1111,6 @@ function tallyMoney(
       case 'paid':
         money.paidCentavos += payment.amount_centavos
         money.paidCount += 1
-        break
-      case 'refunded':
-        money.refundedCentavos += payment.amount_centavos
-        money.refundedCount += 1
         break
       case 'pending':
         money.pendingCentavos += payment.amount_centavos

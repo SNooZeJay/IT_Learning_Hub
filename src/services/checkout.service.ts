@@ -221,7 +221,7 @@ export interface PaymentStatus {
   priceCentavos: number
   enrollmentStatus: 'active' | 'completed' | 'dropped' | 'pending'
   paymentId: string | null
-  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded' | 'cancelled' | null
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'cancelled' | null
   referenceNumber: string | null
   amountCentavos: number | null
   paidAt: string | null
