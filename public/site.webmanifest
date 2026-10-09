@@ -1,0 +1,23 @@
+{
+  "name": "IT Learning Hub",
+  "short_name": "IT Learning Hub",
+  "description": "Learning management system for IT courses, quizzes and certificates.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1f6b46",
+  "icons": [
+    {
+      "src": "/icon-512.png?v=1a69003b98",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon-32.png?v=27df2f95eb",
+      "sizes": "32x32",
+      "type": "image/png"
+    }
+  ]
+}
