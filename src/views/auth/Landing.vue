@@ -267,8 +267,7 @@
               line breaker cannot see it and it contributes 0px of sideways travel. The
               break is stable for the whole animation - what was moving was this element,
               twice.
-            -->
-            <h1
+            -->            <h1
               :style="{ '--stagger-i': 1 }"
               class="mt-6 font-display text-[2.6rem] leading-[1.04] tracking-[-0.025em] text-balance text-lp-ink sm:text-6xl lg:text-[4.1rem]"
             >
@@ -1543,10 +1542,7 @@ onMounted(async () => {
     featured.value = catalogue.value.slice(0, 3)
     totalPublished.value = catalogue.value.length
   } catch (error) {
-    catalogueError.value = describeSupabaseError(
-      error,
-      'The featured courses could not be loaded. Please try again in a moment.',
-    )
+    catalogueError.value = describeSupabaseError(error)
   } finally {
     catalogueLoading.value = false
   }
