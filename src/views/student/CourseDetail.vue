@@ -37,6 +37,24 @@
                 Security hides modules from anyone not enrolled, so for a
                 prospective student an empty curriculum means "enrol to see it",
                 not "the instructor has not written it yet".
+
+                This panel used to carry its own green enrol button, which made the
+                page show the SAME action twice - here and again in the summary rail
+                on the right. That was not a cosmetic duplication. The two buttons
+                were not the same button: the rail one branched on price (a
+                `RouterLink` to the checkout page when the course is paid), while
+                this one called `handleEnrol` unconditionally. `handleEnrol` only
+                knows how to enrol for free, so on a paid course it threw
+                "This course is paid. Payment is required before enrolling." from
+                behind a button labelled "Enroll for PHP 1,500.00". The learner saw
+                a dead end at the top of the page and a working button further
+                down, and the top one is the one they pressed.
+
+                So the panel is a state, not a second call to action, and it points
+                at the one button that actually knows what the course costs. The
+                guard in `handleEnrol` below is the belt to this braces: even if a
+                future change puts this button back, a paid course can no longer
+                reach `enrollInFreeCourse`.
               -->
               <EmptyState
                 v-if="!isEnrolledHere"
@@ -45,20 +63,11 @@
                 "
                 :description="
                   isPaidCourse
-                    ? `The module list for this course is only visible once you have a place. Enroll for ${formatPeso(course.priceCentavos)} to unlock every lesson.`
-                    : 'The module list for this course is only visible once you have a place. Enroll free to unlock every lesson.'
+                    ? `The module list for this course is only visible once you have a place. Enroll for ${formatPeso(course.priceCentavos)} using the button in the summary to unlock every lesson.`
+                    : 'The module list for this course is only visible once you have a place. Enroll free using the button in the summary to unlock every lesson.'
                 "
                 :icon="Lock"
-              >
-                <Button variant="primary" :disabled="isActing" @click="handleEnrol">
-                  <LoaderCircle v-if="isActing" class="size-4 animate-spin" />
-                  {{
-                    isPaidCourse
-                      ? `Enroll for ${formatPeso(course.priceCentavos)}`
-                      : 'Enroll for free'
-                  }}
-                </Button>
-              </EmptyState>
+              />
 
               <CurriculumOutline v-else :modules="curriculumModules" :summary="curriculumSummary" />
 
@@ -533,9 +542,26 @@ async function handleSubmit(
  * button labelled "Enrol for ₱1,500.00". The price rendered correctly and the
  * copy mentioned PayMongo, so the paid path read as implemented - but nothing in
  * the frontend called `create-checkout` at all.
+ *
+ * The duplication is gone: the locked-curriculum panel above no longer renders a
+ * button, so this one is reachable only for a free course. The guard below is
+ * kept anyway, because the failure it prevented was a dead green button that
+ * looked like the primary action, and that is not a failure worth relying on
+ * markup to prevent. If a paid course ever reaches here it goes to the checkout
+ * page - the same destination the rail button uses - rather than attempting a
+ * free enrolment and reporting the database's refusal as a failure.
  */
 async function handleEnrol(): Promise<void> {
   if (!course.value || !auth.profile) return
+
+  // Never attempt a free enrolment on a paid course. `enrollInFreeCourse` refuses
+  // this at the database level and the refusal surfaces as an error toast, which
+  // reads to a learner as "the app is broken" rather than "you must pay first".
+  if (isPaidCourse.value) {
+    await router.push({ name: 'student-checkout', params: { slug: course.value.slug } })
+    return
+  }
+
   actionError.value = ''
   paymentNotice.value = ''
   isActing.value = true

@@ -14,6 +14,53 @@ import { useUnreadMessages } from '@/composables/useUnreadMessages'
 import type { Profile, Role } from '@/types'
 
 /**
+ * How long the reset page waits for the recovery session before giving up.
+ *
+ * Five seconds is not a guess about how long the exchange takes - it is a bound on
+ * how long a person will stare at a blank form before deciding the page is broken.
+ * The real exchange is a network round trip, so on a slow phone connection a
+ * generous bound is the difference between "it worked" and "it gave up". And it has
+ * to be bounded at all: without a deadline, a fragment stripped by an in-app
+ * webview produces the same infinite wait the bug already produced, only with a
+ * spinner instead of a red alert.
+ */
+const RECOVERY_WAIT_MS = 5000
+
+/**
+ * What the URL itself claims, independent of whether a session materialised.
+ *
+ * The fragment is parsed by hand rather than left to `detectSessionInUrl` alone,
+ * because the two things that go wrong here are invisible to a session check. An
+ * expired link still parses perfectly well, and a link whose fragment was stripped
+ * by an in-app webview parses as a URL with nothing in it - the same shape as a
+ * link somebody typed from memory. Those need different words and a different next
+ * step, so they cannot both be answered by "not valid".
+ */
+export interface RecoveryLinkProbe {
+  /** A token of either flow was present. */
+  hasToken: boolean
+  errorCode: string | null
+  errorDescription: string | null
+  /** `type=recovery` marks the link as a reset rather than a sign-in. */
+  isRecovery: boolean
+}
+
+/**
+ * Why the reset page can or cannot show its form.
+ *
+ * `expired` and `no-token` are separate cases on purpose. One means a real link
+ * was spent and the answer is "ask for another"; the other means the URL never
+ * carried a link at all and the answer is "open it from the email, not from
+ * memory". Telling somebody their link is invalid when their mail app ate it is
+ * how you talk someone out of resetting their password at all.
+ */
+export type RecoverySessionOutcome =
+  | { status: 'ready' }
+  | { status: 'expired'; detail: string }
+  | { status: 'no-token'; detail: string }
+  | { status: 'failed'; detail: string }
+
+/**
  * Session, profile and role for the signed-in user.
  *
  * The role is read from the `profiles` table and never from client input, the
@@ -272,6 +319,143 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * Read the recovery parameters out of both the query string and the fragment.
+   *
+   * Both are read because the two flows put them in different places. PKCE sends
+   * `?code=...`; the implicit flow sends `#access_token=...`. In-app browsers -
+   * Gmail's embedded view especially - have been observed to preserve one and drop
+   * the other, so whichever survived is worth looking at.
+   */
+  function probeRecoveryLink(): RecoveryLinkProbe {
+    const query = window.location.search
+    const fragment = window.location.hash.startsWith('#')
+      ? window.location.hash.slice(1)
+      : window.location.hash
+
+    const params = new URLSearchParams(`${query}&${fragment}`)
+
+    const errorCode = params.get('error_code') ?? params.get('error')
+    const errorDescription = params.get('error_description')
+
+    return {
+      hasToken:
+        Boolean(params.get('access_token')) ||
+        Boolean(params.get('refresh_token')) ||
+        Boolean(params.get('code')),
+      errorCode,
+      errorDescription,
+      isRecovery: params.get('type') === 'recovery',
+    }
+  }
+
+  /** Supabase's codes for a one-time link that has already been spent. */
+  const EXPIRED_CODES = new Set(['otp_expired', 'access_denied', 'otp_disabled'])
+
+  /**
+   * Remove the fragment so a refresh does not re-enter the recovery flow.
+   *
+   * Only ever called once a session exists. Stripping earlier would remove the
+   * very token `detectSessionInUrl` is still trying to exchange, and the person
+   * would be told their link was invalid on a link that was perfectly good.
+   */
+  function stripRecoveryFragment(): void {
+    if (!window.history?.replaceState) return
+    const { pathname, hash } = window.location
+
+    // The PKCE `code` lives in the query string, so keeping `search` verbatim
+    // would leave exactly the token we just spent sitting in the address bar, and
+    // a refresh would try to redeem it a second time - which fails, because it is
+    // single-use, and would show somebody who already reset their password a
+    // fresh "this link is not valid" alert. So the spent parameter goes too.
+    const params = new URLSearchParams(window.location.search)
+    params.delete('code')
+    params.delete('error_code')
+    params.delete('error_description')
+    const search = params.toString()
+
+    if (!hash && !window.location.search.includes('code=')) return
+    window.history.replaceState(null, '', `${pathname}${search ? `?${search}` : ''}`)
+  }
+
+  /**
+   * Wait for the recovery session, for real, for a bounded time.
+   *
+   * The page used to do `await ensureReady()` and then read `auth.isAuthenticated`
+   * once. That is a single read of a value that is still being written:
+   * `detectSessionInUrl` exchanges the fragment token asynchronously, and the
+   * `PASSWORD_RECOVERY` event lands afterwards. The read can win that race, and
+   * the page then declares a perfectly good link invalid. Reloading the same URL
+   * sometimes worked, because by then the token had already been exchanged and
+   * persisted - which is the signature of the race.
+   *
+   * So: subscribe, wait for the event, and give up after a deadline. The deadline
+   * is what turns an unbounded wait into a usable page - without it a stripped
+   * fragment would spin forever, which is the same dead end wearing a spinner.
+   */
+  async function waitForRecoverySession(
+    timeoutMs = RECOVERY_WAIT_MS,
+  ): Promise<RecoverySessionOutcome> {
+    await ensureReady()
+
+    const probe = probeRecoveryLink()
+
+    // An error in the URL is a verdict, not a hint. Supabase reports an expired
+    // or already-used link as `error_code` in the same place it would have put a
+    // token, so this can be answered without waiting at all.
+    if (probe.errorCode) {
+      return EXPIRED_CODES.has(probe.errorCode)
+        ? { status: 'expired', detail: probe.errorDescription ?? '' }
+        : { status: 'failed', detail: probe.errorDescription ?? '' }
+    }
+
+    // Already recovered - a refresh after a successful exchange.
+    if (isAuthenticated.value) {
+      stripRecoveryFragment()
+      return { status: 'ready' }
+    }
+
+    // No token anywhere. An in-app webview that stripped the fragment lands
+    // exactly here, and so does someone who navigated to this URL by hand.
+    if (!probe.hasToken) {
+      return {
+        status: 'no-token',
+        detail:
+          'This page needs the one-time code from your reset email. Opening the link from the email keeps it intact.',
+      }
+    }
+
+    const settled = await new Promise<{ session: Session | null; timedOut: boolean }>((resolve) => {
+      let done = false
+      const finish = (session: Session | null, timedOut = false) => {
+        if (done) return
+        done = true
+        clearTimeout(timer)
+        subscription.unsubscribe()
+        resolve({ session, timedOut })
+      }
+      const timer = setTimeout(() => finish(null, true), timeoutMs)
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event, nextSession) => {
+        if (event === 'PASSWORD_RECOVERY' || nextSession) finish(nextSession)
+      })
+    })
+
+    if (settled.session || isAuthenticated.value) {
+      stripRecoveryFragment()
+      return { status: 'ready' }
+    }
+
+    // Timed out with a token that never became a session. Worth distinguishing
+    // from `no-token`: the link was real and the server did not accept it, so
+    // "send another one" is the right advice and "check the link" is not.
+    return {
+      status: 'expired',
+      detail: 'This link could not be used. It may already have been used once.',
+    }
+  }
+
+  /**
    * Whether this account asks for an emailed code on sign-in.
    *
    * Replaces the whole profile object with what the database returned rather than
@@ -317,6 +501,7 @@ export const useAuthStore = defineStore('auth', () => {
     signUp,
     sendPasswordReset,
     updatePassword,
+    waitForRecoverySession,
     setEmailCodeSignIn,
     signOut,
     clearError,
