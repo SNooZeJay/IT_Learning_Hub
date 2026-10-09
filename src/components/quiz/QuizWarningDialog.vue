@@ -53,10 +53,19 @@ const heading = computed(() => {
   <!--
     A real dialog rather than a styled div: it traps focus and takes Escape, and
     the Escape handler is deliberately absent because this must be acknowledged.
+
+    `z-[1000000]` is one above the design system's top token, and deliberately so.
+    The sitting quiz is teleported to `body` at `z-999999` to cover the sidebar,
+    which means this dialog - if it kept the `z-50` it was written with - would now
+    render *underneath the quiz it is about*. Before the quiz was teleported this
+    dialog was already wrong, at `z-50` against a sidebar at `z-99999`, which is why
+    a student dismissing a warning could see the navigation behind it. One step
+    above the shell fixes both, and does not depend on which of the two happens to
+    come later in the document.
   -->
   <div
     v-if="open"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4 backdrop-blur-sm"
+    class="fixed inset-0 z-[1000000] flex items-center justify-center bg-gray-900/60 p-4 backdrop-blur-sm"
     role="alertdialog"
     aria-modal="true"
     aria-labelledby="quiz-warning-heading"

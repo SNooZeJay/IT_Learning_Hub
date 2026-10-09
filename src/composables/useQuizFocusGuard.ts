@@ -36,7 +36,8 @@ export interface FocusGuardOptions {
   onFullscreenExit: () => void
 }
 
-export type FocusLossReason = 'tab_hidden' | 'window_blurred' | 'left_fullscreen'
+export type FocusLossReason =
+  'tab_hidden' | 'window_blurred' | 'left_fullscreen' | 'left_page' | 'page_unloading'
 
 /** Fullscreen element ids, since there is no shared registry to import. */
 function fullscreenElement(): Element | null {
@@ -137,10 +138,31 @@ export function useQuizFocusGuard(options: FocusGuardOptions) {
     if (!isFullscreen()) options.onFullscreenExit()
   }
 
+  /**
+   * Reload, or close the tab.
+   *
+   * The browser does not let a page choose this dialog's wording, so it is the one
+   * warning here that cannot look like the others. It is also the only signal that
+   * fires for a refresh or a closed tab, which are the two ways an attempt is
+   * actually lost, so it earns its place despite being unstyleable.
+   *
+   * `active()` is the guard that matters: a student who navigates to this page and
+   * then decides not to sit the quiz must be able to close the tab without being
+   * held hostage by a dialog about nothing.
+   */
+  function handleBeforeUnload(event: BeforeUnloadEvent): void {
+    if (!options.active() || suppressed()) return
+    event.preventDefault()
+    // Assigning a value is what some browsers still require; modern ones show
+    // their own generic text regardless of what is set here.
+    event.returnValue = ''
+  }
+
   onBeforeUnmount(() => {
     document.removeEventListener('visibilitychange', handleVisibility)
     window.removeEventListener('blur', handleBlur)
     document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    window.removeEventListener('beforeunload', handleBeforeUnload)
   })
 
   return {
@@ -155,11 +177,13 @@ export function useQuizFocusGuard(options: FocusGuardOptions) {
       document.addEventListener('visibilitychange', handleVisibility)
       window.addEventListener('blur', handleBlur)
       document.addEventListener('fullscreenchange', handleFullscreenChange)
+      window.addEventListener('beforeunload', handleBeforeUnload)
     },
     detach(): void {
       document.removeEventListener('visibilitychange', handleVisibility)
       window.removeEventListener('blur', handleBlur)
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
     },
     suppress,
   }

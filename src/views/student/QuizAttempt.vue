@@ -24,7 +24,7 @@
  * the quiz under a student who has already answered half of it.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import {
   useAttemptClock,
   useQuizFocusGuard,
@@ -283,6 +283,7 @@ const REASON_TEXT: Record<string, string> = {
   tab_hidden: 'You switched to another tab or minimised this one.',
   window_blurred: 'This window lost focus, which usually means you moved to another application.',
   left_fullscreen: 'The quiz left fullscreen.',
+  left_page: 'You tried to leave the quiz page.',
 }
 
 async function handleFocusLoss(reason: string): Promise<void> {
@@ -333,6 +334,17 @@ async function acknowledgeWarning(): Promise<void> {
     return
   }
 
+  // A navigation the student triggered and then had blocked re-fires the guard
+  // once the dialog closes. Let exactly that one through: the student asked to
+  // leave, was warned, acknowledged the warning, and is entitled to the outcome
+  // they chose. Anything after this point is a fresh decision and is warned again.
+  if (releaseNavigationAfterWarning) {
+    releaseNavigationAfterWarning = false
+    const target = releasedNavigationTarget
+    if (target) await router.push(target)
+    return
+  }
+
   // Suppress the next moment. Returning focus to the quiz after acknowledging a
   // dialog can itself fire a blur, and counting that would punish the student for
   // reading the warning.
@@ -343,6 +355,65 @@ async function acknowledgeWarning(): Promise<void> {
     // A refused fullscreen request is not fatal; the warnings still work.
   }
 }
+
+/**
+ * Leaving by clicking the navigation, which is the way students actually leave.
+ *
+ * Nothing in the router stopped this. The focus guard watches the window and the
+ * tab, and a route change is neither: the window never lost focus, so a student
+ * could click Dashboard in the sidebar and leave a live attempt with no warning
+ * at all and no record that they had.
+ *
+ * The navigation is blocked rather than warned about and then allowed through.
+ * A dialog that appears and is followed anyway teaches students that the warnings
+ * are decoration, and the only thing this system genuinely enforces is the
+ * warning count - so the count has to mean something.
+ */
+let releasedNavigationTarget: string | null = null
+let releaseNavigationAfterWarning = false
+
+onBeforeRouteLeave(async (to) => {
+  // Only an attempt in progress is protected. The briefing and the result screen
+  // are ordinary pages, and a student who has finished must be able to leave.
+  if (phase.value !== 'running') return true
+  if (!attemptId.value) return true
+
+  // The quiz ended by submission, time, or exhausting its warnings. The view sets
+  // the phase itself in every one of those paths, so this is only reached when
+  // the attempt is genuinely still open.
+  //
+  // `to` is where the student was trying to go, which is not the same as where we
+  // are. Releasing them back to the quiz they were leaving would look like the
+  // guard did nothing at all.
+  releasedNavigationTarget = to.fullPath
+  await handleFocusLoss('left_page')
+  releaseNavigationAfterWarning = true
+  return false
+})
+
+/**
+ * The page must not scroll behind a fixed, full-height quiz.
+ *
+ * The shell is `position: fixed`, so the document keeps whatever scroll position
+ * it had. Without this a student who scrolls the question into view and then
+ * acknowledges a warning returns to a shifted page.
+ */
+watch(inAttempt, (running) => {
+  const root = document.documentElement
+  if (running) {
+    root.dataset.quizLocked = 'true'
+    root.style.overflow = 'hidden'
+  } else {
+    delete root.dataset.quizLocked
+    root.style.overflow = ''
+  }
+})
+
+onBeforeUnmount(() => {
+  const root = document.documentElement
+  delete root.dataset.quizLocked
+  root.style.overflow = ''
+})
 
 // ---------------------------------------------------------------------------
 // Finishing
@@ -456,40 +527,41 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div>
-    <LoadingState v-if="phase === 'loading'" label="Loading quiz" />
+  <!--
+    The running quiz is teleported to `body`, so the application sidebar, header and
+    every other piece of navigation chrome are not merely covered by the quiz, they
+    are not in its ancestor chain at all.
 
-    <ErrorState
-      v-else-if="phase === 'unavailable'"
-      message="This quiz is not available. It may have been unpublished, or you may not be enrolled in the course it belongs to."
-      @retry="load"
-    />
+    Covering them was the previous approach and it was not enough. The quiz was a
+    child of the content column, so the sidebar still occupied 290px of the screen
+    and the header still sat above the quiz, and the warning dialog - at `z-50`
+    against a sidebar at `z-99999` - rendered *underneath* the navigation it was
+    supposed to be covering. A student told to stay on the page could see the
+    dashboard they were being told not to leave.
 
-    <template v-else-if="briefing">
-      <PageHeader
-        :title="phase === 'result' && result ? 'Your result' : 'Quiz'"
-        :crumbs="[
-          { label: 'Student', to: '/student/dashboard' },
-          { label: 'Courses', to: '/student/courses' },
-          { label: briefing.title },
-        ]"
-      />
+    `disabled` is bound to the attempt rather than left off, so the briefing and
+    result screens render inline as before. The student should be able to navigate
+    away freely before starting and after finishing; only the sitting is locked
+    down, and locking down the moments either side of it would be indefensible.
+  -->
+  <Teleport to="body" :disabled="!inAttempt">
+    <div
+      v-if="inAttempt"
+      data-quiz-running
+      class="fixed inset-0 z-999999 overflow-y-auto overscroll-contain bg-white dark:bg-gray-900"
+    >
+      <div class="mx-auto min-h-full w-full max-w-3xl px-4 py-6 md:px-6 md:py-8">
+        <LoadingState v-if="phase === 'ending'" label="Submitting your answers" />
+        <p
+          v-if="phase === 'ending' && actionError"
+          class="mt-4 text-center text-sm text-error-600 dark:text-error-400"
+        >
+          {{ actionError }}
+        </p>
 
-      <div class="mt-6">
-        <Alert
-          v-if="actionError"
-          variant="error"
-          title="Something went wrong"
-          :message="actionError"
-          class="mb-5"
-        />
-
-        <!-- Sitting. No page header: the quiz owns the screen while it is running,
-             because the only thing that matters is the question in front of you. -->
-        <template v-if="phase === 'running' || phase === 'ending'">
+        <template v-else-if="attempt && briefing">
           <div
-            v-if="attempt"
-            class="mx-auto mb-5 flex max-w-3xl flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-3 dark:border-gray-800"
+            class="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-3 dark:border-gray-800"
           >
             <div class="min-w-0">
               <p class="truncate text-sm font-medium text-gray-900 dark:text-white/90">
@@ -522,7 +594,6 @@ onBeforeUnmount(() => {
           </div>
 
           <QuizQuestionRunner
-            v-if="attempt && phase === 'running'"
             :questions="attempt.questions"
             :answers="answers"
             :current-index="currentIndex"
@@ -535,17 +606,41 @@ onBeforeUnmount(() => {
             @toggle-flag="toggleFlag"
             @submit="handleSubmit"
           />
-
-          <div v-else class="mx-auto max-w-3xl py-12 text-center">
-            <LoadingState label="Submitting your answers" />
-            <p v-if="actionError" class="mt-4 text-sm text-error-600 dark:text-error-400">
-              {{ actionError }}
-            </p>
-          </div>
         </template>
+      </div>
+    </div>
+  </Teleport>
+
+  <div>
+    <LoadingState v-if="phase === 'loading'" label="Loading quiz" />
+
+    <ErrorState
+      v-else-if="phase === 'unavailable'"
+      message="This quiz is not available. It may have been unpublished, or you may not be enrolled in the course it belongs to."
+      @retry="load"
+    />
+
+    <template v-else-if="briefing && !inAttempt">
+      <PageHeader
+        :title="phase === 'result' && result ? 'Your result' : 'Quiz'"
+        :crumbs="[
+          { label: 'Student', to: '/student/dashboard' },
+          { label: 'Courses', to: '/student/courses' },
+          { label: briefing.title },
+        ]"
+      />
+
+      <div class="mt-6">
+        <Alert
+          v-if="actionError"
+          variant="error"
+          title="Something went wrong"
+          :message="actionError"
+          class="mb-5"
+        />
 
         <QuizResultPanel
-          v-else-if="phase === 'result' && result"
+          v-if="phase === 'result' && result"
           :result="result"
           :quiz-title="briefing.title"
           :can-retake="!result.passed && result.attemptsRemaining > 0"
@@ -570,17 +665,23 @@ onBeforeUnmount(() => {
       </div>
     </template>
 
-    <!-- Over everything, and only while running: an unanswered submit is
-         explained here rather than by a disabled control with no explanation. -->
-    <QuizWarningDialog
-      :open="warning !== null"
-      :warning-number="warning?.number ?? 0"
-      :max-warnings="warning?.max ?? 3"
-      :remaining="warning?.remaining ?? 0"
-      :reason="warning?.reason ?? ''"
-      :final="warning?.final ?? false"
-      :ending="submitting"
-      @acknowledge="acknowledgeWarning"
-    />
+    <!--
+      Also teleported, and after the quiz shell in document order so it paints on
+      top of it. Inside the layout it was stacking at `z-50` against a sidebar at
+      `z-99999`, so the dialog a student dismisses to return to their quiz was
+      itself half-hidden behind the navigation.
+    -->
+    <Teleport to="body" :disabled="!inAttempt">
+      <QuizWarningDialog
+        :open="warning !== null"
+        :warning-number="warning?.number ?? 0"
+        :max-warnings="warning?.max ?? 3"
+        :remaining="warning?.remaining ?? 0"
+        :reason="warning?.reason ?? ''"
+        :final="warning?.final ?? false"
+        :ending="submitting"
+        @acknowledge="acknowledgeWarning"
+      />
+    </Teleport>
   </div>
 </template>
