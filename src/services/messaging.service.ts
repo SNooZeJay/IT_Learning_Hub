@@ -330,16 +330,31 @@ export async function startConversation(recipientId: string, subjectRaw: string)
 export async function sendMessage(conversationId: string, bodyRaw: string): Promise<void> {
   const body = normaliseMessageBody(bodyRaw)
 
-  const { data: me, error: meError } = await supabase
-    .from('profiles')
-    .select('id')
-    .single<{ id: string }>()
-  if (meError || !me)
-    throw new MessagingError(messageOf(meError, 'Could not read your account.'), meError)
+  // The sender is whoever is signed in. Asking the database for it by reading
+  // `profiles` looked equivalent and was not: `select('id').single()` requires
+  // exactly one row, and RLS lets an instructor read every profile in their courses -
+  // four of them, in this deployment. `.single()` therefore failed with PGRST116
+  // "the result contains 4 rows", and the message was never attempted. A student,
+  // who can see fewer profiles, got further, which is why it read as an intermittent
+  // or account-specific fault rather than a broken query.
+  //
+  // The session is the authority on who is signed in, and the insert policy already
+  // requires `sender_id = auth.uid()` regardless, so this asks for nothing the
+  // database was going to disagree with.
+  const {
+    data: { user },
+    error: sessionError,
+  } = await supabase.auth.getUser()
+  if (sessionError || !user) {
+    throw new MessagingError(
+      messageOf(sessionError, 'Could not read your account. Sign in again and retry.'),
+      sessionError,
+    )
+  }
 
   const { error } = await supabase.from('conversation_messages').insert({
     conversation_id: conversationId,
-    sender_id: me.id,
+    sender_id: user.id,
     body,
   })
 

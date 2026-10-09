@@ -180,6 +180,33 @@ const DATABASE_TELLTALE =
   /violates|permission denied|duplicate key|null value in|invalid input syntax|relation "|column "|table "|pg_catalog|pg_|postgres|sqlstate|statement timeout|row-level|row level security|unique index|foreign key|not-null|schema "|public\.|auth\.|trigger|plpgsql|procedure|raised exception|^[a-z_]+ \(|^(?:ERROR:?\s*)?[0-9][0-9A-Z]{4}\b|^PGRST\d{3}\b|undefined|NULL|stack|at \w+ \(/i
 
 /**
+ * The `message` of a failure, whatever shape the failure is.
+ *
+ * Not `raw instanceof Error`. Supabase hands back a `PostgrestError`, and that is a
+ * plain object literal - `{ message, details, hint, code }` - not an Error subclass.
+ * Testing for Error therefore missed every database failure this application has,
+ * and they all reached the screen as `String(raw)`, which is `"[object Object]"`.
+ *
+ * That is not a cosmetic defect. An error that renders as `[object Object]` tells the
+ * person reading it nothing at all, which is how "the instructor cannot send a
+ * message" survived several passes of manual testing: the screen said it failed and
+ * declined to say why.
+ *
+ * A `message` that is itself an object is treated as no message at all rather than
+ * stringified, because `"[object Object]"` in a fallback position is worse than the
+ * caller's own wording.
+ */
+function messageOfAny(raw: unknown): string {
+  if (raw instanceof Error) return raw.message ?? ''
+  if (raw && typeof raw === 'object') {
+    const message = (raw as { message?: unknown }).message
+    if (typeof message === 'string') return message
+    return ''
+  }
+  return String(raw ?? '')
+}
+
+/**
  * Turn a failure into a sentence a person can act on.
  *
  * @param raw      What the failure said, verbatim.
@@ -188,8 +215,7 @@ const DATABASE_TELLTALE =
  */
 export function humanizeError(raw: unknown, fallback: string): string {
   const fallbackText = (fallback ?? '').trim()
-  const text =
-    typeof raw === 'string' ? raw : raw instanceof Error ? raw.message : String(raw ?? '')
+  const text = typeof raw === 'string' ? raw : messageOfAny(raw)
   const trimmed = text
     // `ERROR: ` and a bare SQLSTATE are prefixes, not content.
     .replace(/^(?:ERROR:\s*|[A-Z]{5}:\s*)/, '')
