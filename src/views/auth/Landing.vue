@@ -249,9 +249,28 @@
               that `practical` keeps its italic accent. A flat run of per-character
               spans would style the word as body text.
             -->
+            <!--
+              No `lp-hero-step` on this heading, deliberately.
+
+              Every other element in the hero fades and rises on the stagger, and this one
+              used to as well - while also running the typewriter. That is two reveals on
+              one element at once: the line arrives by fading up AND arrives again
+              character by character, so it visibly does two things and settles twice.
+              That reads as an inconsistency, not as motion.
+
+              The typewriter is the stronger reveal and the one this heading is actually
+              about, so it keeps it and the entrance is dropped from here only. The eyebrow
+              above, the paragraph below, the buttons and the stat row all still carry
+              `lp-hero-step` and still stagger in as a group.
+
+              The caret was never the cause: `caret-tick` is absolutely positioned, so the
+              line breaker cannot see it and it contributes 0px of sideways travel. The
+              break is stable for the whole animation - what was moving was this element,
+              twice.
+            -->
             <h1
               :style="{ '--stagger-i': 1 }"
-              class="lp-hero-step mt-6 font-display text-[2.6rem] leading-[1.04] tracking-[-0.025em] text-balance text-lp-ink sm:text-6xl lg:text-[4.1rem]"
+              class="mt-6 font-display text-[2.6rem] leading-[1.04] tracking-[-0.025em] text-balance text-lp-ink sm:text-6xl lg:text-[4.1rem]"
             >
               <!--
                 Before the first character there is no segment to attach the caret
@@ -1524,7 +1543,10 @@ onMounted(async () => {
     featured.value = catalogue.value.slice(0, 3)
     totalPublished.value = catalogue.value.length
   } catch (error) {
-    catalogueError.value = describeSupabaseError(error)
+    catalogueError.value = describeSupabaseError(
+      error,
+      'The featured courses could not be loaded. Please try again in a moment.',
+    )
   } finally {
     catalogueLoading.value = false
   }
