@@ -342,10 +342,33 @@ onMounted(async () => {
                     <span class="sr-only">unread messages</span>
                   </span>
                 </span>
-                <span class="w-full truncate text-start text-xs text-slate">
+                <!--
+                `line-clamp-2` on both preview lines, not `truncate`.
+
+                At 375px a one-line clip showed "Good morning. Both are graded - the
+                mark…" and hid the actual point of the message. A conversation list is
+                the one screen where the preview IS the content: the reader is
+                deciding what to open from this line, and a clip that removes the
+                reason to open it is not a summary.
+
+                The subject is the cheaper half of the problem - it is usually short -
+                but it is not bounded by anything either, so it gets the same
+                treatment rather than a different guess.
+
+                `title` on both, so the full string is still reachable by hover. And
+                the panel itself scrolls, so two lines here does not mean the rest of
+                the list is pushed out of reach.
+              -->
+                <span
+                  class="w-full line-clamp-2 text-start text-xs text-slate"
+                  :title="conversation.subject"
+                >
                   {{ conversation.subject }}
                 </span>
-                <span class="w-full truncate text-start text-xs text-stone">
+                <span
+                  class="w-full line-clamp-2 text-start text-xs text-stone"
+                  :title="conversation.lastMessagePreview ?? undefined"
+                >
                   {{ conversation.lastMessagePreview }}
                 </span>
                 <span class="text-[11px] text-stone tabular-nums">

@@ -14,11 +14,25 @@
   <RouterLink
     to="/"
     class="flex min-w-0 shrink items-center gap-2 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-500 sm:gap-2.5 xl:hidden"
-    :aria-label="BRAND.name"
   >
     <BrandMark class="size-7 shrink-0 sm:size-8" />
+    <!--
+      One element, two jobs, resolved by the class rather than by a second copy.
+
+      It was `hidden ... sm:inline` with `aria-label` on the link. Below `sm` that
+      leaves the link with no accessible name at all: the mark is an image or an
+      empty span, the wordmark is `display: none`, and the label was therefore
+      carrying the whole name. It was added for exactly that reason and removing it
+      is how the logo link became "link" to a screen reader below 640px.
+
+      The fix is `sr-only sm:not-sr-only`: below `sm` the text is still in the
+      accessibility tree and still the accessible name, but visually hidden. From
+      `sm` it becomes visible. `truncate` stays, because the whole reason the
+      wordmark gives way at narrow widths is that it must be allowed to, and the full
+      name remains the accessible name either way.
+    -->
     <span
-      class="hidden truncate text-theme-sm font-semibold text-gray-900 sm:inline dark:text-white/90"
+      class="sr-only truncate text-theme-sm font-semibold text-gray-900 sm:not-sr-only dark:text-white/90"
       >{{ BRAND.name }}</span
     >
   </RouterLink>

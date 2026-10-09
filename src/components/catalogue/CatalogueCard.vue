@@ -85,23 +85,61 @@
       </span>
     </div>
 
-    <div class="flex flex-1 flex-col p-5">
+    <!--
+      `min-w-0` on the body, `p-5` at every width.
+
+      The body is the flex column that `h-full` on the article feeds, and it is also
+      where the `min-w-0` has to live for everything inside it to be clampable: the
+      automatic minimum size of a flex item is inherited down this chain, so a
+      `min-w-0` on the heading alone is not enough when the parent will not shrink
+      either.
+
+      `p-5` unsuffixed, deliberately. The card used to tighten its padding as the
+      viewport narrowed, which is backwards: the narrower the column, the less room
+      the text has, so the padding needs to give up some space - but only to a floor.
+      What it must not do is make the interior padding differ from one card to the
+      next within the same row, which is what a viewport-relative step does when two
+      cards in a grid can resolve to different widths.
+    -->
+    <div class="flex min-w-0 flex-1 flex-col p-5">
       <p
         v-if="course.categoryName"
-        class="text-[11px] font-medium tracking-[0.12em] text-lp-accent uppercase"
+        class="min-w-0 text-[11px] font-medium tracking-[0.12em] text-lp-accent uppercase"
       >
         {{ course.categoryName }}
       </p>
 
+      <!--
+        `line-clamp-2` and `min-w-0`.
+
+        Titles are unbounded text from the database, and this grid now starts at two
+        columns on a 375px phone - roughly 165px per card. A title like "Introduction
+        to Network Administration" runs to three or four lines there, which is what
+        actually made the rows ragged: the price row is pinned to the bottom by
+        `mt-auto`, so a long title stretches the card and every gap around it.
+
+        `min-w-0` is not optional alongside the clamp. This is a flex column, and a
+        flex item's automatic minimum size is its content size, so without it the
+        heading never gets a definite width and `line-clamp` has nothing to clamp
+        against - it silently does nothing and the text wraps instead. Same cause as
+        the unreadable-text sweep elsewhere: a flex child holding text with no
+        `min-w-0`.
+
+        The clamp is display-only. The link text is the full title, so a screen reader
+        gets all of it, and the course page has the untruncated copy.
+      -->
       <h3
-        class="mt-2 font-display text-lg leading-snug font-semibold text-lp-ink transition-colors duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:text-lp-accent"
+        class="mt-2 line-clamp-2 min-w-0 font-display text-lg leading-snug font-semibold text-lp-ink transition-colors duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:text-lp-accent"
       >
         <RouterLink :to="`/courses/${course.slug}`" class="after:absolute after:inset-0">
           {{ course.title }}
         </RouterLink>
       </h3>
 
-      <p v-if="course.description" class="mt-2 line-clamp-2 text-sm leading-relaxed text-lp-slate">
+      <p
+        v-if="course.description"
+        class="mt-2 line-clamp-2 min-w-0 text-sm leading-relaxed text-lp-slate"
+      >
         {{ course.description }}
       </p>
 
@@ -110,7 +148,14 @@
         reading a colour or an icon. A zero reads as a zero, not as a failure -
         that is the difference between "not built yet" and "broken".
       -->
-      <p class="mt-4 text-xs text-lp-slate">
+      <!--
+        `min-w-0` again, and here it prevents something quieter: at two columns the
+        metadata line - "6 modules · 18 lessons · 3h 20m" - is the longest string in
+        the card and the first thing to overflow its column. Without `min-w-0` the flex
+        item refuses to shrink below its content and pushes the card wider than its
+        grid track.
+      -->
+      <p class="mt-4 min-w-0 text-xs text-lp-slate">
         {{ course.moduleCount }} {{ course.moduleCount === 1 ? 'module' : 'modules' }} ·
         {{ course.lessonCount }} {{ course.lessonCount === 1 ? 'lesson' : 'lessons' }}
         <template v-if="course.durationMinutes">
@@ -123,11 +168,19 @@
         baseline of the tallest card in a row instead of floating mid-card when a
         neighbour has a longer title or description.
       -->
-      <div class="mt-auto flex items-center justify-between border-t border-lp-line pt-4">
+      <!--
+        `shrink-0` on the price so a formatted peso amount - which is the widest thing
+        that can appear here - cannot be compressed to "P1,50…" in a narrow column,
+        and `gap-3` rather than nothing so the price and the "View course" label cannot
+        touch in the two-column phone layout.
+      -->
+      <div
+        class="mt-auto flex shrink-0 items-center justify-between gap-3 border-t border-lp-line pt-4"
+      >
         <span class="font-display text-base font-semibold text-lp-ink">
           {{ formatPrice(course.priceCentavos) }}
         </span>
-        <span class="inline-flex items-center gap-1.5 text-sm font-medium text-lp-accent">
+        <span class="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-lp-accent">
           View course
           <!--
             The arrow travels the width of its own glyph rather than a fixed number

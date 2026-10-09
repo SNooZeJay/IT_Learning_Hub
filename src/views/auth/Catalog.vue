@@ -155,8 +155,21 @@
         class="lp-hero-step mt-8 rounded-2xl border border-lp-line bg-lp-card p-5 md:p-6"
         @submit.prevent
       >
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div class="sm:col-span-2 lg:col-span-1">
+        <!--
+          `gap-5` on a phone, widening to `gap-6` from `sm`.
+
+          The fields here are 44px tall with an 11px uppercase label above each. At
+          `gap-4` the vertical rhythm put the label of the next field a fixed 16px
+          below the bottom of the previous one, which on a 375px screen stacked four
+          labelled controls into an undifferentiated column - the label looked like it
+          belonged to the field above it.
+
+          `sm:gap-6` because from 640px the four controls sit on one row and the gap is
+          horizontal, where 16px is already comfortable and more would only push the
+          first field into a narrower column than it needs.
+        -->
+        <div class="grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+          <div class="min-w-0 sm:col-span-2 lg:col-span-1">
             <label
               for="catalogue-search"
               class="mb-2 block text-[11px] font-semibold tracking-[0.12em] text-lp-slate uppercase"
@@ -289,12 +302,32 @@
         every keystroke. That is the difference between the page feeling responsive
         and the page feeling like it is loading.
       -->
-      <ul v-else class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <!--
+        A 1 -> 2 -> 3 column progression, and wider gutters.
+
+        It was `sm:grid-cols-2 lg:grid-cols-3` from a single column. On a 375px phone
+        that is one card per row, which is the least useful arrangement there is for
+        this content: a card is a title, a two-line description and a price, so at
+        327px wide the description never wraps and the card is mostly empty space
+        beside two short lines of text. Scrolling to compare six courses meant six
+        screen-heights of scrolling.
+
+        Two columns from `xs` puts two cards side by side on the smallest phone, where
+        the gutters are narrower - 12px rather than 20px, because 20px of gutter on
+        each side of two 165px cards leaves too little for the text. That is why the
+        step down is a step *down* and not a constant.
+
+        `gap-6` at `xs` and up is what makes adjacent cards visibly separate. At
+        `gap-5` on desktop the only thing between two cards was a 20px strip of page
+        background, and with the surface and border tokens being subtle by design,
+        two adjacent cards read as one card with a seam down the middle.
+      -->
+      <ul v-else class="mt-8 grid grid-cols-2 gap-6 sm:gap-6 lg:grid-cols-3">
         <li
           v-for="(course, index) in results"
           :key="course.id"
           :style="{ '--stagger-i': index }"
-          class="lp-stagger h-full"
+          class="lp-stagger h-full min-w-0"
         >
           <CatalogueCard :course="course" />
         </li>

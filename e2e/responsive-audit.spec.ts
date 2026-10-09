@@ -1,8 +1,8 @@
-import { test, type Page } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { writeFileSync, mkdirSync } from 'node:fs'
 
 /**
- * A responsive sweep that reports rather than asserts.
+ * A responsive sweep that now also gates.
  *
  * The question this answers is "does anything on this screen make the page scroll
  * sideways, and if so what is doing it". Measuring beats reading: a fixed sidebar, a
@@ -14,9 +14,20 @@ import { writeFileSync, mkdirSync } from 'node:fs'
  * phone user cannot work around - vertical scrolling is expected, sideways scrolling
  * means content has been pushed off the screen with no way to reach it.
  *
- * Writes `responsive-report.json` and prints a summary. It does not fail the run on
- * findings, because during a sweep the findings are the output. The companion check in
- * `responsive.spec.ts` is the one that gates.
+ * It used to report rather than assert, on the reasoning that "during a sweep the
+ * findings are the output". That reasoning is right about the FIRST run and wrong
+ * about every run after it: a report nobody reads is not a gate, and this one had
+ * been in the audit script for long enough to have a clean result - which is
+ * indistinguishable from a sweep that stopped catching things.
+ *
+ * So the 375px overflow findings are now failing assertions. 375 and not the others,
+ * because this is the failure that blocks a phone user and because a 1px rounding
+ * delta at 1536 is not the same defect as 40px of a table pushed off a 375px screen.
+ * Wider viewports still report without failing, so a tablet-only regression is
+ * visible in the JSON without blocking a demo on a phone.
+ *
+ * Writes `reports/responsive-report.json` and prints a summary either way, so the
+ * wider viewports keep their diagnostic value.
  */
 
 const VIEWPORTS = [
@@ -316,6 +327,22 @@ test('responsive sweep across every role and viewport', async ({ page }) => {
     return [...found]
   }
 
+  /**
+   * The assertion.
+   *
+   * Only 375px, and only overflow. Both restrictions are deliberate and both are
+   * about not making the gate lie: a gate that fires on things nobody is going to fix
+   * gets ignored, and an ignored gate is worse than no gate because it still looks
+   * like one.
+   *
+   * Every failing combination is named in the message with its own measurement, so
+   * the failure says which page, which viewport and by how much - not just "the sweep
+   * found something". The JSON is written before this runs, so the full offender
+   * list is on disk even on a failing run.
+   */
+  const MOBILE = 'mobile'
+  const failures = findings.filter((f) => f.viewport === MOBILE && f.overflowBy > 0)
+
   // Signed out: the public surface.
   for (const p of SEEDS.public) await audit(p)
   const publicPages = await crawl(['/', '/courses'])
@@ -370,5 +397,38 @@ test('responsive sweep across every role and viewport', async ({ page }) => {
     console.log(`\n${consoleErrors.length} console errors:`)
     for (const e of consoleErrors.slice(0, 12))
       console.log(`    ${e.page} :: ${e.text.slice(0, 160)}`)
+  }
+
+  if (failures.length > 0) {
+    const detail = failures
+      .map((f) => {
+        const offender = f.offenders[0]
+        const holder = f.holders[0]
+        const lines = [`  ${f.page}  overflows by ${f.overflowBy}px at ${f.viewport}`]
+        if (offender) lines.push(`      widest offender  ${offender.selector}`)
+        if (holder) lines.push(`      overflow holder  ${holder}`)
+        return lines.join('\n')
+      })
+      .join('\n')
+
+    // The count and the measurement, then the cause. "overflow" alone would leave the
+    // next person re-deriving which page and which number; the JSON has the rest.
+    expect(
+      failures.length,
+      `${failures.length} page/viewport combination(s) overflow horizontally at ${MOBILE} ` +
+        `(${MOBILE} = ${VIEWPORTS.find((v) => v.name === MOBILE)?.width}px).\n${detail}\n` +
+        `Full report: reports/responsive-report.json`,
+    ).toBe(0)
+  }
+
+  // Wider viewports report without failing. A tablet regression is worth seeing and
+  // is not worth blocking a demo over - but it must not be silently dropped either,
+  // so it is called out by name rather than left in the JSON alone.
+  const widerFindings = findings.filter((f) => f.viewport !== MOBILE)
+  if (widerFindings.length > 0) {
+    console.log(
+      `\nNOTE: ${widerFindings.length} non-mobile overflow(s) reported but not gated:\n` +
+        widerFindings.map((f) => `    ${f.page} [${f.viewport}] by ${f.overflowBy}px`).join('\n'),
+    )
   }
 })

@@ -311,13 +311,38 @@ const hasAnyActivity = computed(() => {
                   :to="`/student/quizzes/${grade.quizId}`"
                   class="-mx-2 flex items-center gap-4 rounded-md px-2 py-3.5 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.06]"
                 >
+                  <!--
+                    `line-clamp-2` on both lines, not `truncate`.
+
+                    These were single-line `truncate`, so on a 375px phone a row read
+                    "Threats, operations and the exam itself…" and "Security+ Exam
+                    Preparation · Oct 9, 2026" became "Security+ Exam Prepara…" - the
+                    second one losing the date, which is the only part of that line
+                    anybody needs.
+
+                    The real problem is that a clip is silent. `truncate` gives no way
+                    to see what was cut, and here there is nowhere else to look: the
+                    row's own title is the quiz name, and the link goes to the
+                    attempt. So two lines of a course title that is genuinely long is
+                    the honest version of the same information, and the row still
+                    fits.
+
+                    `title` is added as well, not instead. It gives a pointer user the
+                    full string on hover, which `truncate` also did, so this is not a
+                    downgrade for desktop - it is the first way the full text is
+                    reachable at all on a phone.
+                  -->
                   <span class="min-w-0 flex-1">
                     <span
-                      class="block truncate text-sm font-medium text-gray-900 dark:text-white/90"
+                      class="line-clamp-2 text-sm font-medium text-gray-900 dark:text-white/90"
+                      :title="grade.quizTitle"
                     >
                       {{ grade.quizTitle }}
                     </span>
-                    <span class="mt-0.5 block truncate text-xs text-gray-500 dark:text-gray-400">
+                    <span
+                      class="mt-0.5 line-clamp-2 text-xs text-gray-500 dark:text-gray-400"
+                      :title="`${grade.courseTitle} · ${formatDateTime(grade.submittedAt)}`"
+                    >
                       {{ grade.courseTitle }} · {{ formatDateTime(grade.submittedAt) }}
                     </span>
                   </span>
@@ -370,12 +395,27 @@ const hasAnyActivity = computed(() => {
                       <span class="icon-chip">
                         <FileText class="size-4" aria-hidden="true" />
                       </span>
+                      <!--
+                        `line-clamp-2` on all three, matching the grade rows above.
+
+                        This one had `truncate` only on the course title, so a quiz row
+                        could show a full quiz title, a clipped course title, and a
+                        score - three lines where one was quietly cut. The `title`
+                        attributes make the full strings reachable by hover, so nothing
+                        here is less reachable than a clip; it is just no longer
+                        silently lossy on the one screen where the reader is scanning
+                        rather than reading.
+                      -->
                       <span class="min-w-0 flex-1">
-                        <span class="block text-sm font-medium text-gray-900 dark:text-white/90">
+                        <span
+                          class="line-clamp-2 text-sm font-medium text-gray-900 dark:text-white/90"
+                          :title="quiz.title"
+                        >
                           {{ quiz.title }}
                         </span>
                         <span
-                          class="mt-0.5 block truncate text-xs text-gray-500 dark:text-gray-400"
+                          class="mt-0.5 line-clamp-2 text-xs text-gray-500 dark:text-gray-400"
+                          :title="quiz.courseTitle"
                         >
                           {{ quiz.courseTitle }}
                         </span>
@@ -492,9 +532,17 @@ const hasAnyActivity = computed(() => {
                     </span>
                   </span>
 
+                  <!--
+                    `line-clamp-2`, for the same reason as the grade rows above: a
+                    one-line `truncate` on a due-date title is a silent clip, and an
+                    announcement title is unbounded text from an instructor. Two lines
+                    plus `title` gives the full string to a pointer user and a readable
+                    summary to a thumb.
+                  -->
                   <span class="min-w-0 flex-1">
                     <span
-                      class="block truncate text-sm font-medium text-gray-900 dark:text-white/90"
+                      class="line-clamp-2 text-sm font-medium text-gray-900 dark:text-white/90"
+                      :title="item.title"
                     >
                       {{ item.title }}
                     </span>

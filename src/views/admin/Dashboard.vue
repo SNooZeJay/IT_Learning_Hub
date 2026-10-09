@@ -122,7 +122,8 @@
                   -->
                   <div class="flex items-start justify-between gap-3">
                     <p
-                      class="min-w-0 truncate text-sm font-medium text-gray-900 dark:text-white/90"
+                      class="min-w-0 line-clamp-2 text-sm font-medium text-gray-900 dark:text-white/90"
+                      :title="payment.courseTitle"
                     >
                       {{ payment.courseTitle }}
                     </p>
@@ -132,7 +133,22 @@
                       {{ formatPeso(payment.amountCentavos) }}
                     </p>
                   </div>
-                  <p class="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+                  <!--
+                    `line-clamp-2` plus `title`, not `truncate`.
+
+                    This line is name, status and timestamp, and at 375px a one-line
+                    clip reliably cut the timestamp - "Shan Lee Kian Garmino ·
+                    Cancelled · Oct 9, 2…" - which is the part an administrator is
+                    actually scanning the list for. Two lines keep all three, and the
+                    row is a table row on a page that scrolls anyway.
+
+                    The course title above gets the same treatment for the same reason,
+                    so both lines of a payment row are readable at phone width.
+                  -->
+                  <p
+                    class="mt-0.5 line-clamp-2 text-xs text-gray-500 dark:text-gray-400"
+                    :title="`${payment.studentName} · ${PAYMENT_STATUS_LABELS[payment.status]} · ${formatDateTime(payment.paidAt ?? payment.createdAt)}`"
+                  >
                     {{ payment.studentName }} · {{ PAYMENT_STATUS_LABELS[payment.status] }} ·
                     {{ formatDateTime(payment.paidAt ?? payment.createdAt) }}
                   </p>
