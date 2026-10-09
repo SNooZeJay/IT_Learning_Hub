@@ -275,7 +275,10 @@ export async function listStudentQuizzes(): Promise<StudentQuizSummary[]> {
       supabase
         .from('quiz_attempts')
         .select('quiz_id, status, percentage, passed, submitted_at')
-        .in('quiz_id', quizIds),
+        .in('quiz_id', quizIds)
+        // An abandoned attempt is a timed-out sitting with no answers, not a result.
+        // Left in, it puts a 0% beside a quiz the student actually passed.
+        .neq('ended_via', 'abandoned'),
     ])
 
   if (questionResult.error) {
@@ -384,6 +387,8 @@ export async function listMyAttempts(quizId: string): Promise<QuizAttempt[]> {
     .from('quiz_attempts')
     .select(ATTEMPT_COLUMNS)
     .eq('quiz_id', quizId)
+    // Same reason as the quiz list: an abandoned sitting is not an attempt result.
+    .neq('ended_via', 'abandoned')
     .order('attempt_number', { ascending: true })
 
   if (error) throw new QuizError(messageOf(error, 'Could not load your attempts.'))

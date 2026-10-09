@@ -98,6 +98,7 @@ export async function loadTrend(metric: TrendMetric): Promise<TrendPoint[]> {
       .from('quiz_attempts')
       .select('submitted_at')
       .eq('status', 'submitted')
+      .neq('ended_via', 'abandoned')
       .not('submitted_at', 'is', null)
     if (error) return []
     bucketInto(
@@ -113,6 +114,7 @@ export async function loadTrend(metric: TrendMetric): Promise<TrendPoint[]> {
       .from('quiz_attempts')
       .select('submitted_at')
       .eq('status', 'submitted')
+      .neq('ended_via', 'abandoned')
       .not('submitted_at', 'is', null)
     if (error) return []
     bucketInto(

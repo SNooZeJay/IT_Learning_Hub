@@ -37,7 +37,10 @@ import {
 /** A thenable chain that resolves to whatever the test queued for that table. */
 function chain(result: { data?: unknown; error?: { message: string } | null }) {
   const builder: Record<string, unknown> = {}
-  for (const method of ['select', 'eq', 'in', 'order', 'limit']) {
+  // `neq` and `not` are here because the reads exclude `abandoned` attempts and
+  // null percentages. A mock missing a method fails on the chain, not the assertion,
+  // which hides what the test was actually written to prove.
+  for (const method of ['select', 'eq', 'neq', 'not', 'in', 'order', 'limit']) {
     builder[method] = vi.fn(() => builder)
   }
   // `await` on the builder resolves it, which is how supabase-js query builders

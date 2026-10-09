@@ -311,6 +311,7 @@ async function collectStudentEvents(): Promise<CalendarEvent[]> {
           'id, quiz_id, percentage, passed, submitted_at, quizzes!inner(title, courses!inner(title, slug))',
         )
         .eq('status', 'submitted')
+        .neq('ended_via', 'abandoned')
         .not('submitted_at', 'is', null),
     ),
     rowsOf(() =>
@@ -583,6 +584,11 @@ async function collectInstructorEvents(): Promise<CalendarEvent[]> {
             'id, quiz_id, percentage, passed, submitted_at, ended_via, quizzes!inner(id, title, course_id, courses!inner(title))',
           )
           .eq('status', 'submitted')
+          // `time_expired` and `warnings_exhausted` are real outcomes the instructor
+          // wants (see below). `abandoned` is not: it is a sitting the student never
+          // came back to, so it falls through the qualifier chain and would show as a
+          // bare "0%" with no explanation.
+          .neq('ended_via', 'abandoned')
           .not('submitted_at', 'is', null),
       ),
       rowsOf(() =>

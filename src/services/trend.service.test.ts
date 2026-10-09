@@ -24,6 +24,9 @@ function query(data: unknown, error: unknown = null) {
   const chain = {
     select: () => chain,
     eq: () => chain,
+    // The loaders exclude `abandoned` attempts, a sitting the student never returned
+    // to. The mock has to answer the call or the test proves nothing about the chain.
+    neq: () => chain,
     not: () => chain,
     then: (resolve: (value: unknown) => unknown) => resolve({ data, error }),
   }

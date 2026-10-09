@@ -249,6 +249,9 @@ async function loadRecentGrades(limit: number): Promise<StudentGradeRow[]> {
         'id, quiz_id, attempt_number, percentage, passed, submitted_at, quizzes!inner(title, courses!inner(title))',
       )
       .eq('status', 'submitted')
+      // Same reason as the average below: an abandoned attempt is not a result.
+      // Showing one here listed a 0% that the student never earned.
+      .neq('ended_via', 'abandoned')
       .not('percentage', 'is', null)
       .order('submitted_at', { ascending: false })
       .limit(limit),
@@ -315,6 +318,7 @@ async function loadUpcomingQuizzes(limit: number): Promise<UpcomingQuiz[]> {
       supabase
         .from('quiz_attempts')
         .select('quiz_id, status, passed')
+        .neq('ended_via', 'abandoned')
         .in(
           'quiz_id',
           quizzes.map((q) => q.id),
@@ -425,6 +429,10 @@ export async function loadStudentDashboard(): Promise<StudentDashboard> {
           .from('quiz_attempts')
           .select('percentage')
           .eq('status', 'submitted')
+          // An attempt the student never returned from is not a result. Counting it as 0%
+          // dragged every real score down: 87.5%, 75% and 87.5% averaged to 45% because two
+          // timed-out attempts with no answers sat in the denominator.
+          .neq('ended_via', 'abandoned')
           .not('percentage', 'is', null),
       )
       if (rows.length === 0) return null
@@ -546,6 +554,10 @@ export async function loadInstructorDashboard(): Promise<InstructorDashboard> {
           .from('quiz_attempts')
           .select('percentage')
           .eq('status', 'submitted')
+          // An attempt the student never returned from is not a result. Counting it as 0%
+          // dragged every real score down: 87.5%, 75% and 87.5% averaged to 45% because two
+          // timed-out attempts with no answers sat in the denominator.
+          .neq('ended_via', 'abandoned')
           .not('percentage', 'is', null),
       )
       if (rows.length === 0) return null

@@ -85,7 +85,7 @@ const PROGRESS_COLUMNS =
 const QUIZ_COLUMNS = 'id, course_id, title, passing_score, attempts_allowed, status'
 
 const ATTEMPT_COLUMNS =
-  'id, quiz_id, course_id, attempt_number, status, score, max_score, percentage, passed, started_at, submitted_at'
+  'id, quiz_id, course_id, attempt_number, status, score, max_score, percentage, passed, started_at, submitted_at, ended_via'
 
 const ASSIGNMENT_COLUMNS =
   'id, course_id, module_id, title, instructions, due_at, max_points, status'
@@ -1042,6 +1042,7 @@ export async function getStudentGrades(studentId: string): Promise<StudentGrades
         .from('quiz_attempts')
         .select(ATTEMPT_COLUMNS)
         .eq('student_id', studentId)
+        .neq('ended_via', 'abandoned')
         .order('submitted_at', { ascending: false, nullsFirst: false }),
       later
         .from('certificates')
