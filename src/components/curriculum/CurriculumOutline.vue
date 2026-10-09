@@ -175,9 +175,7 @@ function onRemoveMaterial(materialId: string): void {
         v-if="summary.completionPercent !== null"
         class="flex items-center gap-2 section-subheading"
       >
-        <span class="text-xs tracking-wide text-slate uppercase"
-          >Progress</span
-        >
+        <span class="text-xs tracking-wide text-slate uppercase">Progress</span>
         <span class="font-medium text-gray-900 dark:text-white/90"
           >{{ summary.completionPercent }}%</span
         >
@@ -234,9 +232,7 @@ function onRemoveMaterial(materialId: string): void {
             {{ module.description }}
           </p>
 
-          <p
-            class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate"
-          >
+          <p class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate">
             <span>
               {{ module.lessons.length }}
               {{ module.lessons.length === 1 ? 'lesson' : 'lessons' }}
@@ -328,16 +324,11 @@ function onRemoveMaterial(materialId: string): void {
 
               <!-- The summary is what makes an outline scannable. The old
                    system had this column for exactly that reason. -->
-              <p
-                v-if="lesson.summary"
-                class="mt-1 text-sm leading-6 text-slate"
-              >
+              <p v-if="lesson.summary" class="mt-1 text-sm leading-6 text-slate">
                 {{ lesson.summary }}
               </p>
 
-              <p
-                class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate"
-              >
+              <p class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate">
                 <span class="inline-flex items-center gap-1">
                   <PlayCircle
                     v-if="lesson.lessonType === 'video'"

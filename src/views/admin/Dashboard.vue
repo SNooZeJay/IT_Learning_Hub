@@ -174,10 +174,7 @@
                 that matters on a money screen, so the cap is stated rather than
                 left for the reader to guess at.
               -->
-              <p
-                v-if="paymentsTruncated && payments.length > 0"
-                class="mt-3 text-xs text-slate"
-              >
+              <p v-if="paymentsTruncated && payments.length > 0" class="mt-3 text-xs text-slate">
                 Showing the {{ payments.length }} most recent. Older charges are on the payments
                 page.
               </p>

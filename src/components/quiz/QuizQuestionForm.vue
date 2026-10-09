@@ -345,9 +345,7 @@ function submit(): void {
             <Plus class="size-4" aria-hidden="true" />
             Add an option
           </button>
-          <p v-else class="text-xs text-slate">
-            Six options is the maximum a question can carry.
-          </p>
+          <p v-else class="text-xs text-slate">Six options is the maximum a question can carry.</p>
           <p class="text-xs text-slate">
             Two options is the minimum, and a question cannot be published with none marked correct.
           </p>

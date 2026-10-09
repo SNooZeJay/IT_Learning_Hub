@@ -113,11 +113,7 @@
       />
 
       <div v-else class="mt-4 space-y-4">
-        <article
-          v-for="instructor in filtered"
-          :key="instructor.id"
-          class="surface-card p-5"
-        >
+        <article v-for="instructor in filtered" :key="instructor.id" class="surface-card p-5">
           <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div class="flex min-w-0 items-center gap-3">
               <span

@@ -18,8 +18,12 @@
         aria-hidden="true"
       />
       <div class="flex-1">
-        <div class="h-3 w-40 animate-pulse rounded bg-gray-200 motion-reduce:animate-none dark:bg-gray-700" />
-        <div class="mt-3 h-8 w-24 animate-pulse rounded bg-gray-100 motion-reduce:animate-none dark:bg-gray-800" />
+        <div
+          class="h-3 w-40 animate-pulse rounded bg-gray-200 motion-reduce:animate-none dark:bg-gray-700"
+        />
+        <div
+          class="mt-3 h-8 w-24 animate-pulse rounded bg-gray-100 motion-reduce:animate-none dark:bg-gray-800"
+        />
       </div>
     </div>
     <span class="sr-only">{{ label }}</span>

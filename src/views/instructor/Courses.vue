@@ -221,8 +221,7 @@ const status = ref<CourseStatus | 'all'>('all')
 const isLoading = ref(true)
 const errorMessage = ref('')
 
-const searchClass =
-  searchInputClass
+const searchClass = searchInputClass
 
 const STATUS_FILTERS: Array<{ value: CourseStatus | 'all'; label: string }> = [
   { value: 'all', label: 'All' },

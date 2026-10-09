@@ -32,7 +32,14 @@ export const BRAND_500 = '#1f6b46'
  * Ordered so the meaningful tones come first: a categorical palette used by a donut
  * reads by position, and the two charts that share this list start on the same colour.
  */
-export const CATEGORICAL_PALETTE = [BRAND_500, '#1aae39', '#dd5b00', '#e03131', '#787671', '#a4a097']
+export const CATEGORICAL_PALETTE = [
+  BRAND_500,
+  '#1aae39',
+  '#dd5b00',
+  '#e03131',
+  '#787671',
+  '#a4a097',
+]
 
 /** The one font stack, matching `--font-sans` in `main.css`. */
 export const CHART_FONT =

@@ -70,11 +70,7 @@
         columns through the same policies, so splitting them would duplicate the
         validation and the error handling for no benefit.
       -->
-      <form
-        class="mt-6 surface-card p-5"
-        novalidate
-        @submit.prevent="submit"
-      >
+      <form class="mt-6 surface-card p-5" novalidate @submit.prevent="submit">
         <h2 class="text-theme-xl font-semibold text-ink">
           {{ editingId ? `Edit “${editingName}”` : 'New category' }}
         </h2>
@@ -195,11 +191,7 @@
       />
 
       <ul v-else class="mt-4 space-y-3">
-        <li
-          v-for="category in categories"
-          :key="category.id"
-          class="surface-card p-5"
-        >
+        <li v-for="category in categories" :key="category.id" class="surface-card p-5">
           <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div class="min-w-0">
               <h3 class="text-theme-xl font-semibold text-ink">{{ category.name }}</h3>

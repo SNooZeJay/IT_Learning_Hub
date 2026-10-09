@@ -124,10 +124,7 @@
                         with them, but a data mismatch can leave one name-less, and
                         an empty cell would read as a blank name.
                       -->
-                      <p
-                        v-if="row.studentEmail"
-                        class="truncate text-xs text-slate"
-                      >
+                      <p v-if="row.studentEmail" class="truncate text-xs text-slate">
                         {{ row.studentEmail }}
                       </p>
                     </div>
@@ -229,8 +226,7 @@ const errorMessage = ref('')
 
 const HEADINGS = ['Student', 'Course', 'Status', 'Progress', 'Enrolled']
 
-const searchClass =
-  searchInputClass
+const searchClass = searchInputClass
 
 const filtered = computed(() => {
   const term = search.value.toLowerCase()

@@ -75,10 +75,7 @@
           </p>
         </div>
 
-        <div
-          v-if="grades.quizAttempts.length"
-          class="mt-3 surface-card-shell"
-        >
+        <div v-if="grades.quizAttempts.length" class="mt-3 surface-card-shell">
           <!--
             A list rather than a table. On a phone a table of six columns is
             unreadable, and the two things that matter per attempt — the score
@@ -169,10 +166,7 @@
           </p>
         </div>
 
-        <div
-          v-if="grades.assignments.length"
-          class="mt-3 surface-card-shell"
-        >
+        <div v-if="grades.assignments.length" class="mt-3 surface-card-shell">
           <ul class="divide-y divide-hairline">
             <li v-for="item in grades.assignments" :key="item.assignmentId" class="px-5 py-4">
               <div class="flex flex-wrap items-center gap-x-4 gap-y-2">

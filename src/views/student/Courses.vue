@@ -114,8 +114,7 @@ watch(search, (value) => {
 const isLoading = ref(true)
 const errorMessage = ref('')
 
-const searchClass =
-  searchInputClass
+const searchClass = searchInputClass
 
 const filtered = computed(() => {
   const term = search.value.toLowerCase()

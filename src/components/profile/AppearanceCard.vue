@@ -1,8 +1,5 @@
 <template>
-  <section
-    class="surface-card p-5 sm:p-6"
-    aria-labelledby="appearance-heading"
-  >
+  <section class="surface-card p-5 sm:p-6" aria-labelledby="appearance-heading">
     <h2 id="appearance-heading" class="text-theme-xl text-ink">Appearance</h2>
     <p class="mt-1 text-sm text-slate">
       These are remembered by this browser, so they do not follow you to another device.

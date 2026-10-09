@@ -215,9 +215,7 @@ watch(
 
       <!-- Metadata line. When the instructor added it, which is useful and is
            deliberately not what organises the page. -->
-      <p class="mt-2 text-xs text-slate">
-        Added {{ formatDate(material.createdAt) }}
-      </p>
+      <p class="mt-2 text-xs text-slate">Added {{ formatDate(material.createdAt) }}</p>
     </div>
 
     <div v-if="editable" class="flex shrink-0 items-start gap-1">

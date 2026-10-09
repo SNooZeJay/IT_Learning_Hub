@@ -686,9 +686,7 @@ watch(
                 {{ quiz.instructions }}
               </p>
 
-              <dl
-                class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate"
-              >
+              <dl class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate">
                 <div class="flex items-center gap-1.5">
                   <dt>Pass mark</dt>
                   <dd class="font-medium text-gray-900 dark:text-white/90">

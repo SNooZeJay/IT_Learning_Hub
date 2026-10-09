@@ -684,9 +684,7 @@
                 </div>
               </div>
 
-              <p class="text-xs text-slate">
-                A preview lesson is readable without enrolling.
-              </p>
+              <p class="text-xs text-slate">A preview lesson is readable without enrolling.</p>
 
               <div class="flex flex-wrap gap-2">
                 <button
@@ -964,11 +962,9 @@ const lessonDraft = ref({
   videoUrl: '',
 })
 
-const inputClass =
-  [textInputClass, 'mt-1.5']
+const inputClass = [textInputClass, 'mt-1.5']
 
-const textAreaClass =
-  [textInputClass, 'mt-1.5']
+const textAreaClass = [textInputClass, 'mt-1.5']
 
 const LEVELS: CourseLevel[] = ['beginner', 'intermediate', 'advanced']
 

@@ -1,8 +1,5 @@
 <template>
-  <section
-    class="surface-card p-5 sm:p-6"
-    aria-labelledby="security-heading"
-  >
+  <section class="surface-card p-5 sm:p-6" aria-labelledby="security-heading">
     <h2 id="security-heading" class="text-theme-xl text-ink">Security</h2>
     <p class="mt-1 text-sm text-slate">
       Your sign-in address, when you last signed in, and your password.

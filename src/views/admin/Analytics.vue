@@ -56,8 +56,8 @@
           </p>
           <div class="mt-6">
             <EmptyState
-      bare
-      v-if="!isMounted || analytics.usersByRole.every((slice) => slice.count === 0)"
+              bare
+              v-if="!isMounted || analytics.usersByRole.every((slice) => slice.count === 0)"
               title="No accounts yet"
               description="The split by role appears as soon as somebody registers."
               :icon="Users"
@@ -79,8 +79,8 @@
           </p>
           <div class="mt-6">
             <EmptyState
-      bare
-      v-if="!isMounted || analytics.coursesByStatus.every((slice) => slice.count === 0)"
+              bare
+              v-if="!isMounted || analytics.coursesByStatus.every((slice) => slice.count === 0)"
               title="No courses yet"
               description="The split by status appears once an instructor has drafted something."
               :icon="Library"
@@ -105,8 +105,8 @@
           </p>
           <div class="mt-6">
             <EmptyState
-      bare
-      v-if="!isMounted || !analytics.revenueByMonth.some((month) => month.centavos > 0)"
+              bare
+              v-if="!isMounted || !analytics.revenueByMonth.some((month) => month.centavos > 0)"
               title="No money collected in these six months"
               description="Free enrollments never create a payment, so this panel stays empty until a paid course is checked out."
               :icon="Wallet"
@@ -128,8 +128,8 @@
           </p>
           <div class="mt-6">
             <EmptyState
-      bare
-      v-if="!isMounted || !analytics.enrollmentsByMonth.some((month) => month.count > 0)"
+              bare
+              v-if="!isMounted || !analytics.enrollmentsByMonth.some((month) => month.count > 0)"
               title="No enrollments in these six months"
               description="This panel fills in as students open courses. It counts every status, including pending and dropped."
               :icon="ChartColumn"
@@ -153,8 +153,8 @@
           </p>
           <div class="mt-6">
             <EmptyState
-      bare
-      v-if="!isMounted || analytics.enrollment.total === 0"
+              bare
+              v-if="!isMounted || analytics.enrollment.total === 0"
               title="No enrollments yet"
               description="Nothing has enrolled in anything, so there is no split to draw."
               :icon="BookOpen"
@@ -176,8 +176,8 @@
           </p>
           <div class="mt-6">
             <EmptyState
-      bare
-      v-if="!isMounted || analytics.paymentsByStatus.every((slice) => slice.count === 0)"
+              bare
+              v-if="!isMounted || analytics.paymentsByStatus.every((slice) => slice.count === 0)"
               title="No payments raised"
               description="Payments appear when a paid course is checked out."
               :icon="Wallet"

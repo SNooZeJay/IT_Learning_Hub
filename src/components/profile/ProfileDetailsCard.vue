@@ -1,8 +1,5 @@
 <template>
-  <section
-    class="surface-card p-5 sm:p-6"
-    aria-labelledby="details-heading"
-  >
+  <section class="surface-card p-5 sm:p-6" aria-labelledby="details-heading">
     <h2 id="details-heading" class="text-theme-xl text-ink">Details</h2>
     <p class="mt-1 text-sm text-slate">
       How your name and contact details appear to instructors and other learners.

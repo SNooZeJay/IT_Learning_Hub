@@ -216,11 +216,7 @@ function goToToday(): void {
                 {{ day.past.length }} earlier
               </summary>
               <ul role="list" class="mt-1 flex flex-col gap-1">
-                <li
-                  v-for="event in day.past"
-                  :key="event.id"
-                  class="px-2 py-1 text-xs text-slate"
-                >
+                <li v-for="event in day.past" :key="event.id" class="px-2 py-1 text-xs text-slate">
                   <span class="flex items-center gap-1.5">
                     <span
                       class="size-1.5 shrink-0 rounded-full opacity-60"

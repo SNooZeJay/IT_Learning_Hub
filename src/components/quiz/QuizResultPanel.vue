@@ -183,9 +183,7 @@ const percent = computed(() => Number(props.result.percentage ?? 0))
       class="mt-6 surface-card"
       aria-labelledby="quiz-review-heading"
     >
-      <h2 id="quiz-review-heading" class="section-heading">
-        Review
-      </h2>
+      <h2 id="quiz-review-heading" class="section-heading">Review</h2>
       <p class="mt-1 section-subheading">
         Each question with the right answer marked, and yours beside it.
       </p>

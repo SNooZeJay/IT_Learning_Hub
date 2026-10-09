@@ -1,8 +1,5 @@
 <template>
-  <section
-    class="surface-card p-5 sm:p-6"
-    aria-labelledby="profile-photo-heading"
-  >
+  <section class="surface-card p-5 sm:p-6" aria-labelledby="profile-photo-heading">
     <div class="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
       <UserAvatar
         :name="profile.fullName"

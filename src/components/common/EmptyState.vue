@@ -14,7 +14,11 @@
   -->
   <div
     class="flex flex-col items-center justify-center text-center"
-    :class="bare ? 'px-2 py-8' : 'rounded-lg border border-gray-200 bg-white px-6 py-16 dark:border-gray-800 dark:bg-white/[0.03]'"
+    :class="
+      bare
+        ? 'px-2 py-8'
+        : 'rounded-lg border border-gray-200 bg-white px-6 py-16 dark:border-gray-800 dark:bg-white/[0.03]'
+    "
     role="status"
   >
     <span

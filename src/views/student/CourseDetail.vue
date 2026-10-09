@@ -90,12 +90,7 @@
                 class="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800"
                 aria-labelledby="course-quizzes-heading"
               >
-                <h2
-                  id="course-quizzes-heading"
-                  class="section-heading"
-                >
-                  Assessments
-                </h2>
+                <h2 id="course-quizzes-heading" class="section-heading">Assessments</h2>
                 <p class="mt-1 section-subheading">
                   Read the instructions before you start. Each one tells you what to expect.
                 </p>
@@ -106,18 +101,14 @@
                       :to="`/student/quizzes/${quiz.id}`"
                       class="flex items-center gap-4 rounded-lg border border-gray-200 px-4 py-3.5 transition-colors hover:border-brand-400 hover:bg-gray-50 dark:border-gray-800 dark:hover:border-brand-500 dark:hover:bg-white/[0.02]"
                     >
-                      <span
-                        class="icon-chip"
-                      >
+                      <span class="icon-chip">
                         <ClipboardList class="size-4" aria-hidden="true" />
                       </span>
                       <span class="min-w-0 flex-1">
                         <span class="block text-sm font-medium text-gray-900 dark:text-white/90">
                           {{ quiz.title }}
                         </span>
-                        <span
-                          class="mt-0.5 block text-xs text-slate tabular-nums"
-                        >
+                        <span class="mt-0.5 block text-xs text-slate tabular-nums">
                           {{ quiz.questions.length }}
                           {{ quiz.questions.length === 1 ? 'question' : 'questions' }} · pass at
                           {{ quiz.passingScore }}%
@@ -150,12 +141,7 @@
                 class="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800"
                 aria-labelledby="course-assignments-heading"
               >
-                <h2
-                  id="course-assignments-heading"
-                  class="section-heading"
-                >
-                  Assignments
-                </h2>
+                <h2 id="course-assignments-heading" class="section-heading">Assignments</h2>
                 <p class="mt-1 section-subheading">
                   Read the brief, then write your answer below. A hand-in can be replaced until it
                   has been marked.
@@ -269,10 +255,7 @@
               </Button>
             </div>
 
-            <p
-              v-if="isPaidCourse && !isEnrolledHere"
-              class="mt-3 text-xs text-slate"
-            >
+            <p v-if="isPaidCourse && !isEnrolledHere" class="mt-3 text-xs text-slate">
               Payment is processed by PayMongo. Your place is created once payment is confirmed, so
               closing this page will not lose it.
             </p>

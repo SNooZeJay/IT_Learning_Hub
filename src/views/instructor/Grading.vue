@@ -16,7 +16,7 @@
           v-model.trim="search"
           type="search"
           aria-label="Search the grading queue"
-            placeholder="Search by student, course or assignment"
+          placeholder="Search by student, course or assignment"
           :class="searchClass"
         />
       </div>
@@ -116,11 +116,7 @@
             <!-- Instructions. Shown because a grade without the brief is a
                  judgement made without the criteria. -->
             <div v-if="item.assignmentInstructions" class="mb-5">
-              <h3
-                class="text-xs font-medium tracking-wide text-slate uppercase"
-              >
-                What was asked
-              </h3>
+              <h3 class="text-xs font-medium tracking-wide text-slate uppercase">What was asked</h3>
               <p
                 class="mt-1.5 rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm whitespace-pre-line text-gray-700 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300"
               >
@@ -129,11 +125,7 @@
             </div>
 
             <!-- The submission itself. -->
-            <h3
-              class="text-xs font-medium tracking-wide text-slate uppercase"
-            >
-              Submission
-            </h3>
+            <h3 class="text-xs font-medium tracking-wide text-slate uppercase">Submission</h3>
             <p
               v-if="item.submissionText"
               class="mt-1.5 rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm whitespace-pre-line text-gray-700 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300"
@@ -221,9 +213,7 @@
                     shows whatever it says rather than assuming its own check was
                     the one that mattered.
                   -->
-                  <p class="mt-1.5 text-xs text-slate">
-                    0 to {{ item.maxPoints }}
-                  </p>
+                  <p class="mt-1.5 text-xs text-slate">0 to {{ item.maxPoints }}</p>
                 </div>
 
                 <div>
@@ -304,11 +294,9 @@ const feedbacks = ref<Record<string, string>>({})
 const gradeErrors = ref<Record<string, string>>({})
 const isSaving = ref<string | null>(null)
 
-const searchClass =
-  searchInputClass
+const searchClass = searchInputClass
 
-const inputClass =
-  [textInputClass, 'mt-1.5']
+const inputClass = [textInputClass, 'mt-1.5']
 
 const filtered = computed(() => {
   const term = search.value.toLowerCase()

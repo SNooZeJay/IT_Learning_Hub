@@ -176,7 +176,9 @@
                     break opportunity in it at all: `overflow-wrap: break-word` only
                     breaks at a soft wrap point, and a hash has none.
                   -->
-                  <code class="font-mono text-xs break-all text-ink">{{ payment.referenceNumber }}</code>
+                  <code class="font-mono text-xs break-all text-ink">{{
+                    payment.referenceNumber
+                  }}</code>
                   <p
                     v-if="payment.providerPaymentId"
                     class="mt-0.5 font-mono text-xs break-all text-slate"
@@ -247,11 +249,7 @@
         />
 
         <ul v-else class="mt-4 space-y-3">
-          <li
-            v-for="event in events"
-            :key="event.id"
-            class="surface-card p-5"
-          >
+          <li v-for="event in events" :key="event.id" class="surface-card p-5">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div class="min-w-0">
                 <p class="flex flex-wrap items-center gap-2 font-medium text-ink">

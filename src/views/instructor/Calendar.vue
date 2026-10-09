@@ -154,10 +154,7 @@ onMounted(load)
         when, these say what to do.
       -->
       <div class="mt-8 grid gap-6 lg:grid-cols-3">
-        <section
-          class="surface-card"
-          aria-labelledby="instructor-needs-grading"
-        >
+        <section class="surface-card" aria-labelledby="instructor-needs-grading">
           <h2 id="instructor-needs-grading" class="text-theme-sm text-ink">Needs grading</h2>
           <p class="mt-1 text-sm text-slate">Assignments with submissions waiting.</p>
 
@@ -189,10 +186,7 @@ onMounted(load)
           </ul>
         </section>
 
-        <section
-          class="surface-card"
-          aria-labelledby="instructor-soonest"
-        >
+        <section class="surface-card" aria-labelledby="instructor-soonest">
           <h2 id="instructor-soonest" class="text-theme-sm text-ink">Soonest first</h2>
 
           <p v-if="upcomingList.length === 0" class="mt-5 text-sm text-slate">
@@ -231,10 +225,7 @@ onMounted(load)
           no deadline still collects submissions, and this is the only place an
           instructor finds out they never set one.
         -->
-        <section
-          class="surface-card"
-          aria-labelledby="instructor-undated"
-        >
+        <section class="surface-card" aria-labelledby="instructor-undated">
           <h2 id="instructor-undated" class="text-theme-sm text-ink">No deadline set</h2>
           <p class="mt-1 text-sm text-slate">Not on the calendar, because they have no due date.</p>
 

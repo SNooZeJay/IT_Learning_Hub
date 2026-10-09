@@ -135,10 +135,7 @@
           </section>
 
           <!-- Content -->
-          <section
-            v-if="lesson.content"
-            class="mt-6 surface-card"
-          >
+          <section v-if="lesson.content" class="mt-6 surface-card">
             <h2 class="text-theme-sm text-ink">Lesson notes</h2>
             <!--
               Plain paragraphs, not v-html. The content is instructor-authored and
@@ -194,9 +191,7 @@
 
         <!-- ============================== OUTLINE ============================== -->
         <div>
-          <div
-            class="sticky top-6 surface-card-shell"
-          >
+          <div class="sticky top-6 surface-card-shell">
             <div class="border-b border-hairline px-5 py-4">
               <div class="flex items-baseline justify-between gap-2">
                 <h2 class="text-theme-sm text-ink">Course outline</h2>

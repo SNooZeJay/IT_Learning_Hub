@@ -204,9 +204,7 @@ function submit(): void {
             />
             <span class="shrink-0 section-subheading">%</span>
           </div>
-          <p class="mt-1.5 text-xs text-slate">
-            From 1 to 100. A pass mark of 0 is not allowed.
-          </p>
+          <p class="mt-1.5 text-xs text-slate">From 1 to 100. A pass mark of 0 is not allowed.</p>
         </div>
 
         <div>
@@ -225,9 +223,7 @@ function submit(): void {
               {{ choice }} attempt{{ choice === 1 ? '' : 's' }}
             </option>
           </select>
-          <p class="mt-1.5 text-xs text-slate">
-            How many times a student may sit this quiz.
-          </p>
+          <p class="mt-1.5 text-xs text-slate">How many times a student may sit this quiz.</p>
         </div>
 
         <div>
