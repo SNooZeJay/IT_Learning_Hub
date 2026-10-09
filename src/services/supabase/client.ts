@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { humanizeError } from '../errors'
 import type { Database } from './types'
 
 /**
@@ -41,12 +42,32 @@ if (!isSupabaseConfigured) {
 /**
  * The message shown when the app has no database configured.
  *
- * Kept here rather than repeated per view so it says the same thing everywhere,
- * and so a demo that hits this reads as a diagnosis instead of a crash.
+ * Kept here rather than repeated per view so it says the same thing everywhere.
+ *
+ * It used to be deployment instructions addressed to whoever was deploying:
+ *
+ *     This deployment is not connected to a database yet. Add VITE_SUPABASE_URL and
+ *     VITE_SUPABASE_PUBLISHABLE_KEY to the Vercel environment variables, then redeploy.
+ *
+ * That is the right sentence for a person holding the deployment, and `console.error`
+ * above already says it - including which file to copy and which dashboard to read. A
+ * visitor who lands on a site in this state is not going to fix it, and the four public
+ * pages that render this were showing it to anyone at all. So the page says what the
+ * reader can act on, and the console keeps the diagnosis for the operator.
  */
 export const NOT_CONFIGURED_MESSAGE =
-  'This deployment is not connected to a database yet. Add VITE_SUPABASE_URL and ' +
-  'VITE_SUPABASE_PUBLISHABLE_KEY to the Vercel environment variables, then redeploy.'
+  'This site cannot reach its data right now. Please try again shortly, and contact the site ' +
+  'administrator if it keeps happening.'
+
+/**
+ * The last-resort wording when a failure has nothing more specific to say.
+ *
+ * Deliberately actionable. It is what a caller gets when the thrown value was database
+ * output with no agreed plain-language meaning, and it is the last thing standing
+ * between a raw refusal and the screen.
+ */
+const GENERIC_ERROR_MESSAGE =
+  'Something went wrong and the request did not complete. Please try again in a moment.'
 
 /**
  * Turn a thrown value into something a person can act on.
@@ -55,15 +76,30 @@ export const NOT_CONFIGURED_MESSAGE =
  * shows when something is wrong, and it names no cause and no next step. This maps
  * the two cases worth distinguishing — misconfigured, and genuinely offline — and
  * passes anything that already reads as a sentence straight through.
+ *
+ * Everything else goes through `humanizeError`, which is the whole point of this
+ * change. This function was the last route by which a Supabase message could reach a
+ * screen unwashed: it handled exactly two shapes and returned `error.message` for
+ * every other one, so a `42501` from PostgREST or a constraint name from GoTrue arrived
+ * verbatim. All seven public pages call it — the landing page, the catalogue, the course
+ * page, and the four auth screens — which made it the widest path this project had from
+ * a database refusal to a stranger.
+ *
+ * `fallback` is the caller's own wording, used whenever the failure is database output
+ * with no agreed meaning. It is optional so the existing call sites keep working, and
+ * they should each pass something that names what failed.
  */
-export function describeSupabaseError(error: unknown): string {
+export function describeSupabaseError(
+  error: unknown,
+  fallback: string = GENERIC_ERROR_MESSAGE,
+): string {
   if (!isSupabaseConfigured) return NOT_CONFIGURED_MESSAGE
 
   const raw = error instanceof Error ? error.message : String(error)
   if (/failed to fetch|networkerror|load failed/i.test(raw)) {
     return 'Cannot reach the server. Check your connection and try again.'
   }
-  return raw
+  return humanizeError(raw, fallback)
 }
 
 /**

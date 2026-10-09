@@ -92,7 +92,10 @@ async function handleSubmit(): Promise<void> {
     await auth.sendPasswordReset(email.value)
     sent.value = true
   } catch (error) {
-    errorMessage.value = describeSupabaseError(error)
+    errorMessage.value = describeSupabaseError(
+      error,
+      'That reset email could not be sent. Please try again in a moment.',
+    )
   } finally {
     isSubmitting.value = false
   }

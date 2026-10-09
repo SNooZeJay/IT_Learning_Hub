@@ -414,7 +414,10 @@ onMounted(async () => {
       modules.value = await getPublicCourseOutline(course.value.id)
     }
   } catch (error) {
-    errorMessage.value = describeSupabaseError(error)
+    errorMessage.value = describeSupabaseError(
+    error,
+    'This course could not be loaded. Please try again in a moment.',
+  )
   } finally {
     loading.value = false
   }

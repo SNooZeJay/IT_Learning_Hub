@@ -1,5 +1,6 @@
 ﻿import type { SupabaseClient } from '@supabase/supabase-js'
-import { describeSupabaseError, supabase } from './supabase/client'
+import { supabase } from './supabase/client'
+import { humanizeError } from './errors'
 import type {
   Course,
   CourseRow,
@@ -388,10 +389,7 @@ export class LearningError extends Error {
  * 2026-09-01" would arrive as "01".
  */
 function messageOf(error: { message: string } | null, fallback: string): string {
-  if (!error) return fallback
-  const stripped = error.message.replace(/^(?:ERROR:\s*|[A-Z]{5}:\s*)/, '').trim()
-  if (!stripped) return fallback
-  return describeSupabaseError(new Error(stripped))
+  return humanizeError(error?.message ?? '', fallback)
 }
 
 // ---------------------------------------------------------------------------

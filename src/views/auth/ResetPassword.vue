@@ -148,7 +148,10 @@ async function handleSubmit(): Promise<void> {
     await auth.updatePassword(password.value)
     saved.value = true
   } catch (error) {
-    errorMessage.value = describeSupabaseError(error)
+    errorMessage.value = describeSupabaseError(
+      error,
+      'That password could not be saved. Please try again in a moment.',
+    )
   } finally {
     isSubmitting.value = false
   }

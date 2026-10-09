@@ -1,3 +1,6 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { humanizeError } from './errors'
 
@@ -177,6 +180,56 @@ describe('humanizeError', () => {
 
     it('never returns an empty string', () => {
       expect(humanizeError('   ', FALLBACK)).not.toBe('')
+    })
+  })
+
+  describe('no service hands a database message to a view', () => {
+    /**
+     * The rule this module exists to enforce, checked against the source rather than
+     * against a running app.
+     *
+     * Every view in this project renders `error instanceof Error ? error.message : ...`,
+     * so whatever a service throws is what a person reads. A single `throw new
+     * Error(error.message)` in a service is therefore enough to put a constraint name, a
+     * table name or a function name on a screen - and that is exactly how
+     *
+     *     Could not load the catalogue
+     *     permission denied for function is_admin
+     *
+     * reached the public catalogue, the one surface an anonymous visitor can reach.
+     * Reading the source catches it in a millisecond, on every service at once, rather
+     * than one page load at a time.
+     */
+    const serviceDir = fileURLToPath(new URL('.', import.meta.url))
+
+    const offenders: string[] = []
+    for (const entry of readdirSync(serviceDir)) {
+      if (!entry.endsWith('.service.ts')) continue
+      const source = readFileSync(join(serviceDir, entry), 'utf8')
+      const lines = source.split(/\r?\n/)
+      lines.forEach((line, index) => {
+        if (/throw\s+new\s+\w*Error\(\s*[\w.]*\.message\s*\)/.test(line)) {
+          offenders.push(`${entry}:${index + 1}  ${line.trim()}`)
+        }
+      })
+    }
+
+    it('finds none', () => {
+      expect(offenders).toEqual([])
+    })
+
+    it('would catch one if it were added', () => {
+      // The check is only worth anything if the pattern it looks for still matches the
+      // shape of the mistake. Asserting the matcher against the offending line it
+      // replaced keeps a future refactor from quietly weakening the guard.
+      expect(
+        /throw\s+new\s+\w*Error\(\s*[\w.]*\.message\s*\)/.test('throw new Error(error.message)'),
+      ).toBe(true)
+      expect(
+        /throw\s+new\s+\w*Error\(\s*[\w.]*\.message\s*\)/.test(
+          'throw new Error(messageOf(error, "…"))',
+        ),
+      ).toBe(false)
     })
   })
 })

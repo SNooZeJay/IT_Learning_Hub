@@ -394,7 +394,10 @@ async function load(): Promise<void> {
   try {
     courses.value = await listPublishedCourses()
   } catch (error) {
-    errorMessage.value = describeSupabaseError(error)
+    errorMessage.value = describeSupabaseError(
+      error,
+      'The course catalogue could not be loaded. Please try again in a moment.',
+    )
   } finally {
     loading.value = false
   }

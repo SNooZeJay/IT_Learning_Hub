@@ -19,14 +19,19 @@
     </PageHeader>
 
     <!--
-      Stated at the top rather than discovered. There is no refund button on this
-      screen, and the reason is a grant rather than an omission, so saying it here
-      is more useful than a control that would fail when pressed.
+      Stated at the top rather than discovered, because an administrator who has just
+      taken a refund request will look for the button to do it with.
+
+      The wording is the behaviour, not an apology for the screen. "Nothing on this
+      screen can move money, so nothing here will claim to" is a sentence about this
+      page's own construction - it explains the design to the person reading it rather
+      than telling them anything they can act on. Naming where a refund actually happens
+      answers the real question, which is "what do I do now?".
     -->
     <Alert
       variant="info"
-      title="Payments are recorded here, not changed here"
-      message="A refund is issued by the payment provider and takes effect once the provider confirms it. Nothing on this screen can move money, so nothing here will claim to."
+      title="How a refund works"
+      message="Refunds are issued by the payment provider and take effect once the provider confirms them. A refund you issue there shows up on this list as refunded."
       class="mb-6"
     />
 

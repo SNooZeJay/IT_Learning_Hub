@@ -249,7 +249,10 @@ async function handleSubmit(): Promise<void> {
         : 'Your account is ready.',
     )
   } catch (error) {
-    const message = describeSupabaseError(error)
+    const message = describeSupabaseError(
+    error,
+    'That account could not be created. Please try again in a moment.',
+  )
     errorMessage.value = message
     toast.error('Could not create your account', message)
   } finally {

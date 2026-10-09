@@ -297,11 +297,12 @@ describe('submitAssignment', () => {
       assignment_submissions: { error: { message: '42501: new row violates row-level policy' } },
     })
 
-    // A student with a pending enrolment hits exactly this. The policy is
-    // `is_enrolled_in(course_id)`, and its refusal is the only honest
-    // explanation of why their work was not accepted.
+    // A student with a pending enrolment hits exactly this. The refusal is the only
+    // honest explanation of why their work was not accepted, and it reaches them as
+    // a sentence rather than as `new row violates row-level policy for table
+    // "assignment_submissions"`.
     await expect(submitAssignment('a1', 'My answer.')).rejects.toThrow(
-      'new row violates row-level policy',
+      'You do not have access to that.',
     )
   })
 
@@ -310,7 +311,9 @@ describe('submitAssignment', () => {
       assignment_submissions: { error: { message: 'permission denied for table' } },
     })
 
-    await expect(submitAssignment('a1', 'My answer.')).rejects.toThrow(/permission denied/)
+    await expect(submitAssignment('a1', 'My answer.')).rejects.toThrow(
+      'You do not have access to that.',
+    )
     // Proceeding on an unread lookup would insert a second row and lean on the
     // unique index as the error message, which names a constraint rather than
     // the thing that went wrong.
@@ -386,12 +389,20 @@ describe('listStudentAssignments', () => {
     expect(assignments.map((row) => row.id)).toEqual(['a1'])
   })
 
+  /**
+   * The refusal still has to reach the student - the point of the assertion is that a
+   * failed load is not silently rendered as "you have no assignments" - but the wording
+   * is the translated one. "permission denied for table assignments" is what the
+   * database says; "You do not have access to that." is what a person can act on.
+   */
   it('reports a load failure rather than showing an empty assignment list', async () => {
     respondByTable({
       assignments: { error: { message: 'permission denied for table assignments' } },
     })
 
-    await expect(listStudentAssignments('course-1')).rejects.toThrow(/permission denied/)
+    await expect(listStudentAssignments('course-1')).rejects.toThrow(
+      'You do not have access to that.',
+    )
   })
 
   it('does not query submissions at all when a course has no assignments', async () => {

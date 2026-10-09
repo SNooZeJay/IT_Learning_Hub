@@ -1,5 +1,6 @@
 ﻿import { supabase } from '@/services/supabase/client'
 import type { Database } from '@/services/supabase/types'
+import { humanizeError } from '@/services/errors'
 import type { MaterialType } from '@/types'
 import type { QuestionType, QuizStatus } from '@/types/enums'
 
@@ -34,11 +35,7 @@ export class QuizAuthoringError extends Error {
 }
 
 function messageOf(error: unknown, fallback: string): string {
-  if (typeof error === 'object' && error !== null && 'message' in error) {
-    const m = (error as { message?: unknown }).message
-    if (typeof m === 'string' && m.trim() !== '') return m
-  }
-  return fallback
+  return humanizeError(error, fallback)
 }
 
 function fail(error: unknown, fallback: string): never {

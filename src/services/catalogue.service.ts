@@ -12,8 +12,28 @@
  */
 
 import { supabase } from './supabase/client'
+import { humanizeError } from './errors'
 import type { CourseRow } from '@/types'
 import type { Course, CourseLevel } from '@/types'
+
+/**
+ * A database refusal, turned into a sentence a visitor can act on.
+ *
+ * This file was the last place in `src/services` that threw `error.message` verbatim,
+ * and it was the only one a *signed-out* visitor could reach - so the catalogue's error
+ * state was the one surface in the product that printed database output at a stranger:
+ *
+ *     Could not load the catalogue
+ *     permission denied for function is_admin
+ *
+ * Every other service already routes through `humanizeError`. A raw refusal here becomes
+ * "Courses could not be loaded. Try again in a moment." instead, which says what happened
+ * and what to do, and keeps the function name out of the page. The database still decides
+ * what may be read; this only decides how a refusal is worded.
+ */
+function messageOf(error: { message: string } | null, fallback: string): string {
+  return humanizeError(error?.message ?? '', fallback)
+}
 
 /** A course plus the published counts a catalogue card displays. */
 export interface CatalogueCourse extends Course {
@@ -81,7 +101,8 @@ export async function listPublishedCourses(): Promise<CatalogueCourse[]> {
     .order('published_at', { ascending: false, nullsFirst: false })
     .order('title', { ascending: true })
 
-  if (error) throw new Error(error.message)
+  if (error)
+    throw new Error(messageOf(error, 'Courses could not be loaded. Try again in a moment.'))
 
   return ((data ?? []) as unknown as CatalogueRow[]).map((row) => {
     const modules = row.modules ?? []
@@ -155,7 +176,8 @@ export async function getPublicCourseOutline(courseId: string): Promise<PublicMo
     .eq('course_id', courseId)
     .order('position', { ascending: true })
 
-  if (moduleError) throw new Error(moduleError.message)
+  if (moduleError)
+    throw new Error(messageOf(moduleError, 'This course outline could not be loaded.'))
 
   const modules = (moduleRows ?? []) as Array<{
     id: string
@@ -173,7 +195,8 @@ export async function getPublicCourseOutline(courseId: string): Promise<PublicMo
     )
     .order('position', { ascending: true })
 
-  if (lessonError) throw new Error(lessonError.message)
+  if (lessonError)
+    throw new Error(messageOf(lessonError, 'This course outline could not be loaded.'))
 
   const lessons = (lessonRows ?? []) as Array<{
     id: string
@@ -213,7 +236,7 @@ export async function listCatalogueCategories(): Promise<CatalogueCategory[]> {
     .eq('status', 'published')
     .not('category_id', 'is', null)
 
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(messageOf(error, 'Categories could not be loaded.'))
 
   const byId = new Map<string, CatalogueCategory>()
   for (const row of (data ?? []) as Array<{

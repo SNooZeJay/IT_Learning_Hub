@@ -190,7 +190,8 @@
       <section class="mt-6 rounded-lg border border-hairline bg-canvas p-6">
         <h2 class="section-heading">How assessment is going</h2>
         <p class="mt-1 text-sm text-slate">
-          Every figure is averaged from graded attempts. Nothing here is estimated.
+          Every score is an average of graded attempts, so an unfinished attempt does not drag the
+          number down.
         </p>
 
         <dl class="mt-6 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
@@ -257,6 +258,7 @@ import StatCard from '@/components/common/StatCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
+import { useTheme } from '@/composables/useTheme'
 import { getPlatformAnalytics } from '@/services/admin.service'
 import { formatPeso } from '@/types'
 import type { PlatformAnalytics } from '@/services/admin.service'
@@ -264,6 +266,22 @@ import type { PlatformAnalytics } from '@/services/admin.service'
 const analytics = ref<PlatformAnalytics | null>(null)
 const isLoading = ref(true)
 const errorMessage = ref('')
+
+/**
+ * The resolved theme, for the six charts on this screen.
+ *
+ * Apex draws its axis labels, gridlines, legend and tooltip from `theme.mode` at render
+ * time, and none of these six option objects set it - so they kept light-mode colours
+ * under a dark page. Measured in dark mode before this was bound: every axis month,
+ * every legend entry and the donut centre totals at 1.15:1, black text on a near-black
+ * surface. For an administrator using dark mode the screen was unreadable, and it looked
+ * correct in light, which is how it survived.
+ *
+ * `TrendChart.vue` already binds this and records why it reads the *resolved* theme
+ * rather than the stored preference: somebody who chose "system" must still get a dark
+ * chart when the operating system is dark.
+ */
+const { theme } = useTheme()
 
 /**
  * ApexCharts touches `window` while it measures its container, so it is only
@@ -290,7 +308,14 @@ const roleChartSeries = computed(() =>
 const roleChartOptions = computed<ApexOptions>(() => ({
   labels: (analyticsData.value?.usersByRole ?? []).map((slice) => slice.label),
   colors: PALETTE,
-  chart: { fontFamily: FONT, type: 'donut' },
+  theme: { mode: theme.value },
+  chart: {
+    fontFamily: FONT,
+    // Re-render on a theme change rather than leaving the previous palette on screen.
+    key: theme.value,
+    redrawOnParentResize: true,
+    type: 'donut',
+  },
   stroke: { width: 0 },
   legend: { position: 'bottom', fontFamily: FONT, markers: { size: 6 } },
   dataLabels: { enabled: false },
@@ -313,7 +338,11 @@ const roleChartOptions = computed<ApexOptions>(() => ({
             show: true,
             label: 'Accounts',
             fontFamily: FONT,
-            fontSize: '13px',
+            // 12px, the documented caption step. This was 13px, which sits between two
+            // steps on the ramp and therefore matches neither - the value above it is
+            // 20px at 600 and the name label is 14px, so a third size belonging to
+            // nothing is what made the centre of these two donuts read as unstyled.
+            fontSize: '12px',
             formatter: (w: { globals: { seriesTotals: number[] } }) =>
               String(w.globals.seriesTotals.reduce((sum, total) => sum + total, 0)),
           },
@@ -331,7 +360,14 @@ const courseChartSeries = computed(() =>
 const courseChartOptions = computed<ApexOptions>(() => ({
   labels: (analyticsData.value?.coursesByStatus ?? []).map((slice) => slice.label),
   colors: PALETTE,
-  chart: { fontFamily: FONT, type: 'donut' },
+  theme: { mode: theme.value },
+  chart: {
+    fontFamily: FONT,
+    // Re-render on a theme change rather than leaving the previous palette on screen.
+    key: theme.value,
+    redrawOnParentResize: true,
+    type: 'donut',
+  },
   stroke: { width: 0 },
   legend: { position: 'bottom', fontFamily: FONT, markers: { size: 6 } },
   dataLabels: { enabled: false },
@@ -352,7 +388,8 @@ const courseChartOptions = computed<ApexOptions>(() => ({
             show: true,
             label: 'Courses',
             fontFamily: FONT,
-            fontSize: '13px',
+            // 12px, the documented caption step - see the note on the accounts chart.
+            fontSize: '12px',
             formatter: (w: { globals: { seriesTotals: number[] } }) =>
               String(w.globals.seriesTotals.reduce((sum, total) => sum + total, 0)),
           },
@@ -375,7 +412,14 @@ const revenueChartSeries = computed(() => [
 
 const revenueChartOptions = computed<ApexOptions>(() => ({
   colors: ['#5645d4'],
-  chart: { fontFamily: FONT, type: 'bar', toolbar: { show: false } },
+  theme: { mode: theme.value },
+  chart: {
+    fontFamily: FONT,
+    key: theme.value,
+    redrawOnParentResize: true,
+    type: 'bar',
+    toolbar: { show: false },
+  },
   plotOptions: { bar: { horizontal: false, columnWidth: '45%', borderRadius: 0 } },
   dataLabels: { enabled: false },
   stroke: { show: true, width: 3, colors: ['transparent'] },
@@ -401,7 +445,14 @@ const enrolmentChartSeries = computed(() => [
 
 const enrolmentChartOptions = computed<ApexOptions>(() => ({
   colors: ['#5645d4'],
-  chart: { fontFamily: FONT, type: 'area', toolbar: { show: false } },
+  theme: { mode: theme.value },
+  chart: {
+    fontFamily: FONT,
+    key: theme.value,
+    redrawOnParentResize: true,
+    type: 'area',
+    toolbar: { show: false },
+  },
   dataLabels: { enabled: false },
   stroke: { curve: 'straight', width: 3 },
   fill: { type: 'solid', opacity: 0.12 },
@@ -425,7 +476,14 @@ const enrolmentStatusChartSeries = computed(() => [
 
 const enrolmentStatusChartOptions = computed<ApexOptions>(() => ({
   colors: ['#5645d4'],
-  chart: { fontFamily: FONT, type: 'bar', toolbar: { show: false } },
+  theme: { mode: theme.value },
+  chart: {
+    fontFamily: FONT,
+    key: theme.value,
+    redrawOnParentResize: true,
+    type: 'bar',
+    toolbar: { show: false },
+  },
   plotOptions: { bar: { horizontal: true, barHeight: '55%', borderRadius: 0 } },
   dataLabels: { enabled: false },
   xaxis: {
@@ -446,7 +504,14 @@ const paymentStatusChartSeries = computed(() => [
 
 const paymentStatusChartOptions = computed<ApexOptions>(() => ({
   colors: ['#5645d4'],
-  chart: { fontFamily: FONT, type: 'bar', toolbar: { show: false } },
+  theme: { mode: theme.value },
+  chart: {
+    fontFamily: FONT,
+    key: theme.value,
+    redrawOnParentResize: true,
+    type: 'bar',
+    toolbar: { show: false },
+  },
   plotOptions: { bar: { horizontal: true, barHeight: '55%', borderRadius: 0 } },
   dataLabels: { enabled: false },
   xaxis: {

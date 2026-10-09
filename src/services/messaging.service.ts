@@ -1,4 +1,5 @@
 import { supabase } from './supabase/client'
+import { humanizeError } from './errors'
 
 /**
  * Conversations between people who already share a course.
@@ -53,14 +54,16 @@ export class MessagingError extends Error {
 function messageOf(error: unknown, fallback: string): string {
   if (error && typeof error === 'object' && 'message' in error) {
     const raw = String((error as { message: unknown }).message ?? '')
-    // Supabase's wording for a policy refusal is accurate but technical. It is the
-    // one most likely to be seen here, because membership is enforced by policy.
+    // Membership of a conversation is enforced by a database policy, and this is the
+    // one screen where somebody reaches a conversation they are not part of on purpose
+    // - by opening a stale link, or a conversation somebody else was removed from. The
+    // generic translation would be "You do not have access to that", which is true of
+    // the LMS and useless about this page. Said in terms of the conversation instead.
     if (raw.includes('row-level security')) {
       return 'That conversation is not one you can take part in.'
     }
-    if (raw) return raw
   }
-  return fallback
+  return humanizeError(error, fallback)
 }
 
 export interface MessagePerson {

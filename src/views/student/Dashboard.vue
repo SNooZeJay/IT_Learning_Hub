@@ -471,9 +471,18 @@ const hasAnyActivity = computed(() => {
                   <span
                     class="flex size-11 shrink-0 flex-col items-center justify-center rounded-md bg-gray-100 text-center dark:bg-white/[0.06]"
                   >
-                    <span
-                      class="text-[10px] leading-none font-medium text-gray-500 uppercase dark:text-gray-400"
-                    >
+                    <!--
+                      11px in `slate`, not 10px in `gray-500`.
+
+                      Two changes, one reason. `text-gray-500` on `bg-gray-100` measured
+                      3.95:1, under the 4.5:1 that 10px text needs, so the month an item
+                      is due was the hardest thing in the row to read — and the day number
+                      it sits above is what the eye is meant to go to. `slate` is the
+                      lightest step on the ramp that is safe for small text; 11px keeps
+                      the label clearly subordinate to the `text-sm` day beside it while
+                      being a size that exists on the type scale.
+                    -->
+                    <span class="text-[11px] leading-none font-medium text-slate uppercase">
                       {{ formatShortDate(item.at).split(' ')[1] }}
                     </span>
                     <span

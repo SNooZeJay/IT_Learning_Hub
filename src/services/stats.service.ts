@@ -1,4 +1,5 @@
 import { supabase } from './supabase/client'
+import { humanizeError } from './errors'
 import { formatPeso } from '@/types'
 
 /**
@@ -54,6 +55,18 @@ interface CountResult {
 }
 
 /**
+ * A count query's refusal, worded for the dashboard that shows it.
+ *
+ * These two are the only throws in this file and both used to pass the database's own
+ * wording straight through, which meant an administrator's dashboard could answer a
+ * failed read with a sentence naming a table or a function. `humanizeError` keeps the
+ * refusals worth reading and replaces the rest with wording that says what to do.
+ */
+function messageOf(error: { message: string } | null, fallback: string): string {
+  return humanizeError(error?.message ?? '', fallback)
+}
+
+/**
  * Count the rows on one of the tables this file aggregates.
  *
  * `select('*', { count: 'exact', head: true })` is what makes it a count rather than a
@@ -81,7 +94,7 @@ interface CountResult {
  */
 async function count(query: PromiseLike<CountResult>): Promise<number> {
   const { count: total, error } = await query
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(messageOf(error, 'These figures could not be counted.'))
   return total ?? 0
 }
 
@@ -114,7 +127,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     .select('amount_centavos')
     .eq('status', 'paid')
 
-  if (revenueError) throw new Error(revenueError.message)
+  if (revenueError) throw new Error(messageOf(revenueError, 'Takings could not be totalled.'))
 
   return {
     students,

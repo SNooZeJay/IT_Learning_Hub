@@ -136,9 +136,20 @@
                     {{ payment.studentName }} · {{ PAYMENT_STATUS_LABELS[payment.status] }} ·
                     {{ formatDateTime(payment.paidAt ?? payment.createdAt) }}
                   </p>
-                  <code class="mt-0.5 block font-mono text-[11px] text-gray-400 dark:text-gray-500">
-                    {{ payment.referenceNumber }}
-                  </code>
+                  <!--
+                    The provider's reference, named.
+
+                    An administrator reconciling a charge against the provider needs this,
+                    so it stays - but it was `text-gray-400` at 11px, which measured
+                    2.61:1 on white and 3.55:1 in dark: present, and unreadable in both.
+
+                    It also read as an unexplained string. `slate` makes it legible and
+                    "Reference" tells a reader what it is, so a row of them scans as
+                    receipts rather than as identifiers nobody is expected to recognise.
+                  -->
+                  <p class="mt-1 text-[11px] text-slate">
+                    Reference <span class="font-mono">{{ payment.referenceNumber }}</span>
+                  </p>
                 </li>
               </ul>
 

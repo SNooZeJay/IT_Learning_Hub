@@ -75,3 +75,34 @@ somebody to a route that does not exist is not an error — it is a blank page, 
 nothing anywhere complains.
 
 Serial by design: the specs share one database.
+
+## The three audit sweeps
+
+These report rather than assert, and they are the only way three of the product's
+guarantees can be checked at all. Run them together:
+
+```bash
+npm run audit:ui
+```
+
+They need the same credentials as the specs, and `E2E_ADMIN_EMAIL` /
+`E2E_ADMIN_PASSWORD` for the admin screens. Each writes a report under `reports/`.
+
+- **`developer-text.spec.ts`** → `reports/developer-text-report.json`. Signs in as each
+  role, visits every screen, reads the **rendered** text back out of the DOM and flags
+  anything that belongs in a comment rather than on a screen: `database`, `trigger`,
+  `schema`, `read-only`, `not here yet`, `coming soon`, `.env`, raw SQLSTATE and so on.
+  Reading the source instead would find the JSDoc, which is the right place for this
+  material and was never the problem — what leaks is the string that ends up inside a
+  `<p>`, and only a rendered page can tell you that. It also flags a screen that
+  rendered almost no text, which is how a route that resolves to nothing gets noticed.
+- **`theme-contrast.spec.ts`** → `reports/theme-report.json` and `reports/screens/`.
+  Every screen, in light and dark, at 375px and 1280px. Computes a contrast ratio for
+  each visible text run against its composited background and reports anything under
+  WCAG AA (4.5:1, or 3:1 for large text). Dark mode is class-driven, so a token with no
+  `dark:` counterpart is invisible in light mode; only visiting both finds it.
+- **`responsive-audit.spec.ts`** → `reports/responsive-report.json`. Horizontal overflow
+  from 375px to 1536px, per role, naming the element responsible.
+
+`E2E_AUDIT_ONLY=quizzes,payments npm run audit:ui` re-runs just the matching pages,
+which is a two-second job rather than the ten minutes the full sweep takes.

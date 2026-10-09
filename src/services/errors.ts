@@ -39,8 +39,15 @@
  */
 const TRANSLATIONS: ReadonlyArray<{ pattern: RegExp; meaning: string }> = [
   // --- Authorisation ------------------------------------------------------
+  // `violates row-level policy` is how a refusal on an INSERT is worded, and the
+  // SELECT side says `permission denied for table`. Both are the same fact: this
+  // person is not permitted to do this. Matching only the SELECT phrasing left the
+  // write path falling through to the generic fallback, which is vaguer about the
+  // one refusal a student is most likely to hit - handing in work for a course they
+  // have not been accepted into.
   {
-    pattern: /permission denied for|row-level security|row level security|not authorized/i,
+    pattern:
+      /permission denied|row-level (?:security )?policy|row level (?:security )?policy|not authorized|violates row-level/i,
     meaning: 'You do not have access to that.',
   },
 
@@ -160,9 +167,17 @@ const TRANSLATIONS: ReadonlyArray<{ pattern: RegExp; meaning: string }> = [
  * `trigger` and `plpgsql` are in the list for the reason the whole module exists:
  * "A database trigger refuses any attempt to change your own role." is precisely
  * the sentence that must never reach a person. It now returns the fallback.
+ *
+ * The SQLSTATE alternative is `[0-9][0-9A-Z]{4}` rather than the narrower `23\d{2}`
+ * style it replaced, because a SQLSTATE is two digits followed by three alphanumerics -
+ * not two digits followed by two more. `23P01`, the class every exclusion and foreign
+ * key violation reports under, has a letter in the fourth position and slipped straight
+ * past the old pattern, so `23P01 some exclusion constraint` reached the screen as
+ * itself. A word cannot collide with it: the shape starts with a digit and the rest is
+ * uppercase, which no sentence this codebase writes does.
  */
 const DATABASE_TELLTALE =
-  /violates|permission denied|duplicate key|null value in|invalid input syntax|relation "|column "|table "|pg_catalog|pg_|postgres|sqlstate|statement timeout|row-level|row level security|unique index|foreign key|not-null|schema "|public\.|auth\.|trigger|plpgsql|procedure|raised exception|^[a-z_]+ \(|^(?:ERROR|PGRST|23|42|22|25|28)\d{2}\b|undefined|NULL|stack|at \w+ \(/i
+  /violates|permission denied|duplicate key|null value in|invalid input syntax|relation "|column "|table "|pg_catalog|pg_|postgres|sqlstate|statement timeout|row-level|row level security|unique index|foreign key|not-null|schema "|public\.|auth\.|trigger|plpgsql|procedure|raised exception|^[a-z_]+ \(|^(?:ERROR:?\s*)?[0-9][0-9A-Z]{4}\b|^PGRST\d{3}\b|undefined|NULL|stack|at \w+ \(/i
 
 /**
  * Turn a failure into a sentence a person can act on.

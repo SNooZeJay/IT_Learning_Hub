@@ -189,6 +189,18 @@ type Finding = {
   where: string
 }
 
+/**
+ * No trace, no automatic screenshots.
+ *
+ * The config sets `trace: 'retain-on-failure'`, which is right for the specs that assert
+ * and wrong here. This sweep passes when its report is empty, so a trace of a passing run
+ * is dead weight — and on Windows Playwright's trace writer races the context close
+ * hard enough that the whole run reports `browserContext.close: ENOENT` *after* writing
+ * its report, which turns a clean sweep into a red one. The screenshots it does want are
+ * taken by hand, into `reports/screens/`.
+ */
+test.use({ trace: 'off', screenshot: 'off', video: 'off' })
+
 test('developer-context sweep across every role and screen', async ({ page }) => {
   test.setTimeout(20 * 60_000)
   const findings: Finding[] = []

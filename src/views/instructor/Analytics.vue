@@ -172,7 +172,16 @@
         </table>
       </div>
 
-      <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">
+      <!--
+        `slate`, not `gray-500`.
+
+        The TailAdmin-era greys measure 4.17:1 on this surface at 12px, which is the exact
+        number `controlClasses.ts` already records as the reason those greys were
+        abandoned everywhere else. This paragraph is the last place still on them.
+        `slate` is 6.8:1 and flips with the theme on its own, so no `dark:` pair is
+        needed.
+      -->
+      <p class="mt-4 text-xs text-slate">
         Only courses assigned to you are included. Attempt averages use submitted attempts only; an
         attempt in progress has no score yet and would otherwise count as a zero.
       </p>

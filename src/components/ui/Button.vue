@@ -15,7 +15,7 @@
       // likely to read as focus.
       'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500',
       className,
-      { 'cursor-not-allowed opacity-50': disabled },
+      disabled ? disabledClasses[variant] : '',
     ]"
     :disabled="disabled"
     :aria-busy="loading || undefined"
@@ -76,10 +76,46 @@ const sizeClasses = {
 }
 
 const variantClasses = {
-  primary:
-    'bg-brand-500 text-white shadow-theme-xs hover:bg-brand-600 disabled:bg-brand-300 dark:text-white',
+  primary: 'bg-brand-500 text-white shadow-theme-xs hover:bg-brand-600 dark:text-white',
   outline:
     'border border-hairline-strong bg-canvas text-ink ring-0 hover:bg-surface dark:bg-white/[0.03] dark:text-gray-100 dark:hover:bg-white/[0.08]',
+}
+
+/**
+ * What a disabled button looks like.
+ *
+ * It used to be `cursor-not-allowed opacity-50` laid over the filled variant, which is
+ * the reflex answer and it does not survive being measured: halving the opacity of a
+ * saturated fill under a white label leaves the label at 1.88:1 against what is left. On
+ * `/profile` that was "Save changes" — a learner looking at the one control on the
+ * screen that tells them their edit has not been saved, rendered in a label too faint to
+ * read. Every other control in the app already used `disabled:opacity-60`, which is the
+ * same mistake at a milder dose.
+ *
+ * `bg-surface` with `text-slate` instead: the pair the codebase already uses for the
+ * quiet state everywhere else (`TONE.quiet` in `controlClasses.ts`). The button loses its
+ * fill and its shadow and its label stays readable, so "unavailable" is still legible
+ * rather than merely faded. Both tokens are `var()`s that flip with the theme, so one
+ * declaration covers light and dark and cannot drift between them.
+ *
+ * Nothing carries the meaning by opacity alone, which also means this survives
+ * `forced-colors` mode, where a half-transparent fill collapses to nothing.
+ *
+ * These are `disabled:` variants, which Tailwind orders after plain utilities — so this
+ * holds even when a caller passes its own `bg-*` through `className`, which the previous
+ * `disabled:bg-brand-300` did not. `disabled:hover:` is included because CSS still
+ * matches `:hover` on a disabled button, and a control that brightens when the pointer
+ * lands on it is telling the reader it will do something.
+ *
+ * Kept to one short line on purpose. Tailwind's scanner is what turns this string into
+ * CSS, and a longer version of it — carrying `dark:` arbitrary-value tokens — was
+ * silently not scanned at all, producing a build where none of these rules existed and
+ * the button fell back to white-on-white.
+ */
+const disabledClasses = {
+  primary:
+    'cursor-not-allowed disabled:border-hairline disabled:bg-surface disabled:text-slate disabled:shadow-none disabled:hover:bg-surface',
+  outline: 'cursor-not-allowed',
 }
 
 const onClick = () => {

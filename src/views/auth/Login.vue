@@ -237,7 +237,9 @@ async function handleSubmit(): Promise<void> {
     toast.info('Code sent', `We emailed a six-digit code to ${email.value}.`)
   } catch (error) {
     const message =
-      error instanceof SignInOtpError ? OTP_MESSAGES[error.reason] : describeSupabaseError(error)
+      error instanceof SignInOtpError
+        ? OTP_MESSAGES[error.reason]
+        : describeSupabaseError(error, 'Signing in did not work. Please try again.')
     errorMessage.value = message
     toast.error('Could not sign in', message)
   } finally {

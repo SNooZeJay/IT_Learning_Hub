@@ -61,9 +61,19 @@
         </button>
       </div>
 
+      <!--
+        "No notifications yet", not "Nothing here yet".
+
+        An empty state names the subject of the screen and then says what will fill it.
+        "Nothing here yet" names nothing: on its own it could be read on any of the eight
+        screens in this sidebar, so a student who has never seen a notification learns
+        neither what this is nor whether they are missing something. The description
+        already carries the second half - what produces a notification - so the heading
+        only has to say what the list would have held.
+      -->
       <EmptyState
         v-if="notifications.length === 0"
-        title="Nothing here yet"
+        title="No notifications yet"
         description="Enrollments, quiz results, graded assignments and certificates all arrive here as notifications."
         :icon="BellOff"
       />

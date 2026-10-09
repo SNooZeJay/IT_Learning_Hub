@@ -173,9 +173,18 @@
                   </div>
                 </dl>
 
+                <!--
+                  Two sentences, both of them about what the buyer does next.
+
+                  The second used to be "Payment is processed by PayMongo; nothing on this
+                  page charges your card" - which repeats the first sentence and then
+                  explains this screen's own construction. A buyer does not need to know
+                  which page the charge technically happens on; they need to know where to
+                  type their card, which is the thing they are about to be asked for.
+                -->
                 <p class="mt-5 text-xs text-gray-500 dark:text-gray-400">
                   You will be taken to PayMongo to complete the payment, then brought straight back
-                  here. Payment is processed by PayMongo; nothing on this page charges your card.
+                  here. Enter your card details on PayMongo's secure checkout page.
                 </p>
 
                 <div class="mt-6 flex flex-col gap-3 sm:flex-row">

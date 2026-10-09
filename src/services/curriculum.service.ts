@@ -1,5 +1,6 @@
 ﻿import { supabase } from '@/services/supabase/client'
 import type { Database } from '@/services/supabase/types'
+import { humanizeError } from '@/services/errors'
 import { isSafeUrl } from '@/validation'
 // The dashboard caches module ids per course; a curriculum write invalidates it.
 import { forgetModuleCache } from '@/services/dashboard.service'
@@ -53,11 +54,7 @@ export class CurriculumError extends Error {
 }
 
 function messageOf(error: unknown, fallback: string): string {
-  if (typeof error === 'object' && error !== null && 'message' in error) {
-    const m = (error as { message?: unknown }).message
-    if (typeof m === 'string' && m.trim() !== '') return m
-  }
-  return fallback
+  return humanizeError(error, fallback)
 }
 
 function toModule(row: ModuleRow): Module {

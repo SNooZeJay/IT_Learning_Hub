@@ -271,10 +271,17 @@
         </div>
       </div>
 
-      <p class="mt-4 text-sm text-slate">
-        The last administrator cannot be removed or demoted. That refusal is shown on the row that
-        caused it rather than hidden, so nobody is left wondering why a change did not save.
-      </p>
+      <!--
+        One sentence, the one that changes what somebody would do.
+
+        An earlier version added "that refusal is shown on the row that caused it rather
+        than hidden, so nobody is left wondering why a change did not save" - a sentence
+        about how this screen is built, addressed to whoever wrote the screen. An
+        administrator does not need to be told the page has a design; they need to know
+        why the change they just made did not take. The row-level notice above says that
+        when it happens, which is where it belongs.
+      -->
+      <p class="mt-4 text-sm text-slate">The last administrator cannot be removed or demoted.</p>
     </template>
   </div>
 </template>
