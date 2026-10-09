@@ -198,22 +198,33 @@
                   </label>
                   <input
                     :id="`grade-${item.id}`"
-                    v-model="grades[item.id]"
-                    type="number"
-                    min="0"
-                    :max="item.maxPoints"
-                    step="0.5"
-                    required
+                    :value="grades[item.id] ?? ''"
+                    type="text"
+                    inputmode="decimal"
                     :placeholder="`0–${item.maxPoints}`"
                     :class="inputClass"
+                    :aria-invalid="Boolean(gradeErrors[item.id])"
+                    :aria-describedby="
+                      gradeErrors[item.id] ? `grade-error-${item.id}` : `grade-hint-${item.id}`
+                    "
+                    @input="onGradeInput($event, item)"
                   />
                   <!--
-                    The range check here is a fast message, not the rule. The
-                    database refuses a grade above max_points too, and this view
-                    shows whatever it says rather than assuming its own check was
-                    the one that mattered.
+                    The range check is a fast message, not the rule. The database
+                    refuses a grade above max_points too, and this view shows
+                    whatever it says rather than assuming its own check was the one
+                    that mattered.
                   -->
-                  <p class="mt-1.5 text-xs text-slate">0 to {{ item.maxPoints }}</p>
+                  <p :id="`grade-hint-${item.id}`" class="mt-1.5 text-xs text-slate">
+                    0 to {{ item.maxPoints }}
+                  </p>
+                  <p
+                    v-if="gradeErrors[item.id]"
+                    :id="`grade-error-${item.id}`"
+                    class="mt-1.5 text-xs text-error-600 dark:text-error-400"
+                  >
+                    {{ gradeErrors[item.id] }}
+                  </p>
                 </div>
 
                 <div>
@@ -274,6 +285,7 @@ import type { GradingQueueItem } from '@/services/instructor.service'
 import { formatDateTime } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 import { searchInputClass, selectClass, textInputClass } from '@/components/ui/controlClasses'
+import { parseNumericField, readNumericInput } from '@/utils/numericField'
 import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
@@ -348,6 +360,30 @@ async function load(): Promise<void> {
 async function toggleIncludeGraded(): Promise<void> {
   includeGraded.value = !includeGraded.value
   await load()
+}
+
+/**
+ * Read a grade as it is typed, and say immediately when it cannot be one.
+ *
+ * The field used to be `type="number"` with `v-model`, which is not validation: a
+ * browser that accepts letters into a number field - Firefox does, Chrome does not -
+ * let `sadasdasdasda` sit in the box with nothing said about it until Save. And a
+ * value far above the maximum was equally welcome until then.
+ *
+ * So the field keeps a string, is bound explicitly, and is checked as it is typed.
+ * Submit still checks, because that is the moment the grade is actually used.
+ */
+function onGradeInput(event: Event, item: GradingQueueItem): void {
+  const raw = readNumericInput(event)
+  grades.value[item.id] = raw
+
+  const parsed = parseNumericField(raw, {
+    min: 0,
+    max: item.maxPoints,
+    decimals: 2,
+    label: 'Grade',
+  })
+  gradeErrors.value[item.id] = parsed.ok ? '' : parsed.message
 }
 
 async function submit(submissionId: string): Promise<void> {

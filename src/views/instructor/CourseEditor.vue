@@ -171,15 +171,25 @@
                   -->
                   <input
                     id="price"
-                    v-model="pesoInput"
-                    type="number"
-                    min="0"
-                    step="0.01"
+                    :value="pesoInput"
+                    type="text"
                     inputmode="decimal"
                     placeholder="0"
                     :class="inputClass"
+                    :aria-invalid="Boolean(priceError)"
+                    :aria-describedby="priceError ? 'price-error' : 'price-hint'"
+                    @input="onPriceInput"
                   />
-                  <p class="mt-1.5 text-xs text-slate">0 means free.</p>
+                  <p id="price-hint" class="mt-1.5 text-xs text-slate">
+                    0 means free. Up to two decimals, e.g. 1499.50.
+                  </p>
+                  <p
+                    v-if="priceError"
+                    id="price-error"
+                    class="mt-1.5 text-xs text-error-600 dark:text-error-400"
+                  >
+                    {{ priceError }}
+                  </p>
                 </div>
 
                 <div>
@@ -846,6 +856,7 @@ import type { CourseModule } from '@/services/instructor.service'
 // Invalidated on module writes: the student dashboard caches module ids per
 // course, so a new or removed module is otherwise invisible until a reload.
 import { forgetModuleCache } from '@/services/dashboard.service'
+import { MAX_COURSE_PRICE_PESOS, parseNumericField, readNumericInput } from '@/utils/numericField'
 import type { CourseLevel, CourseStatus, Lesson, LessonType } from '@/types'
 import { courseStatusLabel, formatPeso } from '@/types'
 import { useAuthStore } from '@/stores/auth'
@@ -907,6 +918,35 @@ const form = ref({
  * what the instructor typed, and exactly what will be written.
  */
 const pesoInput = ref('')
+
+/** Why the price cannot be used, or '' when it can. Shown beside the field. */
+const priceError = ref('')
+
+/**
+ * Read the price field without letting it become a number.
+ *
+ * `v-model` on `<input type="number">` casts to a number, and this ref was read as a
+ * string - `pesoInput.value.trim()` - so typing any digit threw during render and
+ * blanked the page. The sidebar survived because it renders outside this component,
+ * which is what made it look like the form had gone dark rather than the component
+ * having thrown.
+ *
+ * So the field is bound explicitly now, and what lands in `pesoInput` is whatever was
+ * typed. Invalid text is reported, never rounded into a different price.
+ */
+function onPriceInput(event: Event): void {
+  const raw = readNumericInput(event)
+  pesoInput.value = raw
+
+  const parsed = parseNumericField(raw, {
+    min: 0,
+    max: MAX_COURSE_PRICE_PESOS,
+    decimals: 2,
+    label: 'Price',
+  })
+  priceError.value = parsed.ok ? '' : parsed.message
+}
+
 const priceCentavos = computed(() => {
   const parsed = Number.parseFloat(pesoInput.value)
   if (!Number.isFinite(parsed) || parsed < 0) return 0
@@ -1122,6 +1162,22 @@ async function loadModules(): Promise<void> {
 
 async function save(): Promise<void> {
   saveError.value = ''
+
+  // Re-checked here rather than trusting the field's live message, because the last
+  // thing before Save may have been a change in another field. A price that cannot be
+  // read must not reach the database as a different number.
+  const price = parseNumericField(pesoInput.value, {
+    min: 0,
+    max: MAX_COURSE_PRICE_PESOS,
+    decimals: 2,
+    label: 'Price',
+  })
+  if (!price.ok) {
+    priceError.value = price.message
+    return
+  }
+  priceError.value = ''
+
   isSaving.value = true
   try {
     const title = form.value.title.trim()
