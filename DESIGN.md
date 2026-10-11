@@ -1,13 +1,13 @@
 ---
 version: alpha
 name: Notion-design-analysis
-description: 'A warm-minimal workspace canvas: white and warm-grey surfaces, near-black ink, signature purple (#5645d4) reserved for the dominant CTA, and sober-editorial geometry — 8px buttons, 12px cards, pills only for badges and tabs. Type runs Inter, the face Notion itself uses, at weight 600 for every display size with negative tracking that grows as the type grows, 500 for UI labels, 400 for body. Pastel feature tints (peach, rose, mint, lavender, sky, yellow) carry accent panels; deep navy hero bands carry the landing page. Typeface superseded IBM Plex Sans, then colour, neutrals and radius superseded IBM Carbon on 2026-10-05.'
+description: 'A warm-minimal workspace canvas: white and warm-grey surfaces, near-black ink, signature green (#1f6b46) reserved for the dominant CTA, and sober-editorial geometry — 8px buttons, 12px cards, pills only for badges and tabs. Type pairs Source Serif 4 display headlines (landing only) with Inter, the face Notion itself uses, at weight 600 for UI display sizes with negative tracking that grows as the type grows, 500 for UI labels, 400 for body. Pastel feature tints (peach, rose, mint, lavender, sky, yellow) carry accent panels; deep navy hero bands carry the landing page. Typeface superseded IBM Plex Sans, then colour, neutrals and radius superseded IBM Carbon on 2026-10-05; primary remapped from Notion purple to signature green and display serif documented on 2026-10-11 to match what ships.'
 
 colors:
-  primary: '#5645d4'
+  primary: '#1f6b46'
   on-primary: '#ffffff'
-  primary-pressed: '#4534b3'
-  primary-deep: '#3a2a99'
+  primary-pressed: '#185838'
+  primary-deep: '#134529'
   brand-navy: '#0a1530'
   brand-navy-deep: '#070f24'
   brand-navy-mid: '#1a2a52'
@@ -49,31 +49,31 @@ colors:
 
 typography:
   display-xl:
-    fontFamily: Inter
+    fontFamily: "'Source Serif 4', Georgia, serif"
     fontSize: 72px
     fontWeight: 600
     lineHeight: 1.08
     letterSpacing: -0.025em
   display-lg:
-    fontFamily: Inter
+    fontFamily: "'Source Serif 4', Georgia, serif"
     fontSize: 60px
     fontWeight: 600
     lineHeight: 1.10
     letterSpacing: -0.02em
   display-md:
-    fontFamily: Inter
+    fontFamily: "'Source Serif 4', Georgia, serif"
     fontSize: 48px
     fontWeight: 600
     lineHeight: 1.15
     letterSpacing: -0.015em
   headline:
-    fontFamily: Inter
+    fontFamily: "'Source Serif 4', Georgia, serif"
     fontSize: 36px
     fontWeight: 600
     lineHeight: 1.20
     letterSpacing: -0.01em
   card-title:
-    fontFamily: Inter
+    fontFamily: "'Source Serif 4', Georgia, serif"
     fontSize: 30px
     fontWeight: 600
     lineHeight: 1.25
@@ -285,24 +285,26 @@ components:
 
 ## Overview
 
-Notion presents itself as a confident, illustration-rich workspace brand. The dominant surface is `{colors.canvas}` white with `{colors.surface}` (#f6f5f4) carrying alternate bands, `{colors.ink}` (#1a1a1a) for text, and signature purple `{colors.primary}` (#5645d4) reserved for the dominant CTA.
+Notion presents itself as a confident, illustration-rich workspace brand. The dominant surface is `{colors.canvas}` white with `{colors.surface}` (#f6f5f4) carrying alternate bands, `{colors.ink}` (#1a1a1a) for text, and signature green `{colors.primary}` (#1f6b46) reserved for the dominant CTA.
 
 The defining choice is **warm minimalism**: the neutrals are warm rather than neutral-grey, so the canvas, the hairlines and the dark surfaces all carry a slight cast. That warmth, more than any single colour value, is what makes the system read as Notion rather than as a generic dashboard.
 
 Geometry is **sober-editorial, not pill-heavy**. Buttons are 8px rectangles (`{rounded.md}`), cards and inputs are 12px and 8px (`{rounded.lg}` / `{rounded.md}`), and pills appear only on status badges, pill tabs and avatars. Getting this wrong in either direction is immediately visible: pill buttons read as a different brand, and 0px corners read as 2015 enterprise software.
 
-**Inter** carries the entire type hierarchy. Display sizes (72 / 60 / 48px) run at weight **600**, with negative tracking that tightens as the type grows — -0.025em at 72px down to -0.01em at 36px. Body type sits at weight 400 with line-height 1.55, and UI labels at 500. Inter is the face Notion itself renders; Notion's own "Notion Sans" is a proprietary Inter fork, so Inter is the same typeface rather than an imitation of one.
+**Inter** carries the interface type hierarchy, and **Source Serif 4** carries display headlines on the landing page only. Display sizes (72 / 60 / 48px) run in the serif at weight **600**, with negative tracking that tightens as the type grows — -0.025em at 72px down to -0.01em at 36px. Everything inside the application — sidebar, tables, forms, dashboards — stays in Inter: a serif in operating chrome would read as decoration. Body type sits at weight 400 with line-height 1.55, and UI labels at 500. Inter is the face Notion itself renders; Notion's own "Notion Sans" is a proprietary Inter fork, so Inter is the same typeface rather than an imitation of one.
+
+**The one-serif rule.** One serif with one job (landing display) is a voice; a serif everywhere is a font family. The full display stack is `'Source Serif 4', 'Source Serif 4 Fallback', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif` — self-hosted with a measured fallback so swapping in after first paint does not re-wrap headlines.
 
 Weight is what mattered most on the type. Carbon set display type at 300, and that thin, grey rendering was the single biggest reason the interface read as unfinished. Notion holds 600 all the way to the top, which is where the weight belongs for a product a learner stares at for hours. The positive `letter-spacing: 0.16px` that Carbon put on body copy has also been dropped: it is a precision detail of Plex's metrics and actively fights Inter, which is tuned to sit correctly at zero.
 
-Colour is used deliberately but sparingly. Purple marks the dominant action. Pastel tints (peach, rose, mint, lavender, sky, yellow) carry accent panels, and the bold yellow `{colors.card-tint-yellow-bold}` is reserved for high-emphasis banners. Deep navy `{colors.brand-navy}` is the one dark surface, used for hero bands.
+Colour is used deliberately but sparingly. Green marks the dominant action. Pastel tints (peach, rose, mint, lavender, sky, yellow) carry accent panels, and the bold yellow `{colors.card-tint-yellow-bold}` is reserved for high-emphasis banners. Deep navy `{colors.brand-navy}` is the one dark surface, used for hero bands.
 
 **Key Characteristics:**
 
 - **Warm minimalism** — neutrals are warm-cast (`{colors.surface}` #f6f5f4, `{colors.hairline}` #e5e3df, `{colors.charcoal}` #37352f), never neutral grey. This is the single most identifying trait.
 - **Sober-editorial geometry** — buttons 8px (`{rounded.md}`), cards 12px (`{rounded.lg}`), pills only for badges, pill tabs and avatars. Both 0px and pill buttons read as a different brand.
-- **Solid display type**: Inter at weight 600 for every display size, with negative tracking above 30px. Supersedes Carbon's weight-300 signature.
-- **Purple is a signal, not a palette**: `{colors.primary}` marks the dominant CTA. Not for body text, not for large background surfaces, and never mixed with `{colors.link-blue}` for inline links, because the two have distinct roles.
+- **Solid display type**: Source Serif 4 at weight 600 for landing display sizes, Inter at weight 600 for in-app display, with negative tracking above 30px. Supersedes Carbon's weight-300 signature.
+- **Green is a signal, not a palette**: `{colors.primary}` marks the dominant CTA. Not for body text, not for large background surfaces, and never mixed with `{colors.link-blue}` for inline links, because the two have distinct roles.
 - White canvas + `{colors.surface}` + `{colors.ink}` cover 95% of surfaces; pastel tints and navy hero bands are the deliberate exceptions.
 - Card hierarchy is carried by 1px hairlines and surface change. Shadow, when used at all, is soft and low-opacity — never heavy on flat documentation cards.
 - Page rhythm: top nav → hero band (navy, centred, weight-600 headline) → feature card grid → pastel accent panels → stats strip → newsletter / sign-in CTA → light footer.
@@ -313,10 +315,10 @@ Colour is used deliberately but sparingly. Purple marks the dominant action. Pas
 
 ### Brand & Accent
 
-- **Notion Purple** ({colors.primary}): The signature accent, reserved for the dominant CTA. Never for body text or large background surfaces.
+- **Signature Green** ({colors.primary}): The signature accent, reserved for the dominant CTA. Never for body text or large background surfaces. Remapped from Notion purple (#5645d4) on 2026-10-11: the shipped product is green, and one truth beats two.
 - **Primary Pressed** ({colors.primary-pressed}): Pressed state on the primary button.
 - **Primary Deep** ({colors.primary-deep}): Deeper emphasis.
-- **Link Blue** ({colors.link-blue}): Inline text links. Distinct from primary purple on purpose — the two have different roles and must not be interchanged.
+- **Link Blue** ({colors.link-blue}): Inline text links. Distinct from primary green on purpose — the two have different roles and must not be interchanged.
 - **Brand Navy** ({colors.brand-navy}): Hero band background, the one dark surface on marketing pages.
 - **Pastel card tints** ({colors.card-tint-peach} through {colors.card-tint-cream}): Accent feature panels. Bold yellow {colors.card-tint-yellow-bold} for high-emphasis banners only.
 - **Warm neutrals**: charcoal {colors.charcoal} for body emphasis, slate {colors.slate} / steel {colors.steel} / stone {colors.stone} descending through the text hierarchy. The warmth is load-bearing, not incidental.
@@ -350,9 +352,10 @@ Colour is used deliberately but sparingly. Purple marks the dominant action. Pas
 
 ### Font Family
 
-- **Inter** — the typeface Notion renders, by Rasmus Andersson. Neo-grotesque with a tall x-height and single-storey `a`, free under the SIL Open Font License. Fallback: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif`.
+- **Inter** — the typeface Notion renders, by Rasmus Andersson. Neo-grotesque with a tall x-height and single-storey `a`, free under the SIL Open Font License. Carries every interface surface: UI display sizes, body, labels, captions. Fallback: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif`.
+- **Source Serif 4** — Adobe's documentation serif, commissioned for text at small sizes and long-form reading. Carries landing display headlines, pull quotes, and numerals in the certificate preview — and nothing else. It is deliberately NOT applied to headings across the app: the workspace is an operating surface, and a serif in a sidebar or table header reads as decoration.
 
-One family carries display, body, and caption — there is no display + body pairing. Hierarchy is carried by **size, weight, and tracking** rather than by family change.
+Hierarchy below the display sizes is carried by **size, weight, and tracking** rather than by family change.
 
 **On the name.** Notion's own typeface is called "Notion Sans" and is a proprietary Inter fork that is not licensed for third-party use, so it cannot be installed here. Inter is what Notion actually renders, so this is the same typeface rather than a lookalike. Loading Inter as a variable font means weight 600 costs no extra request.
 
@@ -453,7 +456,7 @@ The button/card distinction is the point: 8px on buttons, 12px on cards. Notion'
 
 ### Buttons
 
-**`button-primary`** — Blue solid CTA. The default primary across all pages.
+**`button-primary`** — Green solid CTA. The default primary across all pages.
 
 - Background `{colors.primary}`, text `{colors.on-primary}`, type `{typography.button}`, padding 12px 16px, rounded `{rounded.md}`.
 - Pressed state lives in `button-primary-pressed` (background shifts to `{colors.primary-pressed}`).
@@ -462,7 +465,7 @@ The button/card distinction is the point: 8px on buttons, 12px on cards. Notion'
 
 - Background `{colors.ink}`, text `{colors.inverse-ink}`, type `{typography.button}`, padding 12px 16px, rounded `{rounded.md}`.
 
-**`button-tertiary`** — White button with blue 1px border + blue text. Used for tertiary CTAs.
+**`button-tertiary`** — White button with green 1px border + green text. Used for tertiary CTAs.
 
 - Background `{colors.canvas}`, text `{colors.primary}`, type `{typography.button}`, rounded `{rounded.md}`, padding 12px 16px. (Border in implementation: 1px `{colors.primary}`.)
 
@@ -492,7 +495,7 @@ The button/card distinction is the point: 8px on buttons, 12px on cards. Notion'
 
 - Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.display-md}`, rounded `{rounded.md}`, padding 48px.
 
-**`cta-banner`** — Full-width blue CTA panel near the bottom of the page.
+**`cta-banner`** — Full-width green CTA panel near the bottom of the page.
 
 - Background `{colors.primary}`, text `{colors.on-primary}`, type `{typography.headline}`, rounded `{rounded.md}`, padding 48px.
 
@@ -545,7 +548,7 @@ The button/card distinction is the point: 8px on buttons, 12px on cards. Notion'
 
 - Use `{rounded.md}` 8px on buttons and inputs, `{rounded.lg}` 12px on cards. The distinction is the geometry.
 - Set display type at **600** with negative tracking that grows with size. Do not go below 600, and do not push to 700.
-- Reserve `{colors.primary}` purple for the dominant CTA. Do not use it for body text, large background surfaces, or inline links — links are `{colors.link-blue}`.
+- Reserve `{colors.primary}` green for the dominant CTA. Do not use it for body text, large background surfaces, or inline links — links are `{colors.link-blue}`.
 - Use 1.55 line-height on body. Inter is drawn for slightly looser leading than Carbon assumed.
 - Use surface change (`canvas` → `surface`) and 1px warm hairlines for card hierarchy. Shadow stays soft and low-opacity, and never lands on a flat card.
 - Use the pastel tints for accent panels, and bold yellow only for high-emphasis banners.
@@ -558,7 +561,7 @@ The button/card distinction is the point: 8px on buttons, 12px on cards. Notion'
 - Don't set display headlines below weight 600. This is the rule most easily regressed: `font-light` on a large number is the single thing that made the old build look unfinished.
 - Don't add atmospheric depth — gradient backdrops, heavy drop shadows, atmospheric overlays.
 - Don't reintroduce IBM Blue or IBM Plex Sans, and don't add positive tracking to body copy — the old Carbon `0.16px` fights Inter's metrics.
-- Don't use purple as a large background surface or for body text.
+- Don't use green as a large background surface or for body text.
 - Don't write all-caps tracked eyebrows. Carbon's eyebrows are sentence case at 14px.
 
 ## Responsive Behavior
@@ -599,10 +602,12 @@ The button/card distinction is the point: 8px on buttons, 12px on cards. Notion'
 3. When introducing a new section, decide whether it sits on `{colors.canvas}` (default) or on `{colors.surface}` (alternate band). The two-surface rhythm is the rhythm.
 4. Run `npx @google/design.md lint DESIGN.md` after edits.
 5. Add new variants as separate component entries (`button-primary-pressed`, `text-input-error`, `text-input-focused`).
-6. Treat purple as scarce: the dominant CTA, and nothing else. Inline links are `{colors.link-blue}`, which is a different colour on purpose. Purple body text or a large purple surface is drift.
+6. Treat green as scarce: the dominant CTA, and nothing else. Inline links are `{colors.link-blue}`, which is a different colour on purpose. Green body text or a large green surface is drift.
 7. Keep the button/card radius distinction: 8px on buttons and inputs, 12px on cards. Reaching for a pill on a button, or collapsing either to 0px, breaks the geometry.
 
 ## Known Gaps
+
+- Brand and display truth reconciled 2026-10-11: primary was Notion purple (#5645d4) in this file while the product shipped green (#1f6b46), and type was Inter-only while landing headlines shipped Source Serif 4. The file now records green + the landing-scoped serif. Dark focus-indicator ratios below were measured against the old purple ramp and still need re-measuring against green.
 
 - Dark-mode token values are not fully surfaced in the source spec — only the hero bands invert. This project reuses the same warm ramp for dark surfaces (gray-900 `#1a1a1a`, gray-800 `#37352f`), which is consistent but is an interpretation, not an extracted value.
 - Animation and transition timings were not extracted. 150–200ms ease is a safe default.

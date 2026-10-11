@@ -393,23 +393,21 @@
   --color-white: #ffffff;
   --color-black: #000000;
 
-  /* Notion purple, as a full ramp so `brand-500/600/700` keep working.
+  /* Signature green, as a full ramp so `brand-500/600/700` keep working.
 
-     #5645d4 is the token values are chosen from: Notion's signature primary.
-     Notion's own DESIGN.md calls this the colour reserved for "the dominant CTA
-     only", and warns against using it for body text or large background
-     surfaces. The shades below are interpolated from that one anchor so that
-     every existing `brand-*` class in several hundred inherited TailAdmin
-     components lands on a coherent purple rather than a blue.
+     #1f6b46 is what ships: every button, link and focus ring in the product
+     renders from this ramp. DESIGN.md previously named Notion purple #5645d4
+     as the primary; that was reconciled to green on 2026-10-11 because one
+     truth beats two, and the shipped product is green.
 
-     brand-600 is Notion's primary-pressed, brand-700 is primary-deep, both taken
-     verbatim from the spec rather than eyeballed.
+     brand-600 is primary-pressed, brand-700 is primary-deep.
 
-     One deliberate deviation: Notion keeps inline links on link-blue #0075de
-     because purple is reserved for the CTA. Here `brand-600` is what the
-     inherited components use for links, so forcing blue would mean editing every
-     link in the codebase. The purple is used more widely than Notion intends;
-     worth revisiting if link contrast against brand CTAs ever becomes an issue. */
+     One deliberate deviation, unchanged: Notion keeps inline links on link-blue
+     #0075de because the accent is reserved for the CTA. Here `brand-600` is what
+     the inherited components use for links, so forcing blue would mean editing
+     every link in the codebase. The green is used more widely than a strict
+     reading intends; worth revisiting if link contrast against brand CTAs ever
+     becomes an issue. */
   --color-brand-25: #f4f8f4;
   --color-brand-50: #e9f1ea;
   --color-brand-100: #cfe3d2;
@@ -787,9 +785,10 @@
     or `focus:ring-*` still wins, and inputs that suppress the outline in favour of
     a ring keep the ring.
 
-    brand-400 in dark, not brand-500. #5645d4 on the dark canvas #1a1a1a measures
-    2.8:1, just under the 3:1 WCAG 2.2 asks of a focus indicator; brand-400 #7c69d8
-    measures 4.3:1 on the same ground.
+    brand-400 in dark, not brand-500. The dark focus colour is the lighter ramp
+    step so the indicator holds against the dark canvas; the exact ratios were
+    measured against the old purple ramp and need re-measuring against green
+    (flagged for the contrast pass, not asserted here).
   */
   :where(
     a,
