@@ -200,26 +200,32 @@ const hasAnyActivity = computed(() => {
             <h2 class="section-heading">Continue learning</h2>
 
             <div v-if="dashboard.continueLearning" class="mt-5">
-              <p class="section-subheading">
-                {{ dashboard.continueLearning.courseTitle }}
-              </p>
+              <div class="flex flex-wrap items-center gap-2">
+                <span
+                  class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300"
+                >
+                  {{ dashboard.continueLearning.courseTitle }}
+                </span>
+                <span v-if="dashboard.continueLearning.moduleTitle" class="text-xs text-slate">
+                  {{ dashboard.continueLearning.moduleTitle }}
+                </span>
+              </div>
 
-              <p class="mt-1 text-xl font-semibold text-gray-900 dark:text-white/90">
+              <h3 class="mt-2 text-xl font-semibold tracking-tight text-gray-900 dark:text-white/90">
                 {{ dashboard.continueLearning.lessonTitle }}
-              </p>
-              <p v-if="dashboard.continueLearning.moduleTitle" class="mt-1 section-subheading">
-                {{ dashboard.continueLearning.moduleTitle }}
-              </p>
+              </h3>
 
               <!-- Progress through the course, from the same numbers as the label
                    below it. A bar and a figure that disagree is worse than neither. -->
               <div class="mt-5">
-                <div class="flex items-baseline justify-between gap-3 text-sm">
-                  <span class="section-subheading">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate font-medium">
                     {{ dashboard.continueLearning.completedInCourse }} of
-                    {{ dashboard.continueLearning.totalLessons }} lessons
+                    {{ dashboard.continueLearning.totalLessons }} lessons completed
                   </span>
-                  <span class="font-medium text-gray-900 tabular-nums dark:text-white/90">
+                  <span
+                    class="rounded bg-surface-soft px-1.5 py-0.5 font-mono text-xs font-medium text-gray-900 dark:bg-white/[0.06] dark:text-white/90"
+                  >
                     {{
                       Math.round(
                         (dashboard.continueLearning.completedInCourse /
@@ -242,7 +248,7 @@ const hasAnyActivity = computed(() => {
                   :aria-label="`Course progress for ${dashboard.continueLearning.courseTitle}`"
                 >
                   <div
-                    class="h-full rounded-full bg-brand-600"
+                    class="h-full rounded-full bg-brand-500 transition-all duration-300 ease-out"
                     :style="`width: ${
                       (dashboard.continueLearning.completedInCourse /
                         dashboard.continueLearning.totalLessons) *
@@ -254,10 +260,14 @@ const hasAnyActivity = computed(() => {
 
               <router-link
                 :to="`/student/lessons/${dashboard.continueLearning.lessonId}`"
-                class="mt-5 inline-flex min-h-11 items-center gap-2 rounded-md bg-brand-600 px-5 text-sm font-medium text-white transition-colors hover:bg-brand-700"
+                class="group mt-5 inline-flex min-h-11 items-center gap-2 rounded-md bg-brand-500 px-5 text-sm font-medium text-white shadow-xs transition-all duration-150 hover:bg-brand-600 hover:shadow-sm active:scale-[0.98]"
               >
                 <CirclePlay class="size-4" aria-hidden="true" />
                 Continue this lesson
+                <ArrowRight
+                  class="size-4 transition-transform duration-150 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 rtl:rotate-180"
+                  aria-hidden="true"
+                />
               </router-link>
             </div>
 
@@ -351,12 +361,17 @@ const hasAnyActivity = computed(() => {
                        anyone who cannot tell the two apart. -->
                   <span class="shrink-0 text-end">
                     <span
-                      class="block text-sm font-semibold text-gray-900 tabular-nums dark:text-white/90"
+                      class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tabular-nums"
+                      :class="
+                        grade.passed
+                          ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-300'
+                          : 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-300'
+                      "
                     >
                       {{ grade.percentage }}%
                     </span>
                     <span
-                      class="mt-0.5 block text-xs font-medium"
+                      class="mt-1 block text-xs font-medium"
                       :class="
                         grade.passed
                           ? 'text-success-700 dark:text-success-400'
@@ -420,13 +435,18 @@ const hasAnyActivity = computed(() => {
                           {{ quiz.courseTitle }}
                         </span>
                         <span
-                          class="mt-1.5 block text-xs tabular-nums"
+                          class="mt-1.5 flex items-center gap-1.5 text-xs tabular-nums"
                           :class="
                             quiz.hasOpenAttempt
                               ? 'font-medium text-brand-600 dark:text-brand-400'
                               : 'text-gray-500 dark:text-gray-400'
                           "
                         >
+                          <span
+                            v-if="quiz.hasOpenAttempt"
+                            class="inline-block size-1.5 rounded-full bg-brand-500 animate-pulse"
+                            aria-hidden="true"
+                          />
                           <template v-if="quiz.hasOpenAttempt">
                             Resume · attempt {{ quiz.attemptsUsed + 1 }} unfinished
                           </template>
