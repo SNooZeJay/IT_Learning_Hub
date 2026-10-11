@@ -560,11 +560,11 @@
                         :alt="`Cover for ${courseAt(index)!.title}`"
                         class="size-full object-cover"
                       />
-                      <div v-else class="flex size-full items-center justify-center p-8">
-                        <LevelPattern
+                      <div v-else class="flex size-full items-center justify-center">
+                        <CourseCover
+                          :title="courseAt(index)!.title"
                           :level="courseAt(index)!.level"
-                          :module-count="courseAt(index)!.moduleCount"
-                          class="size-full text-lp-accent"
+                          :category-name="courseAt(index)!.categoryName"
                         />
                       </div>
 
@@ -1176,7 +1176,7 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import BrandMark from '@/components/common/BrandMark.vue'
 import ThemeToggleButton from '@/components/common/ThemeToggleButton.vue'
 import CatalogueCard from '@/components/catalogue/CatalogueCard.vue'
-import LevelPattern from '@/components/catalogue/LevelPattern.vue'
+import CourseCover from '@/components/catalogue/CourseCover.vue'
 import DepthCarousel from '@/components/carousel/DepthCarousel.vue'
 import { describeSupabaseError } from '@/services/supabase/client'
 import {

@@ -70,10 +70,11 @@
         loading="lazy"
         class="size-full object-cover transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03] motion-reduce:group-hover:scale-100"
       />
-      <div v-else class="flex size-full items-center justify-center p-6">
-        <LevelPattern
+      <div v-else class="flex size-full items-center justify-center">
+        <CourseCover
+          :title="course.title"
           :level="course.level"
-          :module-count="course.moduleCount"
+          :category-name="course.categoryName"
           class="size-full text-lp-accent transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03] motion-reduce:group-hover:scale-100"
         />
       </div>
@@ -201,7 +202,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import { ArrowRight } from 'lucide-vue-next'
-import LevelPattern from './LevelPattern.vue'
+import CourseCover from './CourseCover.vue'
 import { LEVEL_LABELS, formatDuration, formatPrice } from '@/services/catalogue.service'
 import type { CatalogueCourse } from '@/services/catalogue.service'
 

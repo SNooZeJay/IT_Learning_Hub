@@ -167,11 +167,12 @@
                 :alt="`Cover for ${course.title}`"
                 class="size-full object-cover"
               />
-              <div v-else class="flex size-full items-center justify-center p-10">
-                <LevelPattern
+              <div v-else class="flex size-full items-center justify-center">
+                <CourseCover
+                  :title="course.title"
                   :level="course.level"
-                  :module-count="course.moduleCount"
-                  class="size-full text-lp-accent"
+                  :category-name="course.categoryName"
+                  size="hero"
                 />
               </div>
             </div>
@@ -378,7 +379,7 @@ import Alert from '@/components/ui/Alert.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import BrandMark from '@/components/common/BrandMark.vue'
 import ThemeToggleButton from '@/components/common/ThemeToggleButton.vue'
-import LevelPattern from '@/components/catalogue/LevelPattern.vue'
+import CourseCover from '@/components/catalogue/CourseCover.vue'
 import {
   LEVEL_LABELS,
   formatPrice,
