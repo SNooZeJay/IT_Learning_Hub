@@ -65,11 +65,46 @@
         </div>
 
         <div>
-          <div class="mb-2 flex items-center justify-between gap-3">
-            <Label for="password"> Password </Label>
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <!--
+              The wrapper owns the spacing below the row, and the Label inside it
+              carries none.
+
+              It used to be the reverse, and the two stacked: this wrapper had
+              `mb-2` (8px) and the Label had `mb-3` (12px), so the password field
+              sat 20px below its label while the email field directly above it sat
+              12px below its own. Measured in the browser:
+
+                email:    gap=12px   label mb=12px
+                password: gap=20px   label mb=12px + wrapper mb=8px
+
+              Neither number is wrong on its own. What is wrong is that two fields
+              on one form disagree, and only measuring them against each other
+              catches that.
+
+              The Label also loses its margin rather than the wrapper keeping its
+              own, because a bottom margin on a flex child inside an
+              `items-center` row shifts its text upward against its sibling - so
+              "Password" sat slightly above "Forgot password?" on the same line.
+
+              The link beside it carries `leading-[14px]` for the same class of
+              reason. The Label is 14px tall (`leading-none` at a 14px font); the
+              link defaulted to 16px, so an `items-center` row centred a 14px box
+              against a 16px one and set the label 1px below the row's own top
+              edge. Measured:
+
+                label  top=503  h=14
+                link   top=502  h=16
+
+              Which made the label sit 13px above its field while the email field
+              directly above it sat 12px above its own - a 1px disagreement on a
+              form where every other field matched exactly. Equal line-heights on
+              the two children of the row is what makes the centring symmetric.
+            -->
+            <Label for="password" class="mb-0">Password</Label>
             <router-link
               to="/auth/forgot-password"
-              class="text-xs font-medium text-lp-accent hover:underline"
+              class="text-xs font-medium leading-[14px] text-lp-accent hover:underline"
             >
               Forgot password?
             </router-link>
