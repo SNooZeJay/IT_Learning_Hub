@@ -80,7 +80,7 @@
               v-model="password"
               :type="showPassword ? 'text' : 'password'"
               name="password"
-              placeholder="......"
+              placeholder="Your password"
               autocomplete="current-password"
               required
               class="pe-12"

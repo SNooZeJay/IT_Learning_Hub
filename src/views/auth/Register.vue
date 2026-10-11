@@ -92,7 +92,7 @@
             :type="showPassword ? 'text' : 'password'"
             name="password"
             autocomplete="new-password"
-            placeholder="......"
+          placeholder="Create a password"
             required
             :aria-invalid="Boolean(fieldErrors.password)"
             :aria-describedby="`password-hint${fieldErrors.password ? ' password-error' : ''}`"
@@ -146,7 +146,7 @@
           id="confirmPassword"
           v-model="confirmPassword"
           type="password"
-          placeholder="......"
+          placeholder="Type it again"
           name="confirmPassword"
           autocomplete="new-password"
           required
@@ -199,7 +199,8 @@ import AuthShell from '@/components/auth/AuthShell.vue'
 import AuthConsent from '@/components/auth/AuthConsent.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
-import { MIN_PASSWORD_LENGTH } from '@/validation'import { Input } from '@/components/public/ui/input'
+import { MIN_PASSWORD_LENGTH } from '@/validation'
+import { Input } from '@/components/public/ui/input'
 import { Label } from '@/components/public/ui/label'
 
 
