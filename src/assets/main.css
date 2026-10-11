@@ -34,6 +34,7 @@
   page renders from the same files as before.
 */
 @import 'tailwindcss';
+@import './public-theme.css';
 
 @custom-variant dark (&:is(.dark *));
 

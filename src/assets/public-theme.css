@@ -1,0 +1,126 @@
+/*
+  The shadcn-vue token bridge.
+
+  shadcn-vue's components are written against a CSS-variable vocabulary -
+  `--primary`, `--background`, `--ring` and thirteen others - that this project
+  does not otherwise have. `main.css` already carries two layers: the legacy
+  TailAdmin `@theme` palette the signed-in app reads, and the `--ith-lp-*`
+  cream/ink/green set the public pages read. Adding a third layer that restates
+  the palette in its own names would give the green a second source of truth,
+  and the next person to edit a colour in `main.css` would move one system and
+  silently miss the other.
+
+  So this file is aliases and nothing else. Every value below points at a token
+  that already exists. There is no hex in this file, and a test says so.
+
+  There is deliberately no `.dark` block. `main.css` redefines the whole
+  `--ith-lp-*` set inside `.dark`, so a variable that points at one of those
+  tokens follows the theme automatically. Duplicating these sixteen lines under
+  `.dark` would be a second copy to keep in sync, in exchange for nothing. The
+  test "routes every value through a token that flips in dark" is what holds
+  that property - it walks every `var()` reference in this file and fails if one
+  points at a token `main.css` never redefines there.
+
+  `--destructive` is the one that does not come from the `lp-` set, because
+  there is no red on the public palette. It borrows the app's existing
+  `error` ramp, which is already a CSS variable and already theme-aware.
+
+  Read with: docs/superpowers/specs/2026-10-11-public-pages-shadcn-vue-design.md
+  section 5.
+*/
+
+:root {
+  /* Surfaces. The page is cream; a card sitting on it is white. */
+  --background: var(--ith-lp-canvas);
+  --foreground: var(--ith-lp-ink);
+  --card: var(--ith-lp-card);
+  --card-foreground: var(--ith-lp-ink);
+
+  /*
+    The brand green. This is the value that proves the bridge works: if it
+    renders grey, shadcn is not reading these variables and the whole plan is
+    built on nothing.
+  */
+  --primary: var(--ith-lp-accent);
+  --primary-foreground: var(--ith-lp-ink-inverse);
+
+  /* Quiet fills: the mint the accent sits on, and the deeper cream. */
+  --secondary: var(--ith-lp-accent-soft);
+  --secondary-foreground: var(--ith-lp-ink);
+  --muted: var(--ith-lp-canvas-deep);
+  --muted-foreground: var(--ith-lp-slate);
+  --accent: var(--ith-lp-accent-soft);
+  --accent-foreground: var(--ith-lp-accent);
+
+  /* The app's error ramp. There is no red on the public palette to borrow. */
+  --destructive: var(--color-error-600);
+
+  /* Two borders, not one: `--border` for containers, `--input` for controls. */
+  --border: var(--ith-lp-line);
+  --input: var(--ith-lp-line-strong);
+
+  /* Focus. Same green as the primary - the ring should read as part of it. */
+  --ring: var(--ith-lp-accent);
+
+  /* 8px, which is the control radius DESIGN.md fixes. */
+  --radius: 0.5rem;
+}
+
+/*
+  The other half of the bridge, and the half that is easy to get wrong.
+
+  `:root` above gives shadcn the variable NAMES its components read. That is
+  not enough on Tailwind v4: `bg-primary` is generated from `--color-primary`,
+  not from `--primary`. A plain `:root` variable produces no utility at all. So
+  these names have to reach the `@theme inline` layer as well, and `@theme
+  inline` is specifically what makes Tailwind emit `var(--primary)` into the
+  class instead of resolving it at build time - a normal `@theme` would inline
+  the light value and the dark theme would never apply.
+
+  Why every one is prefixed `lp-`:
+
+  shadcn wants `--color-muted`. `main.css` already declares `--color-muted` at
+  its own `@theme inline`, and the app reads that name in dozens of components.
+  Defining the shadcn one would win by document order and repaint `text-muted`
+  across every dashboard - the frozen boundary breached through the token layer
+  rather than through a component edit, which is harder to notice and easier to
+  ship.
+
+  Prefixing sidesteps it and does something worth having beyond the fix: a
+  shadcn class that escapes onto a signed-in page now resolves to NOTHING and
+  shows up immediately, instead of quietly borrowing the app's colour and
+  looking almost right. It is the same reasoning `main.css` already records for
+  its own `lp-` tokens: the prefix makes every consumer greppable, so borrowing
+  is visible rather than accidental.
+
+  This costs one thing. shadcn's components ship class strings naming `bg-primary`
+  and friends, so each one has to be swept to `bg-lp-primary`. That sweep is
+  already happening for RTL, for the 44px touch targets and for
+  `motion-reduce`, so the rename rides along with it.
+
+  `--radius` is deliberately NOT mapped here. Tailwind v4's own radius scale is
+  already declared, and overriding `--radius-md` or `--radius-lg` would change
+  the corner on every card, button and input in the signed-in app. The public
+  pages keep their existing `lp-` radius classes, which DESIGN.md already fixes.
+
+  Read with: docs/superpowers/specs/2026-10-11-public-pages-shadcn-vue-design.md
+  section 5.
+*/
+@theme inline {
+  --color-lp-background: var(--background);
+  --color-lp-foreground: var(--foreground);
+  --color-lp-card: var(--card);
+  --color-lp-card-foreground: var(--card-foreground);
+  --color-lp-primary: var(--primary);
+  --color-lp-primary-foreground: var(--primary-foreground);
+  --color-lp-secondary: var(--secondary);
+  --color-lp-secondary-foreground: var(--secondary-foreground);
+  --color-lp-muted: var(--muted);
+  --color-lp-muted-foreground: var(--muted-foreground);
+  --color-lp-accent: var(--accent);
+  --color-lp-accent-foreground: var(--accent-foreground);
+  --color-lp-destructive: var(--destructive);
+  --color-lp-border: var(--border);
+  --color-lp-input: var(--input);
+  --color-lp-ring: var(--ring);
+}
