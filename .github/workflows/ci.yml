@@ -95,10 +95,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
+      # No Supabase CLI setup step, deliberately. The three checks below are
+      # plain shell over the tracked files and invoke no `supabase` command; a
+      # `supabase/setup-cli` step used to sit here for a future database-backed
+      # check that was never written, and its installer flaked - failing this
+      # whole job in under five seconds with every real check skipped - on an
+      # otherwise green run. If a step ever needs a live database again
+      # (`supabase start`, `db reset --dry-run`), re-add the setup alongside
+      # that step so the installer is load-bearing rather than decorative.
+      # Until then, adding it back would only reintroduce the flake.
       - name: Every migration is present and non-empty
         run: |
           set -e
