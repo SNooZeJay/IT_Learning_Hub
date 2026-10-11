@@ -37,6 +37,21 @@ export interface NavItem {
 }
 
 /**
+ * A labeled chunk of a role's navigation.
+ *
+ * The admin list holds ten destinations, past the 7±2 a person scans as one
+ * group, so it renders as labeled chunks instead of one flat list. Student (8)
+ * and instructor (8) stay flat: chunking a list that already scans adds chrome
+ * without removing load. Groups carry no routes of their own - every destination
+ * still lives in exactly one place, and the grouped render must contain the same
+ * `to` set as the flat list or the sidebar has lost a page.
+ */
+export interface NavGroup {
+  label: string | null
+  items: NavItem[]
+}
+
+/**
  * Navigation per role.
  *
  * All three roles share one shell, so the difference between an admin screen
@@ -110,6 +125,43 @@ export const UNKNOWN_ROLE_NAVIGATION: NavItem[] = []
 
 export function navigationFor(role: Role | null): NavItem[] {
   return role ? ROLE_NAVIGATION[role] : UNKNOWN_ROLE_NAVIGATION
+}
+
+const ADMIN_GROUPS: NavGroup[] = [
+  { label: null, items: [ROLE_NAVIGATION.admin[0]] },
+  {
+    label: 'People',
+    items: ROLE_NAVIGATION.admin.filter((item) =>
+      ['/admin/users', '/admin/students', '/admin/instructors'].includes(item.to),
+    ),
+  },
+  {
+    label: 'Content',
+    items: ROLE_NAVIGATION.admin.filter((item) =>
+      ['/admin/courses', '/admin/categories'].includes(item.to),
+    ),
+  },
+  {
+    label: 'Operations',
+    items: ROLE_NAVIGATION.admin.filter((item) =>
+      ['/admin/payments', '/admin/announcements', '/admin/analytics'].includes(item.to),
+    ),
+  },
+  { label: null, items: [ROLE_NAVIGATION.admin[ROLE_NAVIGATION.admin.length - 1]] },
+]
+
+/**
+ * A role's navigation as labeled chunks.
+ *
+ * Only admin is chunked; every other role renders the flat list as one group
+ * with the role's existing section label. The sidebar calls this instead of
+ * `navigationFor`, so a role gains grouping by appearing here and nothing else
+ * changes about how its items render.
+ */
+export function navigationGroupsFor(role: Role | null): NavGroup[] {
+  if (role === 'admin') return ADMIN_GROUPS
+  const items = navigationFor(role)
+  return [{ label: null, items }]
 }
 
 /** Brand name shown in the sidebar and header. */

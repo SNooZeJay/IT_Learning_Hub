@@ -95,49 +95,67 @@
           aria-hidden="true"
         />
 
-        <ul class="flex flex-col gap-1">
-          <li v-for="item in navItems" :key="item.to">
-            <router-link
-              :to="item.to"
-              :aria-label="isRailOpen ? undefined : item.label"
-              :aria-current="isActive(item.to) ? 'page' : undefined"
-              :class="[
-                'group relative flex h-11 items-center rounded-lg text-theme-sm font-medium transition-colors duration-150',
-                // The same geometry in both states: 11px of side padding, so the icon
-                // column sits in the same place expanded or collapsed. Centring with
-                // `justify-center` on a padded row used to shift the icon off-axis by
-                // the padding width, which is why collapsed icons looked off-centre
-                // against the expanded ones.
-                isRailOpen ? 'gap-3 px-3' : 'justify-center px-0',
-                isActive(item.to) ? 'menu-item-active' : 'menu-item-inactive',
-              ]"
-              @pointerenter="setActiveLabel(item.to)"
-              @pointerleave="clearActiveLabel(item.to)"
-              @focus="setActiveLabel(item.to)"
-              @blur="clearActiveLabel(item.to)"
-              @keydown.esc="clearActiveLabel(item.to)"
-            >
-              <span
-                class="flex size-5 shrink-0 items-center justify-center"
-                :class="isActive(item.to) ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"
+        <template v-for="(group, groupIndex) in navGroups" :key="group.label ?? 'main'">
+          <!--
+            Group labels exist only where the role's navigation is chunked (admin).
+            Every other role renders one unlabeled group, so this branch never fires
+            for them and their sidebar is byte-for-byte what it was: the section
+            label above stays the single heading.
+          -->
+          <h2
+            v-if="group.label && isRailOpen"
+            class="px-3 pt-4 pb-3 text-xs leading-5 font-medium tracking-wide text-slate uppercase"
+          >
+            {{ group.label }}
+          </h2>
+          <div
+            v-else-if="groupIndex > 0 && !isRailOpen"
+            class="mx-3 my-3 border-t border-gray-200 dark:border-gray-800"
+            aria-hidden="true"
+          />
+          <ul class="flex flex-col gap-1">
+            <li v-for="item in group.items" :key="item.to">
+              <router-link
+                :to="item.to"
+                :aria-label="isRailOpen ? undefined : item.label"
+                :aria-current="isActive(item.to) ? 'page' : undefined"
+                :class="[
+                  'group relative flex h-11 items-center rounded-lg text-theme-sm font-medium transition-colors duration-150',
+                  // The same geometry in both states: 11px of side padding, so the icon
+                  // column sits in the same place expanded or collapsed. Centring with
+                  // `justify-center` on a padded row used to shift the icon off-axis by
+                  // the padding width, which is why collapsed icons looked off-centre
+                  // against the expanded ones.
+                  isRailOpen ? 'gap-3 px-3' : 'justify-center px-0',
+                  isActive(item.to) ? 'menu-item-active' : 'menu-item-inactive',
+                ]"
+                @pointerenter="setActiveLabel(item.to)"
+                @pointerleave="clearActiveLabel(item.to)"
+                @focus="setActiveLabel(item.to)"
+                @blur="clearActiveLabel(item.to)"
+                @keydown.esc="clearActiveLabel(item.to)"
               >
-                <component :is="item.icon" />
-              </span>
+                <span
+                  class="flex size-5 shrink-0 items-center justify-center"
+                  :class="isActive(item.to) ? 'menu-item-icon-active' : 'menu-item-icon-inactive'"
+                >
+                  <component :is="item.icon" />
+                </span>
 
-              <!--
+                <!--
                 Hidden with `hidden`, not `v-if`. The element stays in the DOM and keeps
                 its box, which is what stops the row reflowing as labels appear and
                 disappear during a resize or a role change. `overflow-hidden` clips it
                 outright rather than leaving a half-word on screen.
               -->
-              <span
-                class="overflow-hidden text-ellipsis whitespace-nowrap transition-opacity duration-150"
-                :class="isRailOpen ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
-              >
-                {{ item.label }}
-              </span>
+                <span
+                  class="overflow-hidden text-ellipsis whitespace-nowrap transition-opacity duration-150"
+                  :class="isRailOpen ? 'opacity-100' : 'pointer-events-none w-0 opacity-0'"
+                >
+                  {{ item.label }}
+                </span>
 
-              <!--
+                <!--
                 The count, when the item asks for one and there is something to count.
 
                 `isKnown` rather than `unreadCount > 0` on its own: the shared count is
@@ -149,33 +167,34 @@
                 Read from the shared count rather than fetched, so marking a
                 notification read in the bell moves this badge too.
               -->
-              <span
-                v-if="
-                  isRailOpen &&
-                  badgeCount(item) !== null &&
-                  badgeKnown(item) &&
-                  (badgeCount(item) ?? 0) > 0
-                "
-                class="ms-auto shrink-0 rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] leading-none font-semibold text-white tabular-nums"
-              >
-                {{ badgeCount(item) }}
-                <span class="sr-only">
-                  unread {{ item.badge === 'messages' ? 'messages' : 'notification'
-                  }}{{ (badgeCount(item) ?? 0) === 1 ? '' : 's' }}
+                <span
+                  v-if="
+                    isRailOpen &&
+                    badgeCount(item) !== null &&
+                    badgeKnown(item) &&
+                    (badgeCount(item) ?? 0) > 0
+                  "
+                  class="ms-auto shrink-0 rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] leading-none font-semibold text-white tabular-nums"
+                >
+                  {{ badgeCount(item) }}
+                  <span class="sr-only">
+                    unread {{ item.badge === 'messages' ? 'messages' : 'notification'
+                    }}{{ (badgeCount(item) ?? 0) === 1 ? '' : 's' }}
+                  </span>
                 </span>
-              </span>
 
-              <!--
+                <!--
                 The collapsed-rail label.
 
                 A component per item rather than one shared instance, because each is
                 positioned against its own link. It is absolutely positioned outside the
                 rail, so showing it cannot change any width in the layout.
               -->
-              <SidebarTooltip v-if="!isRailOpen && activeLabel === item.to" :label="item.label" />
-            </router-link>
-          </li>
-        </ul>
+                <SidebarTooltip v-if="!isRailOpen && activeLabel === item.to" :label="item.label" />
+              </router-link>
+            </li>
+          </ul>
+        </template>
       </nav>
     </div>
 
@@ -222,7 +241,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 import SidebarTooltip from '@/components/layout/SidebarTooltip.vue'
 import { useSidebar } from '@/composables/useSidebar'
 import { useAuthStore } from '@/stores/auth'
-import { BRAND, navigationFor } from '@/layouts/navigation'
+import { BRAND, navigationGroupsFor } from '@/layouts/navigation'
 import { useUnreadNotifications } from '@/composables/useUnreadNotifications'
 import { useUnreadMessages } from '@/composables/useUnreadMessages'
 
@@ -302,7 +321,13 @@ function clearActiveLabel(to: string): void {
  * The sidebar renders whatever the current role's navigation says. There is no
  * per-role sidebar component, so the three roles cannot drift apart.
  */
-const navItems = computed(() => navigationFor(auth.role))
+/**
+ * The same destinations as the role's flat navigation, chunked into labeled groups where the
+ * role needs it. Only admin defines groups today; every other role gets its
+ * flat list back as one unlabeled group, so the template's group loop renders
+ * exactly what the old flat loop rendered for them.
+ */
+const navGroups = computed(() => navigationGroupsFor(auth.role))
 
 const sectionLabel = computed(() => {
   switch (auth.role) {
