@@ -496,14 +496,22 @@ async function finish(via: string): Promise<void> {
   }
 }
 
-/** Back to the course list. Also the "Try again" path: reload and start again. */
+/**
+ * Leaving the result screen goes to the course list, full stop.
+ *
+ * This used to share the retake handler, which routed on `result.passed`: passed
+ * exited, failed reloaded. So the button labeled "Back to my courses" restarted
+ * the quiz exactly when the student had failed - the one moment leaving matters
+ * most. The exit is now its own path with no conditions to misread.
+ */
+async function handleExit(): Promise<void> {
+  await router.push('/student/courses')
+}
+
+/** "Try again": reload and start again. Only reachable when attempts remain. */
 async function handleRetake(): Promise<void> {
   retaking.value = true
   try {
-    if (result.value?.passed) {
-      await router.push('/student/courses')
-      return
-    }
     await load()
   } finally {
     retaking.value = false
@@ -648,6 +656,7 @@ onBeforeUnmount(() => {
           :ended-by-warnings="endedVia === 'warnings_exhausted'"
           :retaking="retaking"
           @retake="handleRetake"
+          @exit="handleExit"
         />
 
         <QuizBriefingPanel

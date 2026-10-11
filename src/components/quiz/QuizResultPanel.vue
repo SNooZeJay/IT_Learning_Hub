@@ -15,6 +15,7 @@
  */
 import { computed } from 'vue'
 import {
+  ArrowLeft,
   Check,
   CheckCircle2,
   CircleSlash,
@@ -40,7 +41,7 @@ const props = defineProps<{
   retaking: boolean
 }>()
 
-const emit = defineEmits<{ retake: [] }>()
+const emit = defineEmits<{ retake: []; exit: [] }>()
 
 const correctCount = computed(() => props.result.answers.filter((a) => a.isCorrect === true).length)
 
@@ -329,8 +330,8 @@ const percent = computed(() => Number(props.result.percentage ?? 0))
     <div
       class="mt-6 flex flex-wrap items-center gap-3 border-t border-gray-200 pt-6 dark:border-gray-800"
     >
-      <Button variant="outline" @click="emit('retake')">
-        <RefreshCw class="size-4" aria-hidden="true" />
+      <Button variant="outline" @click="emit('exit')">
+        <ArrowLeft class="size-4" aria-hidden="true" />
         Back to my courses
       </Button>
       <Button v-if="canRetake" variant="primary" :disabled="retaking" @click="emit('retake')">
