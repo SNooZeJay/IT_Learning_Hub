@@ -87,7 +87,7 @@
       -->
       <RouterLink
         to="/"
-        class="-ms-3 mb-6 inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-lp-slate transition-colors hover:bg-lp-accent-soft hover:text-lp-accent"
+        class="-ms-3 mb-6 inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-lp-slate transition-colors hover:bg-lp-accent-soft hover:text-lp-accent"
       >
         <ArrowLeft class="size-4 shrink-0 rtl:rotate-180" aria-hidden="true" />
         Back to home

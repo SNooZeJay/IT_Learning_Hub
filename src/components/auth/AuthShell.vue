@@ -51,12 +51,12 @@
           <div class="flex shrink-0 items-center gap-0.5 2xsm:gap-1.5 md:gap-2">
             <!--
               The arrow points back toward the start of the reading direction, so it
-              flips in RTL. `min-h-10` keeps a 40px hit area without the link
+              flips in RTL. `min-h-11` keeps a 44px hit area without the link
               reading as a button.
             -->
             <RouterLink
               to="/"
-              class="inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-lp-slate transition-[background-color,color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-lp-canvas hover:text-lp-ink motion-reduce:transition-none"
+              class="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-lp-slate transition-[background-color,color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-lp-canvas hover:text-lp-ink motion-reduce:transition-none"
             >
               <ArrowLeft class="size-4 shrink-0 rtl:rotate-180" aria-hidden="true" />
               Back to home

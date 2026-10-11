@@ -643,7 +643,7 @@
                         -->
                         <RouterLink
                           :to="`/courses/${courseAt(index)!.slug}`"
-                          class="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-lp-line px-5 text-sm font-medium text-lp-ink transition-colors hover:border-lp-accent-line hover:bg-lp-accent-soft hover:text-lp-accent"
+                          class="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-lp-line px-5 text-sm font-medium text-lp-ink transition-colors hover:border-lp-accent-line hover:bg-lp-accent-soft hover:text-lp-accent"
                         >
                           View course
                           <ArrowRight

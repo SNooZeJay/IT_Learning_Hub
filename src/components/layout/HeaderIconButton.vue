@@ -15,11 +15,11 @@
  * round icon, carrying no information, and the only control without it was the one
  * directly beside it.
  *
- * The decision: `size-10`, `rounded-md`, no border, hairline on hover via a surface tint.
+ * The decision: `size-11`, `rounded-md`, no border, hairline on hover via a surface tint.
  * Square-ish radii on a square button is the geometry DESIGN.md already pins for buttons
  * (`rounded.md`, 8px); circles are reserved for avatars, badges and toggles. Every header
- * control is 40px, which clears the 24px minimum comfortably and stays under the 44px
- * primary-control target that a 40px secondary control does not need to hit.
+ * control is 44px, which holds the primary-control target at every viewport including
+ * the phone held in one hand - the viewport `sm:` upgrades used to leave behind.
  *
  * `as="router-link"` renders a link instead of a button, for the one control here that
  * navigates. It matters: the message control is the only item in this row that is a
@@ -52,7 +52,7 @@ const emit = defineEmits<{ activate: [] }>()
 const isLink = computed(() => props.as === 'router-link')
 
 const shared = computed(() => [
-  'relative flex size-10 shrink-0 items-center justify-center rounded-md text-slate transition-colors duration-150 hover:bg-surface-soft hover:text-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.08] dark:hover:text-white',
+  'relative flex size-11 shrink-0 items-center justify-center rounded-md text-slate transition-colors duration-150 hover:bg-surface-soft hover:text-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.08] dark:hover:text-white',
   props.active ? 'bg-surface-soft text-ink dark:bg-white/[0.08] dark:text-white' : '',
 ])
 

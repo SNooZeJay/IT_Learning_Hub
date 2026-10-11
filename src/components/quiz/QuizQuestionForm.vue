@@ -326,7 +326,7 @@ function submit(): void {
                 type="button"
                 :disabled="!canRemoveOption"
                 :aria-label="`Remove option ${index + 1}`"
-                class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-error-50 hover:text-error-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:text-gray-400 dark:hover:bg-error-500/10 dark:hover:text-error-400"
+                class="inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-error-50 hover:text-error-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:text-gray-400 dark:hover:bg-error-500/10 dark:hover:text-error-400"
                 @click="removeOption(index)"
               >
                 <Trash2 class="size-4" aria-hidden="true" />

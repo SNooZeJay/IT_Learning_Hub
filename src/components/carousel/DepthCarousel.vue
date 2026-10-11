@@ -37,7 +37,7 @@
       <button
         v-if="showControls && count > 1"
         type="button"
-        class="z-[3000] grid size-10 shrink-0 place-items-center self-center rounded-full border border-lp-line-strong/70 bg-lp-card/70 text-lp-ink backdrop-blur-sm transition-[background-color,border-color,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-lp-ink hover:bg-lp-card active:scale-95 motion-reduce:transition-none sm:size-11 lg:size-12 lg:bg-transparent lg:backdrop-blur-none"
+        class="z-[3000] grid size-11 shrink-0 place-items-center self-center rounded-full border border-lp-line-strong/70 bg-lp-card/70 text-lp-ink backdrop-blur-sm transition-[background-color,border-color,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-lp-ink hover:bg-lp-card active:scale-95 motion-reduce:transition-none lg:size-12 lg:bg-transparent lg:backdrop-blur-none"
         aria-label="Previous slide"
         @click="navigateBy(-1)"
       >
@@ -122,7 +122,7 @@
       <button
         v-if="showControls && count > 1"
         type="button"
-        class="z-[3000] grid size-10 shrink-0 place-items-center self-center rounded-full border border-lp-line-strong/70 bg-lp-card/70 text-lp-ink backdrop-blur-sm transition-[background-color,border-color,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-lp-ink hover:bg-lp-card active:scale-95 motion-reduce:transition-none sm:size-11 lg:size-12 lg:bg-transparent lg:backdrop-blur-none"
+        class="z-[3000] grid size-11 shrink-0 place-items-center self-center rounded-full border border-lp-line-strong/70 bg-lp-card/70 text-lp-ink backdrop-blur-sm transition-[background-color,border-color,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-lp-ink hover:bg-lp-card active:scale-95 motion-reduce:transition-none lg:size-12 lg:bg-transparent lg:backdrop-blur-none"
         aria-label="Next slide"
         @click="navigateBy(1)"
       >
