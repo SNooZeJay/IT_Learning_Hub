@@ -670,22 +670,83 @@
       <!--
         VALUE STRIP.
 
-        A dark band, because it is the one place the page earns a hard edge: it
-        reads as a break in the cream rather than another cream surface.
+        The page's second charcoal surface, speaking the CTA card's language:
+        fixed `gray-950` with an inset hairline in BOTH themes, not the
+        flipping `lp-ink` that made this band cream in dark mode. A light band
+        between a cream page and a charcoal CTA read as the page changing its
+        mind halfway down; two charcoal moments read as deliberate bookends.
 
-        Three of the five items are counts derived from the catalogue query. The
-        other two are structural statements that are true of the product and
-        therefore need no data. There is no rating and no learner total here -
-        see the note at the top of the file.
+        Structure, not just paint: the three catalogue counts are figures now
+        (display serif, counted up), and the two structural statements stand
+        beside them as checklist lines with ticks - proof beside promises,
+        rather than five equal small labels in a row.
+
+        The spotlight follows the pointer in the product's bright accent at
+        16% alpha. It is pointer-driven, not autonomous motion, so it needs no
+        reduced-motion gate - but it must never be the only thing carrying
+        information, and here it carries none.
+
+        All five statements survive verbatim ("Courses published" keeps the
+        exact words the old single-line strip used), so this is a redesign of
+        the band, not a rewrite of its claims. There is still no rating and no
+        learner total - see the note at the top of the file.
       -->
       <section class="mx-auto max-w-6xl px-4 pb-16 md:px-6 md:pb-24">
-        <div class="rounded-3xl bg-lp-ink px-6 py-8 md:px-10 md:py-10">
-          <ul
-            class="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-center text-xs font-medium tracking-[0.1em] text-lp-ink-inverse/85 uppercase"
+        <Reveal>
+          <SpotlightCard
+            class-name="border-white/10 bg-gray-950 px-6 py-10 ring-1 ring-inset ring-white/[0.07] md:px-12 md:py-12"
+            spotlight-color="rgba(127,199,159,0.16)"
           >
-            <li v-for="item in valueStrip" :key="item">{{ item }}</li>
-          </ul>
-        </div>
+            <!--
+              One soft accent wash, mostly off the bottom-end corner - the same
+              treatment as the CTA card, so the two charcoal surfaces are
+              visibly the same object language. Static and heavily blurred.
+            -->
+            <div
+              class="pointer-events-none absolute -bottom-40 -end-24 size-[26rem] rounded-full bg-lp-glow-green opacity-25 blur-3xl"
+              aria-hidden="true"
+            ></div>
+
+            <div class="relative flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-12">
+              <dl v-if="hasCounts" class="grid flex-1 grid-cols-3 gap-6">
+                <div v-for="(figure, index) in figures" :key="figure.label">
+                  <dd
+                    class="font-display text-4xl font-semibold text-gray-100 tabular-nums md:text-5xl"
+                  >
+                    <!--
+                      Same double gate as the hero figures: `hasCounts` mounts
+                      with final values, `motionOK` falls back to the number.
+                    -->
+                    <CountUp v-if="motionOK" :to="figure.value" />
+                    <template v-else>{{ figure.value }}</template>
+                  </dd>
+                  <dt
+                    class="mt-2 text-xs font-medium tracking-[0.14em] text-gray-400 uppercase"
+                  >
+                    {{ index === 0 ? `${figure.label} published` : figure.label }}
+                  </dt>
+                </div>
+              </dl>
+
+              <div
+                v-if="hasCounts"
+                aria-hidden="true"
+                class="hidden w-px self-stretch bg-white/10 lg:block"
+              ></div>
+
+              <ul class="space-y-3 text-sm leading-relaxed text-gray-300">
+                <li class="flex items-start gap-2.5">
+                  <Check class="mt-0.5 size-4 shrink-0 text-lp-accent-bright" aria-hidden="true" />
+                  <span>Quizzes with a passing score</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                  <Check class="mt-0.5 size-4 shrink-0 text-lp-accent-bright" aria-hidden="true" />
+                  <span>Progress kept to the last lesson</span>
+                </li>
+              </ul>
+            </div>
+          </SpotlightCard>
+        </Reveal>
       </section>
 
       <!--
@@ -1220,6 +1281,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import {
   ArrowRight,
   BookOpen,
+  Check,
   Clock3,
   Code,
   Database,
@@ -1247,6 +1309,7 @@ import {
 import type { CatalogueCourse } from '@/services/catalogue.service'
 import CountUp from '@/components/public/ui/CountUp/CountUp.vue'
 import Reveal from '@/components/public/ui/Reveal/Reveal.vue'
+import SpotlightCard from '@/components/public/ui/SpotlightCard/SpotlightCard.vue'
 import LogoLoop from '@/components/public/ui/LogoLoop/LogoLoop.vue'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { useTheme } from '@/composables/useTheme'
@@ -1462,21 +1525,12 @@ const figures = computed(() => [
 ])
 
 /**
- * The value strip.
- *
- * The three counts, then two structural truths that need no data. Kept short
- * because it is read as a single line at a glance, not read.
+ * The value strip reads `figures` (shared with the hero) plus two static
+ * statements in the template. There is deliberately no strip-shaped computed:
+ * the old one flattened counts and statements into one string array, which is
+ * what forced all five into identical small labels. Separate data, separate
+ * presentation.
  */
-const valueStrip = computed<string[]>(() => {
-  const real = hasCounts.value
-    ? [
-        `${totalPublished.value} ${totalPublished.value === 1 ? 'course' : 'courses'} published`,
-        `${totals.value.modules} modules`,
-        `${totals.value.lessons} lessons`,
-      ]
-    : []
-  return [...real, 'Quizzes with a passing score', 'Progress kept to the last lesson']
-})
 
 /**
  * The headline, split so that typing can keep the accent on `practical`.

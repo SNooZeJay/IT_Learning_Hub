@@ -64,7 +64,7 @@ describe('landing motion layer', () => {
             !f.includes(`${path.sep}components${path.sep}public${path.sep}`),
         )
         .filter((f) =>
-          /vue-bits|public\/ui\/(CountUp|AnimatedContent|LogoLoop|Reveal)/.test(
+          /vue-bits|public\/ui\/(CountUp|AnimatedContent|LogoLoop|Reveal|SpotlightCard)/.test(
             fs.readFileSync(f, 'utf-8'),
           ),
         )
@@ -143,6 +143,32 @@ describe('landing motion layer', () => {
 
     it('falls back to the static grid under reduced motion', () => {
       expect(landing).toMatch(/v-if="motionOK"[^]*<LogoLoop|<LogoLoop[^]*v-if="motionOK"/)
+    })
+  })
+
+  describe('the value strip speaks the CTA card', () => {
+    it('is always charcoal, never the flipping ink', () => {
+      // `bg-lp-ink` flips with the theme, which made this band cream in dark
+      // mode - a light slab between a cream page and a charcoal CTA. The CTA
+      // card is fixed charcoal in both themes; the strip now is too.
+      const strip = landing.match(/VALUE STRIP\.[\s\S]*?<\/section>/)?.[0] ?? ''
+      expect(strip).toMatch(/bg-gray-950/)
+      expect(strip).not.toMatch(/bg-lp-ink/)
+    })
+
+    it('renders one SpotlightCard with the product accent, carrying no information', () => {
+      expect((landing.match(/<SpotlightCard\b/g) ?? []).length).toBe(1)
+      expect(landing).toMatch(/spotlight-color="rgba\(127,199,159/)
+      // Pointer-driven, not autonomous: no reduced-motion gate needed, and the
+      // spotlight must never be the only carrier of anything.
+    })
+
+    it('counts the figures up and keeps every statement verbatim', () => {
+      const strip = landing.match(/VALUE STRIP\.[\s\S]*?<\/section>/)?.[0] ?? ''
+      expect(strip).toMatch(/<CountUp\b[^>]*v-if="motionOK"/)
+      expect(strip).toContain('Quizzes with a passing score')
+      expect(strip).toContain('Progress kept to the last lesson')
+      expect(strip).toMatch(/published/)
     })
   })
 
