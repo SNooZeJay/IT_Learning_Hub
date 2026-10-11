@@ -621,30 +621,43 @@
   }
 
   /*
-    Ambient drift for the landing background circles.
+    Orbital drift for the landing background circles.
 
     A WebGL aurora ribbon was tried here and removed with measurements: in
     light mode it composited a grey-brown veil across the hero, and it cost a
     GL context on the most-visited page for motion three blurred divs do for
     free. This is the file's own prescription - transforms on the circles.
 
-    translate3d, never top/left: compositor-only, no layout per frame. The
-    endpoints come from per-element `--dx-from/--dy-from/--dx-to/--dy-to`,
-    which the landing page randomizes on mount - three circles on one shared
+    The orbit is four keyframes on an ellipse: right, top, left, bottom, back
+    to right - a full circle per period, seamless on loop because 0% and 100%
+    are the same pose. Scale breathes with the orbit (widest at the vertical
+    extremes), which reads as pulsing rather than as zooming because it never
+    exceeds 1.06. translate3d + scale only: compositor work, no layout per
+    frame, no paint (opacity stays static - the life comes from motion, not
+    from fading).
+
+    Radii come from per-element `--ox/--oy`, which the landing page randomizes
+    on mount together with tempo and direction - three circles on one shared
     path would read as a single object rotating rather than as air, and custom
     properties in keyframes resolve against the animated element, so one
-    keyframe serves all three at different tempos, amplitudes and directions.
-    Opacity breathes 0.15 around the resting value so no circle ever vanishes
-    or flares.
+    keyframe serves all three. `linear` timing keeps orbital speed constant;
+    an easing would bunch the circles at the extremes.
   */
   @keyframes motion-drift {
-    from {
-      transform: translate3d(var(--dx-from, -28px), var(--dy-from, 12px), 0);
-      opacity: 0.85;
+    0% {
+      transform: translate3d(var(--ox, 80px), 0, 0) scale(1);
     }
-    to {
-      transform: translate3d(var(--dx-to, 28px), var(--dy-to, -12px), 0);
-      opacity: 1;
+    25% {
+      transform: translate3d(0, var(--oy, -32px), 0) scale(1.06);
+    }
+    50% {
+      transform: translate3d(calc(var(--ox, 80px) * -1), 0, 0) scale(1);
+    }
+    75% {
+      transform: translate3d(0, calc(var(--oy, -32px) * -1), 0) scale(1.06);
+    }
+    100% {
+      transform: translate3d(var(--ox, 80px), 0, 0) scale(1);
     }
   }
 
@@ -1126,7 +1139,7 @@
   simply be still, with no JS branch deciding it.
 */
 @utility lp-drift {
-  animation: motion-drift var(--drift-t, 38s) ease-in-out infinite alternate;
+  animation: motion-drift var(--drift-t, 38s) linear infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;

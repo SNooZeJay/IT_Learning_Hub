@@ -260,11 +260,11 @@ describe('landing motion layer', () => {
       // Bounded ranges, opposite endpoints for a seamless alternate loop, a
       // negative delay so nothing starts in sync - and none of it runs when
       // motion is off.
-      for (const token of ['--dx-from', '--dx-to', '--drift-t', 'Math.random', 'motionOK']) {
+      for (const token of ['--ox', '--oy', '--drift-t', 'Math.random', 'motionOK']) {
         expect(landing).toContain(token)
       }
       const css = fs.readFileSync(path.resolve(SRC, 'assets', 'main.css'), 'utf-8')
-      expect(css).toMatch(/var\(--dx-from/)
+      expect(css).toMatch(/var\(--ox/)
     })
   })
 })

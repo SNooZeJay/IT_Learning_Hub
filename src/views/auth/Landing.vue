@@ -1375,12 +1375,16 @@ const marqueeLogos = computed(() => disciplines.map((area) => ({ node: area.name
 /**
  * Scatter the background circles, once, on mount.
  *
- * Three circles on one shared path read as a single object rotating rather
- * than as air, so each gets its own amplitude, tempo, direction and phase -
- * drawn from bounded ranges, not from anywhere: ±18-34px horizontal, ±8-16px
- * vertical, 30-52s periods, alternate or alternate-reverse, and a negative
- * delay so every circle is already mid-flight on first paint instead of
- * starting in sync from the same pose.
+ * Three circles on one shared orbit read as a single object rotating rather
+ * than as air, so each gets its own radii, tempo, direction and phase - drawn
+ * from bounded ranges: ±70-120px horizontal, ±30-55px vertical, 24-40s
+ * periods, clockwise or counter-clockwise, and a negative delay so every
+ * circle is already mid-orbit on first paint instead of starting in sync.
+ *
+ * The ranges are deliberately visible: ±20px over 40s is 1px/s on a 600px
+ * blurred mass, which measures as running and reads as still. Orbiting at
+ * ~7px/s with a breathing scale drifts across the hero over a few seconds
+ * while staying calm - atmosphere with a pulse, not weather.
  *
  * Client-only and motion-gated. The custom properties are set after mount, so
  * server markup and the first frame use the keyframes' defaults; reduced
@@ -1395,17 +1399,13 @@ const marqueeLogos = computed(() => disciplines.map((area) => ({ node: area.name
 onMounted(() => {
   if (!motionOK.value || typeof document === 'undefined') return
   document.querySelectorAll<HTMLElement>('[data-drift]').forEach((el) => {
-    const dx = 18 + Math.random() * 16
-    const dy = 8 + Math.random() * 8
-    const sx = Math.random() < 0.5 ? -1 : 1
-    const sy = Math.random() < 0.5 ? -1 : 1
-    const dur = 30 + Math.random() * 22
-    el.style.setProperty('--dx-from', `${(dx * sx).toFixed(1)}px`)
-    el.style.setProperty('--dy-from', `${(dy * sy).toFixed(1)}px`)
-    el.style.setProperty('--dx-to', `${(-dx * sx).toFixed(1)}px`)
-    el.style.setProperty('--dy-to', `${(-dy * sy).toFixed(1)}px`)
+    const ox = 70 + Math.random() * 50
+    const oy = 30 + Math.random() * 25
+    const dur = 24 + Math.random() * 16
+    el.style.setProperty('--ox', `${ox.toFixed(1)}px`)
+    el.style.setProperty('--oy', `${oy.toFixed(1)}px`)
     el.style.setProperty('--drift-t', `${dur.toFixed(1)}s`)
-    el.style.animationDirection = Math.random() < 0.5 ? 'alternate' : 'alternate-reverse'
+    el.style.animationDirection = Math.random() < 0.5 ? 'normal' : 'reverse'
     el.style.animationDelay = `${(-Math.random() * dur).toFixed(1)}s`
   })
 })
