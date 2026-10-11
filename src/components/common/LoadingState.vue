@@ -12,26 +12,29 @@
     role="status"
     aria-live="polite"
   >
-    <div class="flex items-center gap-3">
-      <LoaderCircle
-        class="size-5 shrink-0 animate-spin text-brand-600 motion-reduce:animate-none dark:text-brand-400"
-        aria-hidden="true"
-      />
-      <div class="flex-1">
-        <div
-          class="h-3 w-40 animate-pulse rounded bg-gray-200 motion-reduce:animate-none dark:bg-gray-700"
-        />
-        <div
-          class="mt-3 h-8 w-24 animate-pulse rounded bg-gray-100 motion-reduce:animate-none dark:bg-gray-800"
-        />
-      </div>
+    <!--
+      The shadcn Skeleton, three of them, in the shape this component always had:
+      a short label-width bar and a figure-width bar, so the page does not jump
+      when real numbers replace it.
+
+      What left with the old markup: the spinning LoaderCircle and the two
+      hand-drawn `animate-pulse` divs in Tailwind greys. A spinner next to a
+      skeleton says the same thing twice, and `bg-gray-200` was one of the last
+      unprefixed greys on the app surfaces. The Skeleton carries the pulse
+      itself, in the accent tint, and `motion-reduce` is honoured by the
+      primitive rather than by a per-call-site suffix.
+    -->
+    <div class="flex flex-col gap-3">
+      <Skeleton class="h-3 w-40" />
+      <Skeleton class="h-8 w-24" />
+      <Skeleton class="h-3 w-56" />
     </div>
     <span class="sr-only">{{ label }}</span>
   </div>
 </template>
 
 <script setup lang="ts">
-import { LoaderCircle } from 'lucide-vue-next'
+import { Skeleton } from '@/components/public/ui/skeleton'
 
 /**
  * Skeleton placeholder shown while a panel loads.

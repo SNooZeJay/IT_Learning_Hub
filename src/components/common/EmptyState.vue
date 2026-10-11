@@ -12,34 +12,45 @@
     did not render. An empty state with no way forward is the one kind of empty state
     that cannot teach anybody anything.
   -->
-  <div
-    class="flex flex-col items-center justify-center text-center"
+  <!--
+    The shadcn Card is the surface now, not a hand-written `rounded-lg border`.
+    Same contract: `bare` keeps the icon, the copy and the slots and drops only
+    the border, the fill and the oversized padding, because the enclosing card
+    already supplies all three.
+  -->
+  <Card
+    role="status"
     :class="
       bare
-        ? 'px-2 py-8'
-        : 'rounded-lg border border-gray-200 bg-white px-6 py-16 dark:border-gray-800 dark:bg-white/[0.03]'
+        ? 'border-0 bg-transparent p-0 shadow-none dark:bg-transparent'
+        : 'px-6 py-16 dark:bg-white/[0.03]'
     "
-    role="status"
   >
-    <span
-      class="mb-4 inline-flex size-12 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-white/[0.06] dark:text-gray-500"
+    <CardContent
+      class="flex flex-col items-center justify-center text-center"
+      :class="bare ? 'px-2 py-8' : 'p-0'"
     >
-      <component :is="icon" class="size-6" aria-hidden="true" />
-    </span>
-    <h3 class="text-base font-medium text-gray-900 dark:text-white/90">{{ title }}</h3>
-    <p v-if="description" class="mt-1 max-w-md section-subheading">
-      {{ description }}
-    </p>
-    <div v-if="$slots.default || $slots.action" class="mt-5">
-      <slot />
-      <slot name="action" />
-    </div>
-  </div>
+      <span
+        class="mb-4 inline-flex size-12 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-white/[0.06] dark:text-gray-500"
+      >
+        <component :is="icon" class="size-6" aria-hidden="true" />
+      </span>
+      <h3 class="text-base font-medium text-gray-900 dark:text-white/90">{{ title }}</h3>
+      <p v-if="description" class="mt-1 max-w-md section-subheading">
+        {{ description }}
+      </p>
+      <div v-if="$slots.default || $slots.action" class="mt-5">
+        <slot />
+        <slot name="action" />
+      </div>
+    </CardContent>
+  </Card>
 </template>
 
 <script setup lang="ts">
 import { Inbox } from 'lucide-vue-next'
 import type { Component } from 'vue'
+import { Card, CardContent } from '@/components/public/ui/card'
 
 withDefaults(
   defineProps<{

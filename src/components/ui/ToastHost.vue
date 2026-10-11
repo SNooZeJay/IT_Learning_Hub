@@ -6,43 +6,55 @@
       aria-atomic="false"
     >
       <TransitionGroup
-        enter-active-class="transition-all duration-200 ease-out"
-        leave-active-class="transition-all duration-150 ease-in"
+        enter-active-class="transition-all duration-200 ease-out motion-reduce:transition-none"
+        leave-active-class="transition-all duration-150 ease-in motion-reduce:transition-none"
         enter-from-class="opacity-0 translate-y-2"
         leave-to-class="opacity-0 translate-y-1"
       >
-        <div
+        <!--
+          Each toast renders as a shadcn Alert, not the hand-built card this
+          used to carry. Same store, same timers, same dedupe and cap - the
+          `useToastStore` contract is untouched, so every caller and the
+          store's own test suite keep working exactly as they did.
+
+          Why Alert and not the shadcn `toast`/`sonner` component: those ship
+          their own firing API and their own timers. Adopting them would mean
+          rewiring the Pinia store, the composable, all ten call sites and the
+          twelve store tests - and throwing away the dedupe, the per-variant
+          durations and the three-toast cap that are documented behaviour, not
+          accidents. The card is the only part of this file that was presentation.
+
+          `role="status"` overrides the Alert's own `role="alert"`: these toasts
+          are already inside a polite live region, and an assertive role inside
+          it would interrupt a screen reader mid-sentence for a success message.
+        -->
+        <Alert
           v-for="toast in toasts"
           :key="toast.id"
-          :class="[
-            'pointer-events-auto relative w-full overflow-hidden rounded-xl border shadow-theme-md dark:bg-gray-900/90',
-            classes[toast.variant].container,
-          ]"
           role="status"
+          :class="['pointer-events-auto w-full shadow-theme-md', classes[toast.variant].container]"
         >
-          <div class="flex items-start gap-3 p-4">
-            <component
-              :is="icons[toast.variant]"
-              class="mt-0.5 size-5 shrink-0"
-              :class="classes[toast.variant].icon"
-              aria-hidden="true"
-            />
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold text-ink dark:text-white/90">{{ toast.title }}</p>
-              <p v-if="toast.message" class="mt-0.5 text-sm text-slate dark:text-gray-400">
-                {{ toast.message }}
-              </p>
-            </div>
-            <button
-              type="button"
-              class="rounded-md p-1 text-slate transition-colors hover:bg-black/5 hover:text-ink dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
-              :aria-label="`Dismiss notification: ${toast.title}`"
-              @click="dismiss(toast.id)"
-            >
-              <X class="size-4" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
+          <component
+            :is="icons[toast.variant]"
+            class="size-5 shrink-0"
+            :class="classes[toast.variant].icon"
+            aria-hidden="true"
+          />
+          <AlertTitle class="text-sm font-semibold text-ink dark:text-white/90">
+            {{ toast.title }}
+          </AlertTitle>
+          <AlertDescription v-if="toast.message" class="text-sm text-slate dark:text-gray-400">
+            {{ toast.message }}
+          </AlertDescription>
+          <button
+            type="button"
+            class="absolute end-2 top-2 rounded-md p-1 text-slate transition-colors motion-reduce:transition-none hover:bg-black/5 hover:text-ink dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
+            :aria-label="`Dismiss notification: ${toast.title}`"
+            @click="dismiss(toast.id)"
+          >
+            <X class="size-4" aria-hidden="true" />
+          </button>
+        </Alert>
       </TransitionGroup>
     </div>
   </Teleport>
@@ -51,6 +63,7 @@
 <script setup lang="ts">
 import { CircleCheck, CircleX, Info, TriangleAlert, X } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
+import { Alert, AlertDescription, AlertTitle } from '@/components/public/ui/alert'
 
 const { toasts, dismiss } = useToast()
 

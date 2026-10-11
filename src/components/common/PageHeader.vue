@@ -1,25 +1,36 @@
 <template>
   <header class="mb-6">
-    <nav v-if="crumbs.length" aria-label="Breadcrumb" class="mb-2">
-      <ol class="flex items-center gap-1 section-subheading">
-        <li v-for="(crumb, index) in crumbs" :key="crumb.label" class="flex items-center gap-1">
-          <router-link
-            v-if="crumb.to && index < crumbs.length - 1"
-            :to="crumb.to"
-            class="transition-colors hover:text-brand-600 dark:hover:text-brand-400"
-          >
-            {{ crumb.label }}
-          </router-link>
-          <span
-            v-else
-            :class="index === crumbs.length - 1 ? 'text-gray-900 dark:text-white/90' : ''"
-            :aria-current="index === crumbs.length - 1 ? 'page' : undefined"
-            >{{ crumb.label }}</span
-          >
-          <ChevronRight v-if="index < crumbs.length - 1" class="size-4 rtl:rotate-180" />
-        </li>
-      </ol>
-    </nav>
+    <!--
+      The shadcn Breadcrumb renders the trail now, not a hand-rolled `<ol>`.
+      Same contract: links for every crumb but the last, `aria-current="page"`
+      on the last, chevron separators that mirror in RTL.
+
+      What left: the `section-subheading` class on the list and the per-crumb
+      flex spans. BreadcrumbList owns the row; BreadcrumbSeparator owns the
+      chevron, including its `rtl:rotate-180`.
+    -->
+    <Breadcrumb v-if="crumbs.length" class="mb-2">
+      <BreadcrumbList class="section-subheading">
+        <template v-for="(crumb, index) in crumbs" :key="crumb.label">
+          <BreadcrumbItem class="flex items-center gap-1">
+            <BreadcrumbLink
+              v-if="crumb.to && index < crumbs.length - 1"
+              as-child
+              class="transition-colors hover:text-brand-600 motion-reduce:transition-none dark:hover:text-brand-400"
+            >
+              <router-link :to="crumb.to">{{ crumb.label }}</router-link>
+            </BreadcrumbLink>
+            <BreadcrumbPage
+              v-else
+              :class="index === crumbs.length - 1 ? 'text-gray-900 dark:text-white/90' : ''"
+            >
+              {{ crumb.label }}
+            </BreadcrumbPage>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator v-if="index < crumbs.length - 1" />
+        </template>
+      </BreadcrumbList>
+    </Breadcrumb>
 
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <!--
@@ -58,7 +69,14 @@
 </template>
 
 <script setup lang="ts">
-import { ChevronRight } from 'lucide-vue-next'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/public/ui/breadcrumb'
 
 export interface Crumb {
   label: string
