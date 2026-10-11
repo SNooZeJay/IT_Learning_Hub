@@ -27,7 +27,7 @@
   -->
   <header
     ref="headerEl"
-    class="sticky top-0 z-[1000] w-full border-b border-gray-200 bg-canvas/95 backdrop-blur-sm xl:border-b dark:border-gray-800"
+    class="sticky top-0 z-[1000] w-full border-b border-gray-200/80 bg-canvas/85 backdrop-blur-md xl:border-b dark:border-gray-800/80 dark:bg-[#17150f]/85"
   >
     <div class="flex items-center gap-3 px-3 py-2.5 sm:gap-4 sm:px-4 lg:py-3 xl:px-6">
       <!--

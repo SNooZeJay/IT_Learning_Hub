@@ -35,6 +35,14 @@
           @keydown.esc="clear"
         />
 
+        <kbd
+          v-if="term === ''"
+          class="pointer-events-none absolute end-3 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded border border-hairline bg-surface-soft/80 px-1.5 py-0.5 text-[10px] font-medium text-slate xl:inline-flex dark:border-white/[0.1] dark:bg-white/[0.06] dark:text-gray-400"
+          aria-hidden="true"
+        >
+          <span class="text-xs">⌘</span>K
+        </kbd>
+
         <button
           v-if="term !== ''"
           type="button"
