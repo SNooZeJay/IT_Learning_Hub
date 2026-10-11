@@ -6,7 +6,9 @@
     is one decision in `main.css` instead of twenty-two copies of it across the three
     role dashboards.
   -->
-  <div class="surface-card">
+  <div
+    class="surface-card transition-all duration-200 hover:border-brand-400/80 hover:shadow-xs dark:hover:border-brand-500/30"
+  >
     <div class="flex items-center gap-3">
       <span class="icon-chip-lg">
         <component :is="icon" class="size-5" aria-hidden="true" />

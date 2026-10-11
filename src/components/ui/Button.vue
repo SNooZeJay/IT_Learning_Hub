@@ -6,7 +6,7 @@
       // The previous scale could not express that, because every radius resolved
       // to 4px, so buttons and cards looked identical. Now that both values
       // exist, this component is the one place the distinction is enforced.
-      'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors',
+      'inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all duration-150 active:scale-[0.98]',
       sizeClasses[size],
       variantClasses[variant],
       // The focus ring lives in main.css as a floor for every control in the app.
@@ -76,7 +76,8 @@ const sizeClasses = {
 }
 
 const variantClasses = {
-  primary: 'bg-brand-500 text-white shadow-theme-xs hover:bg-brand-600 dark:text-white',
+  primary:
+    'bg-brand-500 text-white shadow-xs hover:shadow-sm hover:bg-brand-600 active:bg-brand-700 dark:text-white',
   outline:
     'border border-hairline-strong bg-canvas text-ink ring-0 hover:bg-surface dark:bg-white/[0.03] dark:text-gray-100 dark:hover:bg-white/[0.08]',
 }
