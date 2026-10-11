@@ -310,7 +310,7 @@ const hasAnyActivity = computed(() => {
               <h2 class="section-heading">Recent results</h2>
               <router-link
                 to="/student/grades"
-                class="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+                class="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
               >
                 All results
                 <ArrowRight class="size-3.5 rtl:rotate-180" aria-hidden="true" />
@@ -446,7 +446,7 @@ const hasAnyActivity = computed(() => {
                         >
                           <span
                             v-if="quiz.hasOpenAttempt"
-                            class="inline-block size-1.5 rounded-full bg-brand-500 animate-pulse"
+                            class="inline-block size-1.5 rounded-full bg-brand-500 animate-pulse motion-reduce:animate-none"
                             aria-hidden="true"
                           />
                           <template v-if="quiz.hasOpenAttempt">
@@ -490,7 +490,7 @@ const hasAnyActivity = computed(() => {
             </p>
             <router-link
               to="/student/notifications"
-              class="mt-4 inline-flex min-h-9 items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+              class="mt-4 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
             >
               Read them
               <ArrowRight class="size-3.5 rtl:rotate-180" aria-hidden="true" />
@@ -508,7 +508,7 @@ const hasAnyActivity = computed(() => {
               <h2 class="section-heading">Upcoming deadlines</h2>
               <router-link
                 to="/student/calendar"
-                class="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+                class="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
               >
                 Calendar
                 <ArrowRight class="size-3.5 rtl:rotate-180" aria-hidden="true" />
@@ -604,7 +604,10 @@ const hasAnyActivity = computed(() => {
           </router-link>
 
           <div class="mt-6 text-end">
-            <Button variant="outline" size="sm" @click="load">
+            <!-- Default size, not sm: a 36px refresh control below the fold is
+                 exactly the target a thumb misses, and nothing here is dense
+                 enough to need the compact variant. -->
+            <Button variant="outline" @click="load">
               <RefreshCw class="size-4" aria-hidden="true" />
               Refresh
             </Button>
