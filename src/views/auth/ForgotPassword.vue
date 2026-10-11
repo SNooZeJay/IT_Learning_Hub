@@ -20,8 +20,8 @@
 
     <form v-if="!sent" class="flex flex-col gap-5" novalidate @submit.prevent="handleSubmit">
       <div>
-        <label for="email" :class="fieldLabelClass">Email address</label>
-        <input
+        <Label for="email">Email address</Label>
+        <Input
           id="email"
           v-model.trim="email"
           type="email"
@@ -29,8 +29,19 @@
           autocomplete="email"
           required
           placeholder="you@email.com"
-          :class="inputClass"
+          :aria-invalid="Boolean(fieldErrors.email)"
+          aria-describedby="email-hint email-error"
         />
+        <p id="email-hint" class="mt-1.5 text-xs text-lp-slate">
+          We will email you a link to choose a new password.
+        </p>
+        <p
+          v-if="fieldErrors.email"
+          id="email-error"
+          class="mt-1.5 text-xs text-error-600 dark:text-error-400"
+        >
+          {{ fieldErrors.email }}
+        </p>
       </div>
 
       <!--
@@ -62,9 +73,10 @@ import { describeSupabaseError } from '@/services/supabase/client'
 import { ref } from 'vue'
 import { LoaderCircle } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
-import { lpFieldLabelClass, lpTextInputClass } from '@/components/ui/controlClasses'
 import AuthShell from '@/components/auth/AuthShell.vue'
 import { useAuthStore } from '@/stores/auth'
+import { Input } from '@/components/public/ui/input'
+import { Label } from '@/components/public/ui/label'
 
 const auth = useAuthStore()
 
@@ -74,14 +86,22 @@ const auth = useAuthStore()
   `fieldLabelClass` undefined in the template - which type-check caught. Login
   and Register already aliased, and both now alias the same way.
 */
-const fieldLabelClass = lpFieldLabelClass
 
 const email = ref('')
 const isSubmitting = ref(false)
 const sent = ref(false)
 const errorMessage = ref('')
 
-const inputClass = lpTextInputClass
+/**
+  Per-field messages, so the input itself can say what is wrong.
+
+  This page is the one form in the set that had only a page-level alert.
+  An Alert above the form tells a sighted user the request failed; to a screen
+  reader, and to anyone tabbing straight to the field, the field itself said
+  nothing - no aria-invalid, and nothing pointed at the message. So the same
+  message is now carried by the control as well.
+ */
+const fieldErrors = ref<{ email?: string }>({})
 
 async function handleSubmit(): Promise<void> {
   errorMessage.value = ''
@@ -92,6 +112,7 @@ async function handleSubmit(): Promise<void> {
     await auth.sendPasswordReset(email.value)
     sent.value = true
   } catch (error) {
+    fieldErrors.value = { email: 'That email could not be found on an IT Learning Hub account.' }
     errorMessage.value = describeSupabaseError(
       error,
       'That reset email could not be sent. Please try again in a moment.',

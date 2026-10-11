@@ -82,8 +82,8 @@
       @submit.prevent="handleSubmit"
     >
       <div>
-        <label for="password" :class="fieldLabelClass">New password</label>
-        <input
+        <Label for="password">New password</Label>
+        <Input
           id="password"
           v-model="password"
           type="password"
@@ -91,7 +91,6 @@
           placeholder="......"
           autocomplete="new-password"
           required
-          :class="inputClass"
           :aria-invalid="Boolean(fieldErrors.password)"
           :aria-describedby="fieldErrors.password ? 'password-error' : undefined"
         />
@@ -105,8 +104,8 @@
       </div>
 
       <div>
-        <label for="confirmPassword" :class="fieldLabelClass">Confirm new password</label>
-        <input
+        <Label for="confirmPassword">Confirm new password</Label>
+        <Input
           id="confirmPassword"
           v-model="confirmPassword"
           type="password"
@@ -114,7 +113,6 @@
           placeholder="......"
           autocomplete="new-password"
           required
-          :class="inputClass"
           :aria-invalid="Boolean(fieldErrors.confirmPassword)"
           :aria-describedby="fieldErrors.confirmPassword ? 'confirm-error' : undefined"
         />
@@ -161,8 +159,8 @@
         {{ status === 'checking' ? 'Checking your link...' : 'Send yourself a new reset link' }}
       </p>
       <div>
-        <label for="resendEmail" :class="fieldLabelClass">Email address</label>
-        <input
+        <Label for="resendEmail">Email address</Label>
+        <Input
           id="resendEmail"
           v-model="resendEmail"
           type="email"
@@ -170,7 +168,6 @@
           placeholder="you@email.com"
           autocomplete="email"
           required
-          :class="inputClass"
         />
       </div>
       <button
@@ -196,15 +193,15 @@ import { describeSupabaseError } from '@/services/supabase/client'
 import { onMounted, ref } from 'vue'
 import { LoaderCircle } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
-import { lpFieldLabelClass, lpTextInputClass } from '@/components/ui/controlClasses'
 import AuthShell from '@/components/auth/AuthShell.vue'
 import { useAuthStore } from '@/stores/auth'
 import type { RecoverySessionOutcome } from '@/stores/auth'
+import { Input } from '@/components/public/ui/input'
+import { Label } from '@/components/public/ui/label'
 
 const auth = useAuthStore()
 
 /** Aliased for the same reason as on `ForgotPassword` - see the note there. */
-const fieldLabelClass = lpFieldLabelClass
 
 const password = ref('')
 const confirmPassword = ref('')
@@ -223,8 +220,6 @@ const isResending = ref(false)
 const resentMessage = ref('')
 
 const MIN_PASSWORD_LENGTH = 8
-
-const inputClass = lpTextInputClass
 
 onMounted(async () => {
   const outcome = await auth.waitForRecoverySession()

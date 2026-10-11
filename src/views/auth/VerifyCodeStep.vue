@@ -9,8 +9,8 @@
     />
 
     <div>
-      <label for="otp-code" :class="fieldLabelClass">Sign-in code</label>
-      <input
+      <Label for="otp-code">Sign-in code</Label>
+      <Input
         id="otp-code"
         v-model="code"
         type="text"
@@ -20,7 +20,7 @@
         maxlength="6"
         placeholder="000000"
         autofocus
-        :class="[inputClass, 'text-center text-lg tracking-[0.4em] font-semibold tabular-nums']"
+        class="text-center text-lg tracking-[0.4em] font-semibold tabular-nums"
         :aria-invalid="Boolean(errorMessage)"
         :aria-describedby="errorMessage ? 'otp-error' : 'otp-hint'"
       />
@@ -73,7 +73,6 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { LoaderCircle } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
-import { lpFieldLabelClass, lpTextInputClass } from '@/components/ui/controlClasses'
 import {
   OTP_MESSAGES,
   resendSignInCode,
@@ -82,6 +81,8 @@ import {
   type SignInChallenge,
 } from '@/services/otp.service'
 import { useToast } from '@/composables/useToast'
+import { Input } from '@/components/public/ui/input'
+import { Label } from '@/components/public/ui/label'
 
 const props = defineProps<{
   challenge: SignInChallenge
@@ -100,9 +101,6 @@ const isResending = ref(false)
 const errorMessage = ref('')
 const expired = ref(false)
 const resendCooldown = ref(0)
-
-const inputClass = lpTextInputClass
-const fieldLabelClass = lpFieldLabelClass
 
 /**
  * Enough of the address to confirm it is the right one, not enough to be useful on a

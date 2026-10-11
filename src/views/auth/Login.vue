@@ -43,8 +43,8 @@
             The password field below already had the literal, which is why only this one
             was affected.
           -->
-          <label for="email" :class="fieldLabelClass">Email address</label>
-          <input
+          <Label for="email">Email address</Label>
+          <Input
             id="email"
             v-model.trim="email"
             type="email"
@@ -52,7 +52,6 @@
             autocomplete="email"
             required
             placeholder="you@email.com"
-            :class="inputClass"
             :aria-invalid="Boolean(fieldErrors.email)"
             :aria-describedby="fieldErrors.email ? 'email-error' : undefined"
           />
@@ -67,7 +66,9 @@
 
         <div>
           <div class="mb-2 flex items-center justify-between gap-3">
-            <label for="password" class="block text-sm font-medium text-lp-ink"> Password </label>
+            <Label for="password">
+Password
+</Label>
             <router-link
               to="/auth/forgot-password"
               class="text-xs font-medium text-lp-accent hover:underline"
@@ -76,7 +77,7 @@
             </router-link>
           </div>
           <div class="relative">
-            <input
+            <Input
               id="password"
               v-model="password"
               :type="showPassword ? 'text' : 'password'"
@@ -84,7 +85,7 @@
               placeholder="......"
               autocomplete="current-password"
               required
-              :class="[inputClass, 'pe-12']"
+               class="pe-12"
               :aria-invalid="Boolean(fieldErrors.password)"
               :aria-describedby="fieldErrors.password ? 'password-error' : undefined"
             />
@@ -127,7 +128,7 @@
             class="size-4 rounded-sm border-lp-line-strong accent-lp-accent"
           />
           Keep me signed in
-        </label>
+        </Label>
 
         <!--
         A native button rather than `Button.vue`.
@@ -168,7 +169,6 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Eye, EyeOff, LoaderCircle } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
-import { lpFieldLabelClass, lpTextInputClass } from '@/components/ui/controlClasses'
 import AuthShell from '@/components/auth/AuthShell.vue'
 import AuthConsent from '@/components/auth/AuthConsent.vue'
 import VerifyCodeStep from '@/views/auth/VerifyCodeStep.vue'
@@ -180,6 +180,8 @@ import {
   SignInOtpError,
   type SignInChallenge,
 } from '@/services/otp.service'
+import { Input } from '@/components/public/ui/input'
+import { Label } from '@/components/public/ui/label'
 
 const router = useRouter()
 const route = useRoute()
@@ -206,8 +208,6 @@ const fieldErrors = ref<{ email?: string; password?: string }>({})
  */
 const challenge = ref<SignInChallenge | null>(null)
 
-const inputClass = lpTextInputClass
-const fieldLabelClass = lpFieldLabelClass
 
 /** Client-side checks for a fast response. Supabase remains the real authority. */
 function validate(): boolean {

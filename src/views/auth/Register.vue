@@ -40,8 +40,8 @@
 
     <form v-else class="flex flex-col gap-5" novalidate @submit.prevent="handleSubmit">
       <div>
-        <label for="fullName" :class="fieldLabelClass">Full name</label>
-        <input
+        <Label for="fullName">Full name</Label>
+        <Input
           id="fullName"
           v-model.trim="fullName"
           type="text"
@@ -49,7 +49,6 @@
           autocomplete="name"
           required
           placeholder="Juan Dela Cruz"
-          :class="inputClass"
           :aria-invalid="Boolean(fieldErrors.fullName)"
           :aria-describedby="fieldErrors.fullName ? 'name-error' : undefined"
         />
@@ -63,8 +62,8 @@
       </div>
 
       <div>
-        <label for="email" :class="fieldLabelClass">Email address</label>
-        <input
+        <Label for="email">Email address</Label>
+        <Input
           id="email"
           v-model.trim="email"
           type="email"
@@ -72,7 +71,6 @@
           autocomplete="email"
           required
           placeholder="you@email.com"
-          :class="inputClass"
           :aria-invalid="Boolean(fieldErrors.email)"
           :aria-describedby="fieldErrors.email ? 'email-error' : undefined"
         />
@@ -86,9 +84,9 @@
       </div>
 
       <div>
-        <label for="password" :class="fieldLabelClass">Password</label>
+        <Label for="password">Password</Label>
         <div class="relative">
-          <input
+          <Input
             id="password"
             v-model="password"
             :type="showPassword ? 'text' : 'password'"
@@ -96,7 +94,6 @@
             autocomplete="new-password"
             placeholder="......"
             required
-            :class="[inputClass, 'pe-12']"
             :aria-invalid="Boolean(fieldErrors.password)"
             :aria-describedby="`password-hint${fieldErrors.password ? ' password-error' : ''}`"
           />
@@ -144,8 +141,8 @@
       </div>
 
       <div>
-        <label for="confirmPassword" :class="fieldLabelClass">Confirm password</label>
-        <input
+        <Label for="confirmPassword">Confirm password</Label>
+        <Input
           id="confirmPassword"
           v-model="confirmPassword"
           type="password"
@@ -153,7 +150,6 @@
           name="confirmPassword"
           autocomplete="new-password"
           required
-          :class="inputClass"
           :aria-invalid="Boolean(fieldErrors.confirmPassword)"
           :aria-describedby="fieldErrors.confirmPassword ? 'confirm-error' : undefined"
         />
@@ -199,12 +195,13 @@ import { describeSupabaseError } from '@/services/supabase/client'
 import { ref } from 'vue'
 import { Eye, EyeOff, LoaderCircle, MailCheck } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
-import { lpFieldLabelClass, lpTextInputClass } from '@/components/ui/controlClasses'
 import AuthShell from '@/components/auth/AuthShell.vue'
 import AuthConsent from '@/components/auth/AuthConsent.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
-import { MIN_PASSWORD_LENGTH } from '@/validation'
+import { MIN_PASSWORD_LENGTH } from '@/validation'import { Input } from '@/components/public/ui/input'
+import { Label } from '@/components/public/ui/label'
+
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -224,8 +221,6 @@ const fieldErrors = ref<{
   confirmPassword?: string
 }>({})
 
-const inputClass = lpTextInputClass
-const fieldLabelClass = lpFieldLabelClass
 
 /**
  * The only place a password policy is expressed. Supabase enforces its own
