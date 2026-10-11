@@ -367,6 +367,7 @@ import {
   setCourseStatus,
 } from '@/services/admin.service'
 import { LEVEL_LABELS } from '@/services/catalogue.service'
+import { useConfirm } from '@/composables/useConfirm'
 import { formatDate, formatPeso } from '@/types'
 import type { AdminCategory, AdminCourse, AdminInstructor } from '@/services/admin.service'
 import type { CourseStatus } from '@/types'
@@ -374,6 +375,8 @@ import type { CourseStatus } from '@/types'
 const courses = ref<AdminCourse[]>([])
 const instructors = ref<AdminInstructor[]>([])
 const categories = ref<AdminCategory[]>([])
+
+const confirm = useConfirm()
 
 /**
  * Seeded from `?q=`, and written back as it changes.
@@ -585,6 +588,17 @@ async function onAssign(course: AdminCourse, event: Event): Promise<void> {
 
 async function onUnassign(course: AdminCourse, instructorId: string): Promise<void> {
   const instructor = course.instructors.find((person) => person.id === instructorId)
+
+  // One question before removing access. The X sits inside a chip barely larger
+  // than itself, and a mis-tap costs the instructor their ability to work until
+  // somebody re-assigns them. Reversible is not the same as harmless.
+  const agreed = await confirm.ask({
+    title: `Remove ${instructor?.fullName ?? 'this instructor'}?`,
+    message: `${instructor?.fullName ?? 'They'} will lose edit access to ${course.title}. You can re-assign them afterwards.`,
+    confirmText: 'Remove',
+  })
+  if (!agreed) return
+
   busyId.value = `${course.id}:${instructorId}`
   clearNotice(course.id)
 
