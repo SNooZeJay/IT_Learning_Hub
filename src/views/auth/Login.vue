@@ -66,9 +66,7 @@
 
         <div>
           <div class="mb-2 flex items-center justify-between gap-3">
-            <Label for="password">
-Password
-</Label>
+            <Label for="password"> Password </Label>
             <router-link
               to="/auth/forgot-password"
               class="text-xs font-medium text-lp-accent hover:underline"
@@ -85,7 +83,7 @@ Password
               placeholder="......"
               autocomplete="current-password"
               required
-               class="pe-12"
+              class="pe-12"
               :aria-invalid="Boolean(fieldErrors.password)"
               :aria-describedby="fieldErrors.password ? 'password-error' : undefined"
             />
@@ -128,7 +126,7 @@ Password
             class="size-4 rounded-sm border-lp-line-strong accent-lp-accent"
           />
           Keep me signed in
-        </Label>
+        </label>
 
         <!--
         A native button rather than `Button.vue`.
@@ -207,7 +205,6 @@ const fieldErrors = ref<{ email?: string; password?: string }>({})
  * the second screen is never rendered.
  */
 const challenge = ref<SignInChallenge | null>(null)
-
 
 /** Client-side checks for a fast response. Supabase remains the real authority. */
 function validate(): boolean {

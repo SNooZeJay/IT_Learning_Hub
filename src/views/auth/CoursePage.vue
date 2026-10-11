@@ -292,8 +292,11 @@
                   v-for="(module, index) in modules"
                   :key="module.id"
                   :style="{ '--stagger-i': index }"
-                  class="lp-stagger rounded-2xl border border-lp-line bg-lp-card p-5 sm:p-6"
                 >
+                  <Card
+                    as-child
+                    class="lp-stagger rounded-2xl border border-lp-line bg-lp-card p-5 sm:p-6"
+                  >
                   <h3 class="font-display text-base font-semibold text-lp-ink">
                     <span class="text-lp-slate">Module {{ index + 1 }}</span>
                     · {{ module.title }}
@@ -324,6 +327,7 @@
                       </span>
                     </li>
                   </ul>
+                  </Card>
                 </li>
               </ol>
             </section>
@@ -379,6 +383,7 @@ import Alert from '@/components/ui/Alert.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import BrandMark from '@/components/common/BrandMark.vue'
 import ThemeToggleButton from '@/components/common/ThemeToggleButton.vue'
+import { Card } from '@/components/public/ui/card'
 import CourseCover from '@/components/catalogue/CourseCover.vue'
 import {
   LEVEL_LABELS,

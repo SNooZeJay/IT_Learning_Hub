@@ -48,7 +48,7 @@
     read it, find the title, or know it is a link: the whole frame is already a
     stretched-link target and the border already marks the edge.
   -->
-  <article
+  <Card
     class="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-lp-line bg-lp-card lp-lift"
   >
     <div class="relative aspect-16/9 w-full overflow-hidden bg-lp-accent-soft">
@@ -196,13 +196,14 @@
         </span>
       </div>
     </div>
-  </article>
+  </Card>
 </template>
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import { ArrowRight } from 'lucide-vue-next'
 import CourseCover from './CourseCover.vue'
+import { Card } from '@/components/public/ui/card'
 import { LEVEL_LABELS, formatDuration, formatPrice } from '@/services/catalogue.service'
 import type { CatalogueCourse } from '@/services/catalogue.service'
 

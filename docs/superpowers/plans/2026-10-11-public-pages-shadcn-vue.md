@@ -112,11 +112,12 @@ Builds the components every later task consumes. Adding them now means Tasks 3-8
 - Create: `src/components/public/ui/Input.vue`
 - Create: `src/components/public/ui/Label.vue`
 - Create: `src/components/public/ui/Badge.vue`
+- Create: `src/components/public/ui/Checkbox.vue`
 - Test: `src/components/public/__tests__/primitives.spec.ts`
 
 **Interfaces:**
 - Consumes: the sixteen shadcn CSS variables from Task 1.
-- Produces: `<Button>`, `<Card>`, `<CardHeader>`, `<CardTitle>`, `<CardDescription>`, `<CardContent>`, `<CardFooter>`, `<Input>`, `<Label>`, `<Badge>` imported from `@/components/public/ui/`.
+- Produces: `<Button>`, `<Card>`, `<CardHeader>`, `<CardTitle>`, `<CardDescription>`, `<CardContent>`, `<CardFooter>`, `<Input>`, `<Label>`, `<Badge>`, `<Checkbox>` imported from `@/components/public/ui/`. `Checkbox` is built here rather than in Task 4 because Task 4's `AuthConsent` consumes it and nothing else creates it.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -129,7 +130,7 @@ Expected: FAIL - components do not exist.
 
 - [ ] **Step 3: Add the components**
 
-`npx shadcn-vue@latest add card input label badge --yes`
+`npx shadcn-vue@latest add card input label badge checkbox --yes`
 
 `Button.vue` is not in this list: Task 1 Step 5 already created it as the namespace probe, and re-adding it here would overwrite the audited version. Start from the Task 1 file.
 

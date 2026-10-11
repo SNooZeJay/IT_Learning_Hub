@@ -38,9 +38,9 @@
 
       <article class="mt-8 grid gap-7">
         <section v-for="(section, index) in sections" :key="section.id" :id="section.id">
-          <h2 class="text-[17px] font-semibold tracking-tight text-lp-ink">
+          <h1 class="text-[17px] font-semibold tracking-tight text-lp-ink">
             <span class="text-lp-slate">{{ index + 1 }}.</span> {{ section.heading }}
-          </h2>
+          </h1>
           <div class="mt-2 grid gap-2.5 text-[15px] leading-relaxed text-lp-slate">
             <p v-for="(paragraph, p) in section.body" :key="p">{{ paragraph }}</p>
           </div>
