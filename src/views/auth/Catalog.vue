@@ -228,6 +228,25 @@
             </select>
           </div>
 
+          <div>
+            <label
+              for="catalogue-category"
+              class="mb-2 block text-[11px] font-semibold tracking-[0.12em] text-lp-slate uppercase"
+            >
+              Category
+            </label>
+            <select
+              id="catalogue-category"
+              v-model="categoryId"
+              class="select-chevron h-11 w-full appearance-none rounded-full border border-lp-line bg-lp-canvas ps-4 pe-9 text-sm text-lp-ink transition-colors focus-within:border-lp-line-strong"
+            >
+              <option :value="null">All categories</option>
+              <option v-for="category in categories" :key="category.id" :value="category.id">
+                {{ category.name }}
+              </option>
+            </select>
+          </div>
+
           <div class="flex items-end">
             <button
               type="button"
@@ -369,7 +388,7 @@ import {
   listCatalogueCategories,
   listPublishedCourses,
 } from '@/services/catalogue.service'
-import type { CatalogueCourse, PriceFilter } from '@/services/catalogue.service'
+import type { CatalogueCategory, CatalogueCourse, PriceFilter } from '@/services/catalogue.service'
 import type { CourseLevel } from '@/types'
 
 const PER_PAGE = 12
@@ -386,6 +405,17 @@ const search = ref('')
 const level = ref<CourseLevel | 'all'>('all')
 const price = ref<PriceFilter>('all')
 const categoryId = ref<string | null>(null)
+
+/**
+ * The category list, kept so the filter below has options to offer.
+ *
+ * This used to be fetched and thrown away: `listCatalogueCategories` ran only
+ * to validate a `?category=` the visitor had typed by hand, because no control
+ * in the template was bound to `categoryId`. A filter with state, URL sync and
+ * result computation but no visible control is a choice nobody can make, so the
+ * list is stored and the select below reads it.
+ */
+const categories = ref<CatalogueCategory[]>([])
 
 /**
  * Read the query string, tolerating anything in it.
@@ -408,10 +438,11 @@ onMounted(() => {
 
   void load()
   void listCatalogueCategories()
-    .then((categories) => {
+    .then((loaded) => {
+      categories.value = loaded
       // Drop a category from the URL that no longer exists, so the filter select
       // and the result list cannot disagree.
-      if (categoryId.value && !categories.some((c) => c.id === categoryId.value)) {
+      if (categoryId.value && !loaded.some((c) => c.id === categoryId.value)) {
         categoryId.value = null
       }
     })
