@@ -41,8 +41,22 @@ describe('auth form labels and placeholders', () => {
   )
 
   describe('the Label owns its own spacing', () => {
-    it('carries a bottom margin, because its parents are not flex', () => {
-      expect(label).toMatch(/\bmb-[12](\.5)?\b/)
+    it('carries the exact bottom margin, not merely a non-zero one', () => {
+      // `mb-2` - 8px. The first pass used `mb-1.5` and a loose assertion passed
+      // it, because 6px is more than zero. It measured fine and still looked
+      // crowded: a 46px input with a 16px radius crowds a label sitting 6px
+      // above it. Pinning the value is what stops the next tightening pass from
+      // shipping on a threshold it happens to clear.
+      //
+      // Scoped to the `cn(...)` call. Scanning the whole file would also match
+      // the `mb-1.5` and `mb-2` in the comment that explains this decision, and
+      // fail a component that is correct.
+      const classes = label.match(/cn\(\s*'([^']*)'/)?.[1] ?? ''
+      expect(classes).toMatch(/\bmb-2\b/)
+      expect(classes).not.toMatch(/\bmb-1\b/)
+      expect(classes).not.toMatch(/\bmb-1\.5\b/)
+      expect(classes).not.toMatch(/\bmb-3\b/)
+      expect(classes).not.toMatch(/\bmb-0\b/)
     })
 
     it('states why the margin exists, so the next person does not delete it', () => {
