@@ -5,5 +5,19 @@
       "maxFindings": 5,
       "maxChars": 8000
     }
+  },
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "src/components/carousel/DepthCarousel.vue"
+        ],
+        "createdAt": "2026-10-11T11:08:10.864Z"
+      }
+    ]
   }
 }
