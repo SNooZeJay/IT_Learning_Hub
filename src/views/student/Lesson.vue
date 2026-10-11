@@ -23,7 +23,15 @@
     />
 
     <template v-else>
-      <div class="grid gap-6 lg:grid-cols-3">
+      <!--
+        `grid-cols-1`, stated rather than left implicit. Without it this is a
+        single implicit `auto` track, which sizes to its content instead of the
+        screen: the column measured 439px on a 390px phone and every paragraph
+        ran off the edge. The explicit track pins it to the container so the
+        `min-w-0` items below have something to work against. Same failure the
+        instructor dashboard documents in its own comment.
+      -->
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- ============================== LESSON ============================== -->
         <div class="min-w-0 lg:col-span-2">
           <!-- Progress banner. Every state the database can hold is named
