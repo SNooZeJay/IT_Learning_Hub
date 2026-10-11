@@ -37,14 +37,24 @@
       from ever being clickable.
     -->
     <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
+      <!--
+        `lp-drift` on each circle, at a different tempo via `--drift-t`.
+
+        The drift is the whole motion budget for this background: three
+        translate3d oscillations, compositor-only, no layout per frame. See
+        `motion-drift` in main.css for why a shader is not here instead.
+      -->
       <div
-        class="absolute -top-48 -start-40 size-[36rem] rounded-full bg-lp-glow-green opacity-70 blur-3xl"
+        class="absolute -top-48 -start-40 size-[36rem] rounded-full bg-lp-glow-green opacity-70 blur-3xl lp-drift motion-reduce:animate-none"
+        style="--drift-t: 34s"
       ></div>
       <div
-        class="absolute -top-24 -end-48 size-[42rem] rounded-full bg-lp-glow-beige opacity-80 blur-3xl"
+        class="absolute -top-24 -end-48 size-[42rem] rounded-full bg-lp-glow-beige opacity-80 blur-3xl lp-drift motion-reduce:animate-none"
+        style="--drift-t: 44s"
       ></div>
       <div
-        class="absolute top-[38rem] start-1/4 size-[30rem] rounded-full bg-lp-glow-peach opacity-60 blur-3xl"
+        class="absolute top-[38rem] start-1/4 size-[30rem] rounded-full bg-lp-glow-peach opacity-60 blur-3xl lp-drift motion-reduce:animate-none"
+        style="--drift-t: 52s"
       ></div>
 
       <!--
@@ -377,7 +387,14 @@
             >
               <div v-for="figure in figures" :key="figure.label">
                 <dt class="font-display text-3xl leading-none font-semibold text-lp-ink">
-                  {{ figure.value }}
+                  <!--
+                    Counted up on entry, gated twice: `hasCounts` on the row
+                    mounts this only with final values (mounting at 0 and letting
+                    `to` change later freezes the counter at `from`), and
+                    `motionOK` falls back to the plain number for reduced motion.
+                  -->
+                  <CountUp v-if="motionOK" :to="figure.value" />
+                  <template v-else>{{ figure.value }}</template>
                 </dt>
                 <dd class="mt-1.5 text-xs font-medium tracking-wide text-lp-slate uppercase">
                   {{ figure.label }}
@@ -708,7 +725,8 @@
             How it works
           </p>
 
-          <ol class="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Reveal>
+            <ol class="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <li
               v-for="(stage, index) in stages"
               :key="stage.title"
@@ -728,6 +746,7 @@
               </p>
             </li>
           </ol>
+          </Reveal>
         </div>
       </section>
 
@@ -751,7 +770,8 @@
           <div
             class="grid gap-10 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-16"
           >
-            <div>
+            <Reveal>
+              <div>
               <h2
                 class="font-display text-3xl font-semibold tracking-tight text-balance text-lp-ink md:text-4xl"
               >
@@ -761,9 +781,56 @@
                 Courses are organised into modules and lessons, so you always know where you are in
                 the material and what comes next.
               </p>
-            </div>
+              </div>
+            </Reveal>
 
-            <dl class="grid gap-4 sm:grid-cols-2">
+            <!--
+              The disciplines as a marquee under motion, the static grid without it.
+
+              The grid below is unchanged - same six cards, same copy - and it is
+              what reduced-motion readers get. The marquee shows the same six as
+              compact cards through the `renderItem` slot, so no content exists
+              only in motion.
+
+              Deliberately non-interactive cards inside the loop. LogoLoop hides
+              duplicate copies from assistive tech but cannot remove their tab
+              stops, so links inside the track would trap keyboard users in
+              four copies of six destinations. The catalogue link that follows
+              this section is the one way forward, for everyone.
+            -->
+            <LogoLoop
+              v-if="motionOK"
+              :logos="marqueeLogos"
+              :speed="60"
+              :gap="16"
+              fade-out
+              :fade-out-color="marqueeFade"
+              aria-label="Subjects you can study"
+              class="py-2"
+            >
+              <template #renderItem="{ index }">
+                <div
+                  class="w-72 shrink-0 rounded-2xl border border-lp-line bg-lp-card p-5"
+                >
+                  <p class="flex items-center gap-3">
+                    <span
+                      class="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-lp-accent-soft text-lp-accent"
+                      aria-hidden="true"
+                    >
+                      <component :is="disciplines[Number(String(index).split('-')[1])].icon" class="size-4.5" />
+                    </span>
+                    <span class="font-display text-lg font-semibold text-lp-ink">
+                      {{ disciplines[Number(String(index).split('-')[1])].name }}
+                    </span>
+                  </p>
+                  <p class="mt-3 text-sm leading-relaxed text-lp-slate">
+                    {{ disciplines[Number(String(index).split('-')[1])].body }}
+                  </p>
+                </div>
+              </template>
+            </LogoLoop>
+
+            <dl v-else class="grid gap-4 sm:grid-cols-2">
               <div
                 v-for="area in disciplines"
                 :key="area.name"
@@ -805,7 +872,8 @@
       -->
       <section class="border-y border-lp-line bg-lp-canvas-deep">
         <div class="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-16">
-          <div class="flex flex-wrap items-end justify-between gap-4">
+          <Reveal>
+            <div class="flex flex-wrap items-end justify-between gap-4">
             <h2
               class="font-display text-3xl font-semibold tracking-tight text-lp-ink md:text-4xl"
             >
@@ -822,6 +890,7 @@
               />
             </RouterLink>
           </div>
+          </Reveal>
 
           <div
             v-if="catalogueLoading"
@@ -884,15 +953,17 @@
       -->
       <section class="border-t border-lp-line">
         <div class="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-16">
-          <h2
-            class="font-display text-3xl font-semibold tracking-tight text-balance text-lp-ink md:text-4xl"
-          >
-            Inside a course
-          </h2>
-          <p class="mt-4 max-w-2xl text-base leading-relaxed text-lp-slate">
-            Lessons are written to be read, and quizzes check what you took in. Both sit behind your
-            enrollment, so a free course and a paid one give you the same material.
-          </p>
+          <Reveal>
+            <h2
+              class="font-display text-3xl font-semibold tracking-tight text-balance text-lp-ink md:text-4xl"
+            >
+              Inside a course
+            </h2>
+            <p class="mt-4 max-w-2xl text-base leading-relaxed text-lp-slate">
+              Lessons are written to be read, and quizzes check what you took in. Both sit behind your
+              enrollment, so a free course and a paid one give you the same material.
+            </p>
+          </Reveal>
 
           <div class="mt-10 grid gap-6 lg:grid-cols-2">
             <div class="overflow-hidden rounded-2xl border border-lp-line bg-lp-card">
@@ -1004,9 +1075,10 @@ git --version</code></pre>
         would be a claim about a refund policy that does not exist.
       -->
       <section class="mx-auto max-w-6xl px-4 pb-16 md:px-6 md:pb-24">
-        <div
-          class="relative overflow-hidden rounded-3xl bg-gray-950 px-6 py-14 ring-1 ring-inset ring-white/[0.07] md:px-12 md:py-20"
-        >
+        <Reveal>
+          <div
+            class="relative overflow-hidden rounded-3xl bg-gray-950 px-6 py-14 ring-1 ring-inset ring-white/[0.07] md:px-12 md:py-20"
+          >
           <!--
             One soft accent wash, anchored off the bottom-start corner, so the
             card is not a flat rectangle. Static and heavily blurred: it is a
@@ -1055,6 +1127,7 @@ git --version</code></pre>
             </Button>
           </div>
         </div>
+        </Reveal>
       </section>
     </main>
 
@@ -1172,6 +1245,36 @@ import {
   formatPrice,
 } from '@/services/catalogue.service'
 import type { CatalogueCourse } from '@/services/catalogue.service'
+import CountUp from '@/components/public/ui/CountUp/CountUp.vue'
+import Reveal from '@/components/public/ui/Reveal/Reveal.vue'
+import LogoLoop from '@/components/public/ui/LogoLoop/LogoLoop.vue'
+import { useReducedMotion } from '@/composables/useReducedMotion'
+import { useTheme } from '@/composables/useTheme'
+
+/**
+ * Whether animation may run on this page.
+ *
+ * Every motion piece below - the drifting background, the counting figures,
+ * the marquee, the scroll reveals - reads this one flag. Reduced motion gets
+ * the static page: same content, same order, nothing moving. The gate is
+ * structural (v-if) everywhere a component would otherwise mount a rAF loop,
+ * a GL context or a ScrollTrigger for an audience that asked for none.
+ */
+const { motionOK } = useReducedMotion()
+const { isDarkMode } = useTheme()
+
+/**
+ * The marquee fade color, per theme.
+ *
+ * LogoLoop fades its track edges into a solid color. The default is white in
+ * light mode and near-black in dark - white on cream (#faf8f3) leaves a
+ * visible edge where the fade ends. These are the surfaces the marquee
+ * actually sits on.
+ */
+const marqueeFade = computed(() => (isDarkMode.value ? '#221f18' : '#faf8f3'))
+
+/** The six disciplines as marquee items. Rendered by the `renderItem` slot. */
+const marqueeLogos = computed(() => disciplines.map((area) => ({ node: area.name })))
 
 /** The four real stages of using the platform, in order. */
 const stages = [

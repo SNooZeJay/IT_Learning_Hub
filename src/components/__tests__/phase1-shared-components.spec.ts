@@ -153,11 +153,18 @@ describe('shared dashboard components keep their API on shadcn internals', () =>
         // Phase 1's own additions: the new shadcn primitives and this spec.
         // Anything else under src/views or src/components is a call site.
         'src/components/__tests__/phase1-shared-components.spec.ts',
-        'src/components/__tests__/zz-dbg.spec.ts',
       ])
       const viewChanges = changed.filter((f) => {
         if (allowed.has(f)) return false
         if (f.startsWith('src/components/public/ui/')) return false
+        // Track A (landing motion) intentionally edits the landing page and
+        // adds its own spec. Those are the rebuild, not call-site drift - and
+        // they are pinned by landing-motion.spec.ts instead.
+        if (f === 'src/views/auth/Landing.vue') return false
+        if (f === 'src/views/__tests__/landing-motion.spec.ts') return false
+        if (f === 'src/views/__tests__/landing-public-components.spec.ts') return false
+        if (f === 'src/composables/useReducedMotion.ts') return false
+        if (f === 'src/assets/main.css') return false
         return f.startsWith('src/views/') || f.startsWith('src/components/')
       })
       expect(viewChanges, `call sites changed: ${viewChanges.join(', ')}`).toEqual([])

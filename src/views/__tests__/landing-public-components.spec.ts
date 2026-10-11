@@ -29,6 +29,19 @@ vi.mock('@/components/common/BrandMark.vue', () => ({
 }))
 
 /*
+  Landing reads `isDarkMode` from the theme provider for the marquee fade
+  color. There is no provider in a mount, so the composable is stubbed at its
+  light value. The dark marquee is covered by the browser pass, not here.
+*/
+vi.mock('@/composables/useTheme', () => ({
+  useTheme: () => ({
+    isDarkMode: { value: false },
+    setTheme: () => {},
+    toggleTheme: () => {},
+  }),
+}))
+
+/*
   The landing page renders three states from the catalogue query: loading,
   failed, and loaded. The carousel, the hero figures and the catalogue grid all
   live in the third one - in the loading state the right-hand column is a

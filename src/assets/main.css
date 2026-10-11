@@ -621,6 +621,34 @@
   }
 
   /*
+    Ambient drift for the landing background circles.
+
+    A WebGL aurora ribbon was tried here and removed with measurements: in
+    light mode it composited a grey-brown veil across the hero, and it cost a
+    GL context on the most-visited page for motion three blurred divs do for
+    free. This is the file's own prescription - transforms on the circles.
+
+    translate3d, never top/left: compositor-only, no layout per frame. ±28px
+    over 30-46s reads as atmosphere, not animation; anything faster or further
+    reads as weather. `alternate` so there is no snap back to start. Opacity
+    breathes 0.15 around the resting value so no circle ever vanishes or flares.
+
+    Duration comes from `--drift-t` per circle so one utility serves all three
+    at different tempos - three circles on one period would read as a single
+    object rotating rather than as air.
+  */
+  @keyframes motion-drift {
+    from {
+      transform: translate3d(-28px, 12px, 0);
+      opacity: 0.85;
+    }
+    to {
+      transform: translate3d(28px, -12px, 0);
+      opacity: 1;
+    }
+  }
+
+  /*
     THE MOTION SYSTEM.
 
     One vocabulary for the five public surfaces: the landing page, the catalogue, the
@@ -1088,6 +1116,20 @@
     /* No stagger under reduced motion: a sequence the reader has asked not to
        watch is still a sequence they are waiting on. */
     animation-delay: 0ms;
+  }
+}
+
+/*
+  Ambient drift for the landing background. See the note on `motion-drift`:
+  transforms on the circles, no shader layer, reduced motion handled here
+  rather than in the view - a background the reader asked not to watch should
+  simply be still, with no JS branch deciding it.
+*/
+@utility lp-drift {
+  animation: motion-drift var(--drift-t, 38s) ease-in-out infinite alternate;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 }
 
