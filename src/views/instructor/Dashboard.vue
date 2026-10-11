@@ -190,7 +190,7 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
               </div>
               <router-link
                 to="/instructor/analytics"
-                class="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+                class="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
               >
                 Insights
                 <ArrowRight class="size-3.5 rtl:rotate-180" aria-hidden="true" />
@@ -370,7 +370,7 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
               <h2 class="section-heading">Recent enrollments</h2>
               <router-link
                 to="/instructor/students"
-                class="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
+                class="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
               >
                 Students
                 <ArrowRight class="size-3.5 rtl:rotate-180" aria-hidden="true" />
@@ -485,7 +485,7 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
           </div>
 
           <div class="mt-6 text-end">
-            <Button variant="outline" size="sm" @click="load">
+            <Button variant="outline" @click="load">
               <RefreshCw class="size-4" aria-hidden="true" />
               Refresh
             </Button>
