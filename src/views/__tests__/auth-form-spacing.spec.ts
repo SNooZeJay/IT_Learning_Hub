@@ -52,10 +52,10 @@ describe('auth form labels and placeholders', () => {
       // the `mb-1.5` and `mb-2` in the comment that explains this decision, and
       // fail a component that is correct.
       const classes = label.match(/cn\(\s*'([^']*)'/)?.[1] ?? ''
-      expect(classes).toMatch(/\bmb-2\b/)
+      expect(classes).toMatch(/\bmb-3\b/)
       expect(classes).not.toMatch(/\bmb-1\b/)
       expect(classes).not.toMatch(/\bmb-1\.5\b/)
-      expect(classes).not.toMatch(/\bmb-3\b/)
+      expect(classes).not.toMatch(/\bmb-2\b/)
       expect(classes).not.toMatch(/\bmb-0\b/)
     })
 
