@@ -154,12 +154,9 @@
             >
               Sign in
             </RouterLink>
-            <RouterLink
-              to="/auth/register"
-              class="lp-press rounded-full bg-lp-ink px-3.5 py-2 text-sm font-medium text-lp-ink-inverse shadow-lp-button transition-opacity duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:opacity-90 motion-reduce:transition-none sm:px-4 md:px-5"
-            >
-              Get Started
-            </RouterLink>
+            <Button as-child size="sm">
+              <RouterLink to="/auth/register">Get Started</RouterLink>
+            </Button>
           </div>
         </div>
       </div>
@@ -358,19 +355,15 @@
             </p>
 
             <div :style="{ '--stagger-i': 3 }" class="lp-hero-step mt-9 flex flex-wrap items-center gap-3">
-              <RouterLink
-                to="/courses"
-                class="lp-press inline-flex h-12 items-center gap-2 rounded-full bg-lp-ink px-7 text-sm font-medium text-lp-ink-inverse shadow-lp-button transition-opacity duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:opacity-90 motion-reduce:transition-none"
-              >
-                Explore courses
-                <ArrowRight class="size-4 rtl:rotate-180" aria-hidden="true" />
-              </RouterLink>
-              <RouterLink
-                to="/auth/register"
-                class="lp-press inline-flex h-12 items-center gap-2 rounded-full border border-lp-line-strong bg-lp-card px-7 text-sm font-medium text-lp-ink transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-lp-canvas motion-reduce:transition-none"
-              >
-                Get Started
-              </RouterLink>
+              <Button as-child>
+                <RouterLink to="/courses">
+                  Explore courses
+                  <ArrowRight class="size-4 rtl:rotate-180" aria-hidden="true" />
+                </RouterLink>
+              </Button>
+              <Button as-child variant="outline">
+                <RouterLink to="/auth/register">Get Started</RouterLink>
+              </Button>
             </div>
 
             <p class="mt-4 text-sm text-lp-slate">
@@ -492,12 +485,9 @@
                   Courses appear here as soon as an instructor publishes them. Create an account to
                   enroll once the catalogue is live.
                 </p>
-                <RouterLink
-                  to="/auth/register"
-                  class="mt-6 inline-flex h-11 items-center rounded-full bg-lp-ink px-6 text-sm font-medium text-lp-ink-inverse"
-                >
-                  Create a free account
-                </RouterLink>
+                <Button as-child size="sm" class="mt-6">
+              <RouterLink to="/auth/register">Create a free account</RouterLink>
+            </Button>
               </div>
 
               <DepthCarousel
@@ -641,16 +631,15 @@
                           above: the card itself is a div with a click handler, so
                           without this there is no focusable link on the slide.
                         -->
-                        <RouterLink
-                          :to="`/courses/${courseAt(index)!.slug}`"
-                          class="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-lp-line px-5 text-sm font-medium text-lp-ink transition-colors hover:border-lp-accent-line hover:bg-lp-accent-soft hover:text-lp-accent"
-                        >
-                          View course
-                          <ArrowRight
-                            class="size-4 transition-transform hover:translate-x-0.5 rtl:rotate-180"
-                            aria-hidden="true"
-                          />
-                        </RouterLink>
+                        <Button as-child variant="outline" size="sm" class="shrink-0">
+                          <RouterLink :to="`/courses/${courseAt(index)!.slug}`">
+                            View course
+                            <ArrowRight
+                              class="size-4 transition-transform hover:translate-x-0.5 rtl:rotate-180"
+                              aria-hidden="true"
+                            />
+                          </RouterLink>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -859,12 +848,9 @@
             description="Courses appear here as soon as an instructor publishes them. Sign in to enroll once the catalogue is live."
             :icon="BookOpen"
           >
-            <RouterLink
-              to="/auth/register"
-              class="mt-4 inline-block rounded-full bg-lp-ink px-5 py-2.5 text-sm font-medium text-lp-ink-inverse"
-            >
-              Create a free account
-            </RouterLink>
+            <Button as-child size="sm" class="mt-4">
+                <RouterLink to="/auth/register">Create a free account</RouterLink>
+              </Button>
           </EmptyState>
 
           <ul v-else class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -1061,13 +1047,12 @@ git --version</code></pre>
               Either way your progress is kept from your first lesson.
             </p>
 
-            <RouterLink
-              to="/courses"
-              class="mt-8 inline-flex h-12 items-center gap-2 rounded-full bg-gray-200 px-7 text-sm font-medium text-gray-950 transition-opacity hover:opacity-90"
-            >
-              Explore courses
-              <ArrowRight class="size-4 rtl:rotate-180" aria-hidden="true" />
-            </RouterLink>
+            <Button as-child variant="inverse" class="mt-8">
+              <RouterLink to="/courses">
+                Explore courses
+                <ArrowRight class="size-4 rtl:rotate-180" aria-hidden="true" />
+              </RouterLink>
+            </Button>
           </div>
         </div>
       </section>
@@ -1173,6 +1158,7 @@ import {
 } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import { Button } from '@/components/public/ui/button'
 import BrandMark from '@/components/common/BrandMark.vue'
 import ThemeToggleButton from '@/components/common/ThemeToggleButton.vue'
 import CatalogueCard from '@/components/catalogue/CatalogueCard.vue'

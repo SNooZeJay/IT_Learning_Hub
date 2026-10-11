@@ -63,8 +63,28 @@ describe('touch target floors (44px at base)', () => {
       path.resolve(__dirname, '..', '..', 'views/auth/Landing.vue'),
       'utf-8',
     )
-    expect(content).toMatch(/inline-flex min-h-11 shrink-0/)
-    expect(content).not.toMatch(/inline-flex min-h-10 shrink-0/)
+    /*
+      This used to assert the literal `inline-flex min-h-11 shrink-0` that the
+      carousel's View-course link carried as a hand-written class string. It no
+      longer does, because that link is now a `<Button variant="outline"
+      size="sm">` and the 44px comes from the shared Button's `sm` size rather
+      than from the view.
+
+      The guarantee is unchanged - still 44px, still the keyboard route into the
+      course - so this asserts the route it now takes through instead. Asserting
+      the old literal would have meant keeping a dead class string on the view
+      purely to satisfy a test, which is the same trap in reverse.
+    */
+    expect(content).toMatch(/View course/)
+    expect(content).toMatch(/<Button as-child variant="outline" size="sm"/)
+
+    // And the Button's `sm` size is what actually sets the height.
+    const button = fs.readFileSync(
+      path.resolve(__dirname, '..', '..', 'components/public/ui/button/index.ts'),
+      'utf-8',
+    )
+    expect(button).toMatch(/sm:\s*'h-11[^']*'/)
+    expect(button).not.toMatch(/sm:\s*'h-(9|10)\b/)
   })
 
   it('quiz option remove button holds 44px', () => {

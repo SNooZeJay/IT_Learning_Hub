@@ -3,43 +3,76 @@ import { cva } from 'class-variance-authority'
 
 export { default as Button } from './Button.vue'
 
+/*
+  The public surface's button.
+
+  shadcn's defaults are all wrong for this project, and not in a way that shows
+  up until you put them on a page:
+
+  Its `default` is a GREEN rounded-rectangle. Nothing on the public surface is
+  green. The landing hero, the header, the auth forms and every closing CTA use
+  the same INK PILL - `bg-lp-ink`, `rounded-full`, 48px tall - and that is the
+  design that was reviewed and kept. Shipping shadcn's default would have
+  repainted every call to action on the product in a colour and a shape nobody
+  chose, which is the same class of mistake as the reverted hero redesign.
+
+  So the variants below are transcribed from the CTAs already on these pages,
+  not from the registry. `--primary` and friends stay bridged and available for
+  components that genuinely want the accent - a selected filter chip, a focus
+  ring - but the primary ACTION is ink.
+
+  Every variant clears the project's 44px touch-target floor. shadcn's own ramp
+  ran `h-6` to `h-10`, so none of it was usable here.
+*/
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all motion-reduce:transition-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-lp-ring focus-visible:ring-lp-ring/50 focus-visible:ring-3 aria-invalid:ring-lp-destructive/20 dark:aria-invalid:ring-lp-destructive/40 aria-invalid:border-lp-destructive",
+  "lp-press inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium motion-reduce:transition-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 outline-none focus-visible:ring-lp-ring/50 focus-visible:ring-3",
   {
     variants: {
       variant: {
-        default: 'bg-lp-primary text-lp-primary-foreground hover:bg-lp-primary/90',
-        destructive:
-          'bg-lp-destructive text-white hover:bg-lp-destructive/90 focus-visible:ring-lp-destructive/20 dark:focus-visible:ring-lp-destructive/40 dark:bg-lp-destructive/60',
+        /*
+          The primary action. Ink fill, paper-coloured label, one easing curve
+          shared by every CTA on the public surface.
+        */
+        default:
+          'h-12 bg-lp-ink px-7 text-lp-ink-inverse shadow-lp-button transition-opacity duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:opacity-90',
+
+        /*
+          The secondary action beside it. A hairline on the card surface, not a
+          grey - a grey outline next to an ink pill reads as a disabled button.
+        */
         outline:
-          'border bg-lp-background shadow-xs hover:bg-lp-accent hover:text-lp-accent-foreground dark:bg-lp-input/30 dark:border-lp-input dark:hover:bg-lp-input/50',
-        secondary: 'bg-lp-secondary text-lp-secondary-foreground hover:bg-lp-secondary/80',
-        ghost: 'hover:bg-lp-accent hover:text-lp-accent-foreground dark:hover:bg-lp-accent/50',
-        link: 'text-lp-primary underline-offset-4 hover:underline',
+          'h-12 border border-lp-line-strong bg-lp-card px-7 text-lp-ink transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-lp-canvas',
+
+        /* For controls on the card surface: hover only, no resting fill. */
+        ghost:
+          'h-12 px-4 text-lp-ink transition-colors duration-200 hover:bg-lp-canvas-deep motion-reduce:transition-none',
+
+        /*
+          The one action on a dark band, which is the closing CTA and the
+          carousel's dark slide.
+
+          It has to be light-on-dark or it disappears into the band. The closing
+          CTA previously said `bg-gray-200 text-gray-950`, two TailAdmin greys
+          left over on a page that had otherwise moved to the `lp-` palette;
+          `bg-lp-card text-lp-ink` is the same reading expressed in the tokens
+          the rest of the page uses, so it tracks the theme instead of ignoring
+          it.
+        */
+        inverse:
+          'h-12 bg-lp-card px-7 text-lp-ink transition-opacity duration-200 hover:opacity-90 motion-reduce:transition-none',
+
+        /* Text-only, for a third action that does not deserve a box. */
+        link: 'h-auto px-0 text-lp-accent underline-offset-4 hover:underline',
+
+        destructive:
+          'h-12 bg-lp-destructive px-7 text-white transition-opacity duration-200 hover:opacity-90 motion-reduce:transition-none',
       },
-      /*
-        Every variant clears the project's 44px touch-target floor.
-
-        shadcn's own ramp runs `h-6` to `h-10` - 24px to 40px - so all eight of
-        its sizes are unusable here and were replaced rather than nudged.
-        `touch-targets.spec.ts` already holds the app to `size-11`/`min-h-11` and
-        DESIGN.md fixes nav rows at 44px, so a button smaller than that would be
-        a regression on the public pages and an inconsistency against the app
-        behind the sign-in link.
-
-        The ramp is also shortened from eight sizes to four. The deleted ones
-        were `xs`, `icon-xs`, `icon-sm` and `icon-lg` - a density scale for rows
-        of small controls, which the public pages do not have. A size ramp that
-        mostly offers values the project forbids is worse than no ramp.
-
-        What distinguishes the remaining four is padding and type size, not
-        height: every one of them is 44px tall.
-      */
       size: {
-        default: 'h-11 px-5 has-[>svg]:px-4',
-        sm: 'h-11 gap-1.5 rounded-md px-4 text-sm has-[>svg]:px-3.5',
-        lg: 'h-11 rounded-md px-7 text-base has-[>svg]:px-6',
-        icon: 'size-11',
+        /* 48px is the height these pages already used; the floor is 44. */
+        default: 'h-12 px-7',
+        sm: 'h-11 gap-1.5 px-5',
+        lg: 'h-12 px-8 text-base',
+        icon: 'size-12',
       },
     },
     defaultVariants: {
@@ -48,4 +81,5 @@ export const buttonVariants = cva(
     },
   },
 )
+
 export type ButtonVariants = VariantProps<typeof buttonVariants>
