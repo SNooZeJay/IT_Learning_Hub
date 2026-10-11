@@ -211,7 +211,9 @@ const hasAnyActivity = computed(() => {
                 </span>
               </div>
 
-              <h3 class="mt-2 text-xl font-semibold tracking-tight text-gray-900 dark:text-white/90">
+              <h3
+                class="mt-2 text-xl font-semibold tracking-tight text-gray-900 dark:text-white/90"
+              >
                 {{ dashboard.continueLearning.lessonTitle }}
               </h3>
 

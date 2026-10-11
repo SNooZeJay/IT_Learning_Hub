@@ -303,7 +303,9 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                           <span
                             class="inline-block size-1.5 rounded-full"
                             :class="
-                              endedLabel(attempt.endedVia).warn ? 'bg-warning-500' : 'bg-emerald-500'
+                              endedLabel(attempt.endedVia).warn
+                                ? 'bg-warning-500'
+                                : 'bg-emerald-500'
                             "
                             aria-hidden="true"
                           />
