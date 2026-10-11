@@ -128,7 +128,7 @@
                       {{ payment.courseTitle }}
                     </p>
                     <p
-                      class="shrink-0 text-sm font-semibold text-gray-900 tabular-nums dark:text-white/90"
+                      class="shrink-0 font-mono text-sm font-semibold tracking-tight text-gray-900 tabular-nums dark:text-white/90"
                     >
                       {{ formatPeso(payment.amountCentavos) }}
                     </p>
@@ -145,13 +145,29 @@
                     The course title above gets the same treatment for the same reason,
                     so both lines of a payment row are readable at phone width.
                   -->
-                  <p
-                    class="mt-0.5 line-clamp-2 text-xs text-slate"
+                  <div
+                    class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate"
                     :title="`${payment.studentName} · ${PAYMENT_STATUS_LABELS[payment.status]} · ${formatDateTime(payment.paidAt ?? payment.createdAt)}`"
                   >
-                    {{ payment.studentName }} · {{ PAYMENT_STATUS_LABELS[payment.status] }} ·
-                    {{ formatDateTime(payment.paidAt ?? payment.createdAt) }}
-                  </p>
+                    <span>{{ payment.studentName }}</span>
+                    <span aria-hidden="true">·</span>
+                    <span
+                      class="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium"
+                      :class="
+                        payment.status === 'paid'
+                          ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-300'
+                          : payment.status === 'pending'
+                            ? 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-300'
+                            : 'bg-surface text-slate dark:bg-white/[0.04] dark:text-gray-400'
+                      "
+                    >
+                      {{ PAYMENT_STATUS_LABELS[payment.status] }}
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span class="tabular-nums">
+                      {{ formatDateTime(payment.paidAt ?? payment.createdAt) }}
+                    </span>
+                  </div>
                   <!--
                     The provider's reference, named.
 

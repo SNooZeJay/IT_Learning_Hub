@@ -32,7 +32,6 @@ import {
   Library,
   ListChecks,
   RefreshCw,
-  TriangleAlert,
   Users,
 } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -255,9 +254,17 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                       :key="`${attempt.studentId ?? attempt.studentName}-${attempt.submittedAt}`"
                     >
                       <td class="px-6 py-3.5">
-                        <span class="block text-sm font-medium text-gray-900 dark:text-white/90">
-                          {{ attempt.studentName ?? 'Unknown student' }}
-                        </span>
+                        <div class="flex items-center gap-2.5">
+                          <span
+                            class="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface text-xs font-medium text-slate dark:bg-white/[0.06] dark:text-gray-300"
+                            aria-hidden="true"
+                          >
+                            {{ (attempt.studentName?.[0] ?? 'S').toUpperCase() }}
+                          </span>
+                          <span class="block text-sm font-medium text-gray-900 dark:text-white/90">
+                            {{ attempt.studentName ?? 'Unknown student' }}
+                          </span>
+                        </div>
                       </td>
                       <td class="px-4 py-3.5">
                         <span class="block text-gray-700 dark:text-gray-200">
@@ -269,36 +276,35 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                       </td>
                       <td class="px-4 py-3.5 text-end">
                         <span
-                          class="block font-semibold tabular-nums"
+                          class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tabular-nums"
                           :class="
                             attempt.passed === true
-                              ? 'text-success-700 dark:text-success-400'
+                              ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-300'
                               : attempt.passed === false
-                                ? 'text-error-700 dark:text-error-400'
+                                ? 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-300'
                                 : 'text-gray-500 dark:text-gray-400'
                           "
                         >
                           <template v-if="attempt.percentage !== null">
                             {{ attempt.percentage }}%
-                            <span class="ms-1 text-xs font-normal">
-                              {{ attempt.passed ? 'pass' : 'fail' }}
-                            </span>
                           </template>
                           <template v-else>—</template>
                         </span>
                       </td>
                       <td class="px-4 py-3.5">
                         <span
-                          class="inline-flex items-center gap-1.5 text-xs"
+                          class="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium"
                           :class="
                             endedLabel(attempt.endedVia).warn
-                              ? 'text-warning-700 dark:text-warning-400'
-                              : 'text-gray-500 dark:text-gray-400'
+                              ? 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-300'
+                              : 'bg-surface text-slate dark:bg-white/[0.04] dark:text-gray-300'
                           "
                         >
-                          <TriangleAlert
-                            v-if="endedLabel(attempt.endedVia).warn"
-                            class="size-3.5"
+                          <span
+                            class="inline-block size-1.5 rounded-full"
+                            :class="
+                              endedLabel(attempt.endedVia).warn ? 'bg-warning-500' : 'bg-emerald-500'
+                            "
                             aria-hidden="true"
                           />
                           {{ endedLabel(attempt.endedVia).text }}
