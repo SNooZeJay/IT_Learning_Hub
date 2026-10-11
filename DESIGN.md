@@ -185,6 +185,12 @@ components:
     typography: '{typography.button}'
     rounded: '{rounded.md}'
     padding: 12px 16px
+  stat-card:
+    backgroundColor: '{colors.canvas}'
+    textColor: '{colors.ink}'
+    typography: '{typography.body}'
+    rounded: '{rounded.lg}'
+    padding: 24px
   feature-card:
     backgroundColor: '{colors.canvas}'
     textColor: '{colors.ink}'
@@ -477,6 +483,26 @@ The button/card distinction is the point: 8px on buttons, 12px on cards. Notion'
 
 - Background `{colors.semantic-error}`, text `{colors.on-primary}`, type `{typography.button}`, rounded `{rounded.md}`, padding 12px 16px.
 
+### App components
+
+These live inside the authenticated workspace. The marketing entries under Landing-only do not apply here, and landing entries are never borrowed for app screens.
+
+**`stat-card`** — One headline figure for a dashboard.
+
+- `surface-card` (12px, hairline, canvas) with an `icon-chip-lg` icon, a 20px semibold figure, a 14px label and an optional 12px hint. The figure is 20px on purpose: the page title is 28px on laptop and 22px on phone, and a 24px figure would outrank the heading that names the page. `e2e/type-regression.spec.ts` pins the page title as the largest text on every dashboard at every width, so this cannot drift back. Icon is `aria-hidden` — the label beside it already names the figure.
+
+**`quiz-runner`** — One question per screen with a dot progress strip.
+
+- A dot per question rather than a "7 of 12" counter, because with a shuffled order a counter says nothing about where you are. Current dot is brand fill with white numerals; answered is a success tint; unanswered is quiet grey; flagged carries a warning ring. Every dot is a button with `aria-current="step"` on the current one and answered/unanswered/flagged in its accessible name, so jumping is a tap, not a hunt. A disabled submit always carries its reason in text — a control that refuses without saying why is a question the interface decided not to answer.
+
+**`certificate-sheet`** — The certificate document, not a page.
+
+- Fixed appearance by design: it must look identical on light, dark, and printed paper, so its colours are literal and this is the one place in the app where hard-coded colour is sanctioned rather than drift. Green double rule, drawn gold seal (no image asset, prints in greyscale without turning into a grey box), display-serif recipient name that wraps instead of overflowing on a phone. Printing hides the app chrome and leaves the sheet, so "save as PDF" produces the document, not a screenshot. Unknown signatories read as a sentence ("Not recorded"), never a blank line.
+
+**`app-nav`** — The workspace sidebar.
+
+- Fixed, full-height, canvas surface with a hairline leading edge. Full width at base, collapsing to a rail at `xl`; below `xl` it is an overlay drawer that translates in and out with mirrored RTL motion. Nav rows are 44px (`h-11`) with 12px rounding and a focus ring that offsets outside the row. Count badges are tabular numerals so an unread count changing from 9 to 10 does not shift the row.
+
 ### Cards & Containers
 
 **`feature-card`** — Default feature highlight tile on the home and product pages.
@@ -503,7 +529,7 @@ The button/card distinction is the point: 8px on buttons, 12px on cards. Notion'
 
 - Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body-sm}`, rounded `{rounded.md}`, padding 16px.
 
-**`customer-logo-tile`** — Single tile in the customer marquee on the home page (Ferrari, Pfizer, etc.).
+**`customer-logo-tile`** — Single tile in the customer marquee on the home page (Ferrari, Pfizer, etc.). **Landing only — not used in the app.**
 
 - Background `{colors.canvas}`, text `{colors.slate}`, type `{typography.caption}`, rounded `{rounded.md}`, padding 24px. 1px hairline border.
 
@@ -515,11 +541,13 @@ The button/card distinction is the point: 8px on buttons, 12px on cards. Notion'
 - Focus state replaces the bottom 1px hairline with a 2px `{colors.primary}` underline (Carbon's signature focus treatment).
 - Error state adds 2px `{colors.semantic-error}` bottom underline.
 
-**`newsletter-input`** — The "Stay connected" newsletter capture on the home page.
+**`newsletter-input`** — The "Stay connected" newsletter capture on the home page. **Landing only — not used in the app.**
 
 - Background `{colors.surface}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.md}`, padding 11px 16px. Adjacent submit is `button-primary`.
 
 ### Tabs
+
+**Landing only — not used in the app.** The workspace has no tab strip; quiz and settings flows use their own progress and section patterns (see `quiz-runner`).
 
 **`product-tab`** + **`product-tab-selected`** — The horizontal tab strip on product pages and the home "Recommended" carousel.
 
@@ -528,17 +556,17 @@ The button/card distinction is the point: 8px on buttons, 12px on cards. Notion'
 
 ### Navigation
 
-**`top-nav`** — Sticky white bar with the IBM logomark left, nav categories center, and search / sign-in icons right.
+**`top-nav`** — Sticky white bar with the logomark left, nav categories center, and search / sign-in icons right.
 
 - Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body-sm}`, height 48px. 1px bottom hairline.
 
-**`utility-bar`** — Slim gray ribbon above the top nav with location switch, contact, search shortcuts.
+**`utility-bar`** — Slim gray ribbon above the top nav with location switch, contact, search shortcuts. **Landing only — the app shell has no utility bar.**
 
 - Background `{colors.surface}`, text `{colors.slate}`, type `{typography.caption}`, height 32px.
 
 ### Footer
 
-**`footer`** — Charcoal footer (`{colors.inverse-canvas}`) with the IBM wordmark left and 5–6 columns of caption-sized links. The only inverted surface above the page break.
+**`footer`** — Charcoal footer (`{colors.inverse-canvas}`) with the wordmark left and 5–6 columns of caption-sized links. The only inverted surface above the page break.
 
 - Background `{colors.inverse-canvas}`, text `{colors.inverse-ink-muted}`, type `{typography.body-sm}`, padding 64px 32px.
 
