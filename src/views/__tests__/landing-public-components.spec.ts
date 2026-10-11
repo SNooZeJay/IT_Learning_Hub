@@ -142,12 +142,15 @@ describe('landing page on public primitives', () => {
       expect(wrapper.findComponent(DepthCarousel).exists()).toBe(true)
     })
 
-    it('still renders the hero figures', () => {
-      // The figures are derived from the catalogue query, so with a fixed
-      // catalogue above they are deterministic: 2 courses, 5 modules, 30 lessons.
-      const text = wrapper.text()
-      expect(text).toContain('2')
-      expect(text).toMatch(/courses? published/i)
+    it('does not repeat the figures in the hero - the strip owns the counts', () => {
+      // The counts used to sit under the hero buttons AND in the value strip.
+      // One of the two was duplication; the strip (big serif CountUps on
+      // charcoal) is the better home. The hero ends at the browse note, and
+      // the `figures` computed stays because the strip reads it.
+      const source = fs.readFileSync(path.resolve(__dirname, '..', 'auth', 'Landing.vue'), 'utf-8')
+      const heroEnd = source.indexOf('THE COURSE CAROUSEL')
+      expect(heroEnd).toBeGreaterThan(-1)
+      expect(source.slice(0, heroEnd)).not.toMatch(/v-for="figure in figures"/)
     })
 
     it('still renders the five-item dark value strip', () => {

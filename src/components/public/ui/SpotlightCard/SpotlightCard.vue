@@ -6,7 +6,7 @@
     @blur="handleBlur"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
-    :class="['relative rounded-3xl border overflow-hidden', className]"
+    :class="cn('relative overflow-hidden', className)"
   >
     <div
       class="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 motion-reduce:transition-none ease-in-out"
@@ -22,6 +22,7 @@
 
 <script setup lang="ts">
 import { ref, useTemplateRef } from 'vue'
+import { cn } from '@/lib/utils'
 
 interface Position {
   x: number

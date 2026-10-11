@@ -628,22 +628,22 @@
     GL context on the most-visited page for motion three blurred divs do for
     free. This is the file's own prescription - transforms on the circles.
 
-    translate3d, never top/left: compositor-only, no layout per frame. ±28px
-    over 30-46s reads as atmosphere, not animation; anything faster or further
-    reads as weather. `alternate` so there is no snap back to start. Opacity
-    breathes 0.15 around the resting value so no circle ever vanishes or flares.
-
-    Duration comes from `--drift-t` per circle so one utility serves all three
-    at different tempos - three circles on one period would read as a single
-    object rotating rather than as air.
+    translate3d, never top/left: compositor-only, no layout per frame. The
+    endpoints come from per-element `--dx-from/--dy-from/--dx-to/--dy-to`,
+    which the landing page randomizes on mount - three circles on one shared
+    path would read as a single object rotating rather than as air, and custom
+    properties in keyframes resolve against the animated element, so one
+    keyframe serves all three at different tempos, amplitudes and directions.
+    Opacity breathes 0.15 around the resting value so no circle ever vanishes
+    or flares.
   */
   @keyframes motion-drift {
     from {
-      transform: translate3d(-28px, 12px, 0);
+      transform: translate3d(var(--dx-from, -28px), var(--dy-from, 12px), 0);
       opacity: 0.85;
     }
     to {
-      transform: translate3d(28px, -12px, 0);
+      transform: translate3d(var(--dx-to, 28px), var(--dy-to, -12px), 0);
       opacity: 1;
     }
   }

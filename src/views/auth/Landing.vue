@@ -45,14 +45,17 @@
         `motion-drift` in main.css for why a shader is not here instead.
       -->
       <div
+        data-drift
         class="absolute -top-48 -start-40 size-[36rem] rounded-full bg-lp-glow-green opacity-70 blur-3xl lp-drift motion-reduce:animate-none"
         style="--drift-t: 34s"
       ></div>
       <div
+        data-drift
         class="absolute -top-24 -end-48 size-[42rem] rounded-full bg-lp-glow-beige opacity-80 blur-3xl lp-drift motion-reduce:animate-none"
         style="--drift-t: 44s"
       ></div>
       <div
+        data-drift
         class="absolute top-[38rem] start-1/4 size-[30rem] rounded-full bg-lp-glow-peach opacity-60 blur-3xl lp-drift motion-reduce:animate-none"
         style="--drift-t: 52s"
       ></div>
@@ -178,8 +181,8 @@
 
         THE AUTHORED SEQUENCE ON THIS PAGE, and the only one.
 
-        The left column arrives as five steps - eyebrow, headline, lede, actions,
-        figures - and the right column as a sixth. The order is the argument: what
+        The left column arrives as four steps - eyebrow, headline, lede,
+        actions - and the right column as a fifth. The order is the argument: what
         this is, what it says, why it is credible, what to do, and the evidence. It is
         also why the headline is step 1 rather than step 0: the eyebrow is a label, and
         making the reader wait for the label before the headline would be the wrong
@@ -206,10 +209,12 @@
         finished at a glance, and carrying it here produced a poster rather than
         a page. The app itself is untouched.
 
-        The figures under the buttons are the three counts the catalogue actually
-        returned, summed client-side. They are hidden until the query resolves
-        rather than rendered as zero, because "0 courses" is a statement about the
-        product and "still loading" is not.
+        The counts the catalogue returned live in the value strip, summed
+        client-side: three big figures on charcoal, counted up. They used to
+        sit here too, small, above a hairline - and said nothing the strip did
+        not say better. They are hidden until the query resolves rather than
+        rendered as zero, because "0 courses" is a statement about the product
+        and "still loading" is not.
       -->
       <section class="mx-auto max-w-6xl px-4 pt-14 pb-16 md:px-6 md:pt-20 md:pb-24">
         <!--
@@ -380,27 +385,14 @@
               Browsing is open to everyone. You only need an account to enroll.
             </p>
 
-            <dl
-              v-if="hasCounts"
-              :style="{ '--stagger-i': 4 }"
-              class="lp-hero-step mt-10 flex flex-wrap items-center gap-x-10 gap-y-4 border-t border-lp-line pt-7"
-            >
-              <div v-for="figure in figures" :key="figure.label">
-                <dt class="font-display text-3xl leading-none font-semibold text-lp-ink">
-                  <!--
-                    Counted up on entry, gated twice: `hasCounts` on the row
-                    mounts this only with final values (mounting at 0 and letting
-                    `to` change later freezes the counter at `from`), and
-                    `motionOK` falls back to the plain number for reduced motion.
-                  -->
-                  <CountUp v-if="motionOK" :to="figure.value" />
-                  <template v-else>{{ figure.value }}</template>
-                </dt>
-                <dd class="mt-1.5 text-xs font-medium tracking-wide text-lp-slate uppercase">
-                  {{ figure.label }}
-                </dd>
-              </div>
-            </dl>
+            <!--
+              No figures row here any more. The counts used to sit under the
+              buttons, three small numbers above a hairline - and the value
+              strip two screens down said the same three numbers again. One of
+              the two was duplication, and the strip (big serif CountUps on
+              charcoal with a spotlight) is the better home for them. The
+              `figures` computed stays: the strip reads it.
+            -->
           </div>
 
           <!--
@@ -694,7 +686,7 @@
       <section class="mx-auto max-w-6xl px-4 pb-16 md:px-6 md:pb-24">
         <Reveal>
           <SpotlightCard
-            class-name="border-white/10 bg-gray-950 px-6 py-10 ring-1 ring-inset ring-white/[0.07] md:px-12 md:py-12"
+            class-name="rounded-3xl border border-white/10 bg-gray-950 px-6 py-10 ring-1 ring-inset ring-white/[0.07] md:px-12 md:py-12"
             spotlight-color="rgba(127,199,159,0.16)"
           >
             <!--
@@ -791,8 +783,18 @@
             <li
               v-for="(stage, index) in stages"
               :key="stage.title"
-              class="rounded-2xl border border-lp-line bg-lp-card p-6"
             >
+              <!--
+                The steps carry the page's pointer-illumination language: the
+                same SpotlightCard as the value strip, in the product green at
+                10% so it reads as light on the cream card rather than as a
+                stain. Invisible at rest, alive on hover - the section looks
+                identical until touched.
+              -->
+              <SpotlightCard
+                class-name="h-full rounded-2xl border border-lp-line bg-lp-card p-6"
+                spotlight-color="rgba(31,107,70,0.10)"
+              >
               <span
                 class="font-display text-sm font-semibold tracking-[0.1em] text-lp-accent tabular-nums"
                 aria-hidden="true"
@@ -805,6 +807,7 @@
               <p class="mt-2 text-sm leading-relaxed text-lp-slate">
                 {{ stage.body }}
               </p>
+              </SpotlightCard>
             </li>
           </ol>
           </Reveal>
@@ -984,8 +987,19 @@
           </EmptyState>
 
           <ul v-else class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <!--
+              Each card gets the pointer glow as a transparent layer over its
+              own frame - same treatment as the Inside panels, same green.
+              CatalogueCard keeps its article, its cover and its price rule
+              untouched; the spotlight owns no frame here.
+            -->
             <li v-for="course in featured" :key="course.id" class="h-full">
-              <CatalogueCard :course="course" />
+              <SpotlightCard
+                class-name="h-full rounded-2xl border-0 bg-transparent"
+                spotlight-color="rgba(31,107,70,0.10)"
+              >
+                <CatalogueCard :course="course" />
+              </SpotlightCard>
             </li>
           </ul>
         </div>
@@ -1027,6 +1041,16 @@
           </Reveal>
 
           <div class="mt-10 grid gap-6 lg:grid-cols-2">
+            <!--
+              Both panels carry the pointer-illumination language as a transparent
+              glow over their own frames: the panels are mock screenshots, and a
+              screenshot keeps its own border. The SpotlightCard owns no frame
+              here - `border-0 bg-transparent` - it only lends the cursor glow.
+            -->
+            <SpotlightCard
+              class-name="rounded-2xl border-0 bg-transparent"
+              spotlight-color="rgba(31,107,70,0.10)"
+            >
             <div class="overflow-hidden rounded-2xl border border-lp-line bg-lp-card">
               <div class="border-b border-lp-line px-6 py-5">
                 <p
@@ -1066,7 +1090,10 @@
                     class="mt-5 overflow-x-auto rounded-xl bg-lp-canvas p-4 font-mono text-xs leading-relaxed text-lp-ink"
                   ><code>node --version
 python3 --version
-git --version</code></pre>
+git --version<span
+                      aria-hidden="true"
+                      class="ms-1 inline-block h-[0.9em] w-[7px] translate-y-[2px] rounded-[1px] bg-lp-accent animate-caret-blink motion-reduce:animate-none"
+                    ></span></code></pre>
                   <p class="mt-5 flex items-center gap-2 text-xs text-lp-slate">
                     <Clock3 class="size-3.5" aria-hidden="true" />
                     About 12 minutes
@@ -1074,7 +1101,12 @@ git --version</code></pre>
                 </div>
               </div>
             </div>
+            </SpotlightCard>
 
+            <SpotlightCard
+              class-name="rounded-2xl border-0 bg-transparent"
+              spotlight-color="rgba(31,107,70,0.10)"
+            >
             <div class="overflow-hidden rounded-2xl border border-lp-line bg-lp-card">
               <div class="border-b border-lp-line px-6 py-5">
                 <p
@@ -1107,6 +1139,7 @@ git --version</code></pre>
                 Worked example of the question format. Nothing is recorded here.
               </p>
             </div>
+            </SpotlightCard>
           </div>
         </div>
       </section>
@@ -1338,6 +1371,44 @@ const marqueeFade = computed(() => (isDarkMode.value ? '#221f18' : '#faf8f3'))
 
 /** The six disciplines as marquee items. Rendered by the `renderItem` slot. */
 const marqueeLogos = computed(() => disciplines.map((area) => ({ node: area.name })))
+
+/**
+ * Scatter the background circles, once, on mount.
+ *
+ * Three circles on one shared path read as a single object rotating rather
+ * than as air, so each gets its own amplitude, tempo, direction and phase -
+ * drawn from bounded ranges, not from anywhere: ±18-34px horizontal, ±8-16px
+ * vertical, 30-52s periods, alternate or alternate-reverse, and a negative
+ * delay so every circle is already mid-flight on first paint instead of
+ * starting in sync from the same pose.
+ *
+ * Client-only and motion-gated. The custom properties are set after mount, so
+ * server markup and the first frame use the keyframes' defaults; reduced
+ * motion never reaches this branch because the utility already disables the
+ * animation, and setting drift variables on a still background would be dead
+ * code with a misleading name.
+ *
+ * `document` scoped by attribute rather than by component root: these are the
+ * only three `data-drift` elements in the product, and a scoped query would
+ * need a root ref threaded through markup that has no other use for one.
+ */
+onMounted(() => {
+  if (!motionOK.value || typeof document === 'undefined') return
+  document.querySelectorAll<HTMLElement>('[data-drift]').forEach((el) => {
+    const dx = 18 + Math.random() * 16
+    const dy = 8 + Math.random() * 8
+    const sx = Math.random() < 0.5 ? -1 : 1
+    const sy = Math.random() < 0.5 ? -1 : 1
+    const dur = 30 + Math.random() * 22
+    el.style.setProperty('--dx-from', `${(dx * sx).toFixed(1)}px`)
+    el.style.setProperty('--dy-from', `${(dy * sy).toFixed(1)}px`)
+    el.style.setProperty('--dx-to', `${(-dx * sx).toFixed(1)}px`)
+    el.style.setProperty('--dy-to', `${(-dy * sy).toFixed(1)}px`)
+    el.style.setProperty('--drift-t', `${dur.toFixed(1)}s`)
+    el.style.animationDirection = Math.random() < 0.5 ? 'alternate' : 'alternate-reverse'
+    el.style.animationDelay = `${(-Math.random() * dur).toFixed(1)}s`
+  })
+})
 
 /** The four real stages of using the platform, in order. */
 const stages = [

@@ -111,22 +111,32 @@ describe('landing motion layer', () => {
   })
 
   describe('CountUp', () => {
-    it('renders the hero figures and only mounts with final values', () => {
+    it('renders the strip figures and only mounts with final values', () => {
       // The figures populate asynchronously: 0 while loading, real counts
       // after. Mounting CountUp at 0 and letting `to` change later freezes it
       // at `from` - the watcher resets but nothing restarts it. Inside the
       // hasCounts block it mounts once, with the numbers it will keep.
-      const figuresBlock = landing.match(/<dl\b[^>]*v-if="hasCounts"[\s\S]*?<\/dl>/)
-      expect(figuresBlock).not.toBeNull()
-      expect(figuresBlock![0]).toMatch(/<CountUp\b/)
+      const strip = landing.match(/VALUE STRIP\.[\s\S]*?<\/section>/)?.[0] ?? ''
+      expect(strip).toMatch(/<dl\b[^>]*v-if="hasCounts"/)
+      expect(strip).toMatch(/<CountUp\b/)
     })
 
     it('falls back to plain numbers under reduced motion', () => {
       expect(landing).toMatch(/v-if="motionOK"[^]*<CountUp|<CountUp[^]*v-if="motionOK"/)
       expect(landing).toMatch(/v-else[^]*{{\s*figure\.value\s*}}/)
     })
-  })
 
+    it('appears once in source, thrice on screen, all in the strip', () => {
+      // The hero figures were removed as duplication - the strip owns the
+      // counts now. One `<CountUp` in a v-for renders three counters; the
+      // count that matters is that all of them live in the strip block.
+      expect((landing.match(/<CountUp\b/g) ?? []).length).toBe(1)
+      const strip = landing.match(/VALUE STRIP\.[\s\S]*?<\/section>/)?.[0] ?? ''
+      expect(strip).toMatch(/<CountUp\b/)
+      const heroEnd = landing.indexOf('THE COURSE CAROUSEL')
+      expect(landing.slice(0, heroEnd)).not.toMatch(/<CountUp\b/)
+    })
+  })
   describe('LogoLoop disciplines', () => {
     it('renders the marquee with an accessible name and themed fades', () => {
       expect(landing).toMatch(/<LogoLoop\b[^>]*aria-label="[^"]+"/)
@@ -156,9 +166,10 @@ describe('landing motion layer', () => {
       expect(strip).not.toMatch(/bg-lp-ink/)
     })
 
-    it('renders one SpotlightCard with the product accent, carrying no information', () => {
-      expect((landing.match(/<SpotlightCard\b/g) ?? []).length).toBe(1)
-      expect(landing).toMatch(/spotlight-color="rgba\(127,199,159/)
+    it('renders one SpotlightCard in the strip, with the product accent', () => {
+      const strip = landing.match(/VALUE STRIP\.[\s\S]*?<\/section>/)?.[0] ?? ''
+      expect((strip.match(/<SpotlightCard\b/g) ?? []).length).toBe(1)
+      expect(strip).toMatch(/spotlight-color="rgba\(127,199,159/)
       // Pointer-driven, not autonomous: no reduced-motion gate needed, and the
       // spotlight must never be the only carrier of anything.
     })
@@ -201,6 +212,59 @@ describe('landing motion layer', () => {
       expect(reveal).toMatch(/:distance="24"/)
       expect(reveal).toMatch(/:duration="0\.6"/)
       expect(reveal).toMatch(/:threshold="0\.2"/)
+    })
+  })
+
+  describe('one pointer language per section', () => {
+    it('steps, courses and panels share the spotlight, each owning its frame honestly', () => {
+      // Five source occurrences, each in its own region: the strip owns its
+      // frame, the steps loop renders four cards, the courses loop renders one
+      // per featured course, and the two panels glow over their own frames.
+      // (Source count, not rendered count - the loops multiply on screen.)
+      expect((landing.match(/<SpotlightCard\b/g) ?? []).length).toBe(5)
+      const steps = landing.slice(
+        landing.indexOf('HOW IT WORKS.'),
+        landing.indexOf('WHAT YOU CAN LEARN.'),
+      )
+      expect(steps).toMatch(/<SpotlightCard\b/)
+      const courses = landing.slice(
+        landing.indexOf('PUBLISHED COURSES.'),
+        landing.indexOf('INSIDE A COURSE.'),
+      )
+      expect(courses).toMatch(/<SpotlightCard\b/)
+      const panels = landing.slice(landing.indexOf('INSIDE A COURSE.'), landing.indexOf('CLOSE.'))
+      expect((panels.match(/<SpotlightCard\b/g) ?? []).length).toBe(2)
+    })
+
+    it('TiltedCard is gone - wrong shape, wrong deps, wrong defaults', () => {
+      // Image-first (300px fixed), motion-v powered, white hardcoded tooltip,
+      // and a mobile warning label by default. Audited and rejected.
+      expect(fs.existsSync(path.resolve(SRC, 'components', 'public', 'ui', 'TiltedCard'))).toBe(
+        false,
+      )
+      expect(landing).not.toMatch(/TiltedCard/)
+      const pkg = JSON.parse(fs.readFileSync(path.resolve(SRC, '..', 'package.json'), 'utf-8'))
+      expect({ ...pkg.dependencies, ...pkg.devDependencies }['motion-v']).toBeUndefined()
+    })
+
+    it('the terminal caret blinks and respects reduced motion', () => {
+      expect(landing).toMatch(/animate-caret-blink/)
+      expect(landing).toMatch(/motion-reduce:animate-none/)
+      expect(landing).toMatch(/aria-hidden="true"/)
+    })
+
+    it('the blobs scatter on mount, bounded and motion-gated', () => {
+      // `data-drift` as an attribute (not a substring - the script mentions
+      // the name too when it queries for it).
+      expect((landing.match(/\sdata-drift[\s>]/g) ?? []).length).toBe(3)
+      // Bounded ranges, opposite endpoints for a seamless alternate loop, a
+      // negative delay so nothing starts in sync - and none of it runs when
+      // motion is off.
+      for (const token of ['--dx-from', '--dx-to', '--drift-t', 'Math.random', 'motionOK']) {
+        expect(landing).toContain(token)
+      }
+      const css = fs.readFileSync(path.resolve(SRC, 'assets', 'main.css'), 'utf-8')
+      expect(css).toMatch(/var\(--dx-from/)
     })
   })
 })
