@@ -180,6 +180,18 @@ describe('shared dashboard components keep their API on shadcn internals', () =>
           if (textInputs.length) offenders.push(`${entry.name}: raw <input x${textInputs.length}`)
           if (/rounded-full px-2\.5 py-1 text-xs font-medium/.test(content))
             offenders.push(`${entry.name}: hand-rolled pill`)
+          /*
+            Reka forbids empty-string SelectItem values (it throws at runtime:
+            "must have a value prop that is not an empty string"). The native
+            `<option value="">` pattern does not survive the migration - "all"
+            and "none" sentinels do, with the filter logic comparing against
+            them explicitly.
+          */
+          const emptyItems = [...content.matchAll(/<SelectItem\b[^>]*>/g)].filter((m) =>
+            /value=""|value=''/.test(m[0]),
+          )
+          if (emptyItems.length)
+            offenders.push(`${entry.name}: empty SelectItem value x${emptyItems.length}`)
         }
       }
       dirs.forEach(walk)

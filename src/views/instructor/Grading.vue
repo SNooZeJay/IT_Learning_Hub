@@ -29,7 +29,7 @@
               <SelectValue placeholder="All courses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All courses</SelectItem>
+              <SelectItem value="all">All courses</SelectItem>
               <SelectItem v-for="course in courseOptions" :key="course" :value="course">
                 {{ course }}
               </SelectItem>
@@ -307,7 +307,7 @@ const toast = useToast()
 
 const queue = ref<GradingQueueItem[]>([])
 const search = ref('')
-const courseFilter = ref('')
+const courseFilter = ref('all')
 const includeGraded = ref(false)
 const isLoading = ref(true)
 const errorMessage = ref('')
@@ -323,7 +323,7 @@ const isSaving = ref<string | null>(null)
 const filtered = computed(() => {
   const term = search.value.toLowerCase()
   return queue.value.filter((item) => {
-    if (courseFilter.value && item.courseTitle !== courseFilter.value) return false
+    if (courseFilter.value !== 'all' && item.courseTitle !== courseFilter.value) return false
     if (!term) return true
     return (
       item.studentName.toLowerCase().includes(term) ||

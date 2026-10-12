@@ -40,7 +40,7 @@
               <SelectValue placeholder="All courses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All courses</SelectItem>
+              <SelectItem value="all">All courses</SelectItem>
               <SelectItem v-for="course in courseOptions" :key="course" :value="course">
                 {{ course }}
               </SelectItem>
@@ -246,7 +246,7 @@ const auth = useAuthStore()
 
 const rows = ref<InstructorStudentRow[]>([])
 const search = ref('')
-const courseFilter = ref('')
+const courseFilter = ref('all')
 const isLoading = ref(true)
 const errorMessage = ref('')
 
@@ -255,7 +255,7 @@ const HEADINGS = ['Student', 'Course', 'Status', 'Progress', 'Enrolled']
 const filtered = computed(() => {
   const term = search.value.toLowerCase()
   return rows.value.filter((row) => {
-    if (courseFilter.value && row.courseTitle !== courseFilter.value) return false
+    if (courseFilter.value !== 'all' && row.courseTitle !== courseFilter.value) return false
     if (!term) return true
     return (
       row.studentName.toLowerCase().includes(term) ||

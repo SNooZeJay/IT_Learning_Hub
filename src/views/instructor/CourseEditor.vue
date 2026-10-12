@@ -137,7 +137,7 @@
                       <SelectValue placeholder="No category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No category</SelectItem>
+                      <SelectItem value="none">No category</SelectItem>
                       <SelectItem
                         v-for="category in categories"
                         :key="category.id"
@@ -1222,7 +1222,10 @@ async function save(): Promise<void> {
       title,
       slug,
       description: form.value.description.trim() === '' ? null : form.value.description,
-      categoryId: form.value.categoryId === '' ? null : form.value.categoryId,
+      categoryId:
+        form.value.categoryId === '' || form.value.categoryId === 'none'
+          ? null
+          : form.value.categoryId,
       level: form.value.level,
       priceCentavos: priceCentavos.value,
       // Normalised here rather than at the input. `form.durationMinutes` and
