@@ -9,7 +9,14 @@
     state to drift from it. Cancel is the quiet action, confirm carries the
     variant: danger is the destructive red, anything else the brand green.
   -->
-  <AlertDialog :open="request !== null" @update:open="(open) => { if (!open) cancel() }">
+  <AlertDialog
+    :open="request !== null"
+    @update:open="
+      (open) => {
+        if (!open) cancel()
+      }
+    "
+  >
     <AlertDialogContent>
       <AlertDialogHeader>
         <AlertDialogTitle>{{ request?.title }}</AlertDialogTitle>
