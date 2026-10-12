@@ -12,7 +12,15 @@ import { ref, watch } from 'vue'
 import Button from '@/components/ui/Button.vue'
 import { isSafeUrl } from '@/validation'
 import { UNSAFE_URL_REASON } from '@/services/curriculum.service'
-import { formSelectClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import { Textarea } from '@/components/public/ui/textarea'
 import type { ContentStatus, Lesson } from '@/types'
 
 const props = defineProps<{
@@ -124,13 +132,13 @@ function submit(): void {
         <label for="lesson-title" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Title
         </label>
-        <input
+        <Input
           id="lesson-title"
           v-model="title"
           type="text"
           maxlength="255"
           placeholder="What a program actually is"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 rounded-md px-3"
           :aria-invalid="Boolean(titleError)"
         />
         <p v-if="titleError" class="mt-1.5 text-sm text-error-600 dark:text-error-400">
@@ -145,13 +153,13 @@ function submit(): void {
         <p class="mt-0.5 text-xs text-slate">
           Shown under the title in the course outline. This is what makes the outline scannable.
         </p>
-        <input
+        <Input
           id="lesson-summary"
           v-model="summary"
           type="text"
           maxlength="255"
           placeholder="Instructions in order, and why the order is the whole idea."
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 rounded-md px-3"
         />
       </div>
 
@@ -159,29 +167,32 @@ function submit(): void {
         <label for="lesson-type" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Kind
         </label>
-        <select id="lesson-type" v-model="lessonType" ::class="formSelectClass">
-          <option value="article">Reading — written notes on the page</option>
-          <option value="video">Video — played on the page</option>
-        </select>
+        <Select v-model="lessonType">
+          <SelectTrigger id="lesson-type" class="mt-1.5 w-full rounded-md px-3">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="article">Reading — written notes on the page</SelectItem>
+            <SelectItem value="video">Video — played on the page</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div v-if="lessonType === 'video'">
         <label for="lesson-video" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Video URL
         </label>
-        <input
+        <Input
           id="lesson-video"
           v-model="videoUrl"
           type="url"
           :aria-invalid="Boolean(videoUrlError)"
           :aria-describedby="videoUrlError ? 'lesson-video-error' : 'lesson-video-help'"
           placeholder="https://example.com/lesson.mp4"
-          class="mt-1.5 w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:outline-none dark:bg-white/[0.03] dark:text-white/90"
-          :class="
-            videoUrlError
-              ? 'border-error-500 focus:border-error-500 dark:border-error-500'
-              : 'border-gray-300 focus:border-brand-500 dark:border-gray-700'
-          "
+          :class="[
+            'mt-1.5 rounded-md px-3',
+            videoUrlError ? 'border-error-500 focus:border-error-500 dark:border-error-500' : '',
+          ]"
         />
         <p
           v-if="videoUrlError"
@@ -203,12 +214,12 @@ function submit(): void {
         <p class="mt-0.5 text-xs text-slate">
           Leave a blank line between paragraphs. Text only — no formatting is interpreted.
         </p>
-        <textarea
+        <Textarea
           id="lesson-content"
           v-model="content"
           rows="8"
           placeholder="A program is a list of instructions, and the computer follows them strictly from top to bottom."
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 rounded-md px-3 leading-relaxed"
         />
       </div>
 
@@ -218,14 +229,14 @@ function submit(): void {
             How long it takes
           </label>
           <div class="mt-1.5 flex items-center gap-2">
-            <input
+            <Input
               id="lesson-duration"
               v-model.number="durationMinutes"
               type="number"
               min="0"
               step="1"
               placeholder="15"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+              class="rounded-md px-3"
             />
             <span class="shrink-0 section-subheading">minutes</span>
           </div>
@@ -235,11 +246,16 @@ function submit(): void {
           <label for="lesson-status" class="text-sm font-medium text-gray-700 dark:text-gray-300">
             Visibility
           </label>
-          <select id="lesson-status" v-model="status" ::class="formSelectClass">
-            <option value="draft">Draft — only you can see this</option>
-            <option value="published">Published — students can see this</option>
-            <option value="archived">Archived — hidden from everyone</option>
-          </select>
+          <Select v-model="status">
+            <SelectTrigger id="lesson-status" class="mt-1.5 w-full rounded-md px-3">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">Draft — only you can see this</SelectItem>
+              <SelectItem value="published">Published — students can see this</SelectItem>
+              <SelectItem value="archived">Archived — hidden from everyone</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

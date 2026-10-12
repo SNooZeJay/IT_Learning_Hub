@@ -15,6 +15,15 @@
 import { computed } from 'vue'
 import type { AttemptSummary } from '@/services/quizAuthoring.service'
 import { formatDateTime } from '@/types'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/public/ui/table'
 
 const props = defineProps<{
   quizId: string
@@ -88,72 +97,75 @@ function scoreLabel(attempt: AttemptSummary): string {
       </p>
 
       <div class="mt-3 overflow-x-auto">
-        <table class="w-full min-w-3xl border-collapse text-start text-sm">
-          <caption class="sr-only">
+        <Table class="w-full min-w-3xl border-collapse text-start text-sm">
+          <TableCaption class="sr-only">
             Every attempt on this quiz: who sat it, which attempt it was, the score, whether it
             passed, the warnings raised, how it ended and when it was submitted.
-          </caption>
+          </TableCaption>
 
-          <thead>
-            <tr class="border-b border-gray-200 dark:border-gray-800">
-              <th
+          <TableHeader>
+            <TableRow class="border-b border-gray-200 hover:bg-transparent dark:border-gray-800">
+              <TableHead
                 scope="col"
                 class="py-2 pe-4 text-start font-medium text-gray-500 dark:text-gray-400"
               >
                 Student
-              </th>
-              <th
+              </TableHead>
+              <TableHead
                 scope="col"
                 class="py-2 pe-4 text-start font-medium text-gray-500 dark:text-gray-400"
               >
                 Attempt
-              </th>
-              <th
+              </TableHead>
+              <TableHead
                 scope="col"
                 class="py-2 pe-4 text-start font-medium text-gray-500 dark:text-gray-400"
               >
                 Score
-              </th>
-              <th
+              </TableHead>
+              <TableHead
                 scope="col"
                 class="py-2 pe-4 text-start font-medium text-gray-500 dark:text-gray-400"
               >
                 Result
-              </th>
-              <th
+              </TableHead>
+              <TableHead
                 scope="col"
                 class="py-2 pe-4 text-start font-medium text-gray-500 dark:text-gray-400"
               >
                 Warnings
-              </th>
-              <th
+              </TableHead>
+              <TableHead
                 scope="col"
                 class="py-2 pe-4 text-start font-medium text-gray-500 dark:text-gray-400"
               >
                 How it ended
-              </th>
-              <th scope="col" class="py-2 text-start font-medium text-gray-500 dark:text-gray-400">
+              </TableHead>
+              <TableHead
+                scope="col"
+                class="py-2 text-start font-medium text-gray-500 dark:text-gray-400"
+              >
                 Submitted
-              </th>
-            </tr>
-          </thead>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
 
-          <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
-            <tr v-for="attempt in attempts" :key="attempt.id">
-              <td class="py-2.5 pe-4 font-medium text-gray-900 dark:text-white/90">
+          <TableBody class="divide-y divide-gray-200 dark:divide-gray-800">
+            <TableRow v-for="attempt in attempts" :key="attempt.id">
+              <TableCell class="py-2.5 pe-4 font-medium text-gray-900 dark:text-white/90">
                 {{ attempt.studentName ?? 'Name not recorded' }}
-              </td>
-              <td class="py-2.5 pe-4 text-gray-600 dark:text-gray-400">
+              </TableCell>
+              <TableCell class="py-2.5 pe-4 text-gray-600 dark:text-gray-400">
                 <span class="sr-only">Attempt number </span>{{ attempt.attemptNumber }}
-              </td>
-              <td class="py-2.5 pe-4 text-gray-600 dark:text-gray-400">
+              </TableCell>
+              <TableCell class="py-2.5 pe-4 text-gray-600 dark:text-gray-400">
                 {{ scoreLabel(attempt) }}
                 <span v-if="attempt.percentage !== null" class="block text-xs text-slate">
                   {{ attempt.percentage }}%
                 </span>
                 <span v-else class="block text-xs text-slate">—</span>
-              </td>
-              <td class="py-2.5 pe-4">
+              </TableCell>
+              <TableCell class="py-2.5 pe-4">
                 <span
                   v-if="attempt.passed === true"
                   class="font-medium text-success-600 dark:text-success-400"
@@ -164,20 +176,20 @@ function scoreLabel(attempt: AttemptSummary): string {
                   Not passed
                 </span>
                 <span v-else class="text-gray-400 dark:text-gray-500">Not graded</span>
-              </td>
-              <td class="py-2.5 pe-4 text-gray-600 dark:text-gray-400">
+              </TableCell>
+              <TableCell class="py-2.5 pe-4 text-gray-600 dark:text-gray-400">
                 <span class="sr-only">Warnings raised: </span>
                 {{ attempt.warningCount }}
-              </td>
-              <td class="py-2.5 pe-4 text-gray-600 dark:text-gray-400">
+              </TableCell>
+              <TableCell class="py-2.5 pe-4 text-gray-600 dark:text-gray-400">
                 {{ endedLabel(attempt) }}
-              </td>
-              <td class="py-2.5 text-gray-600 dark:text-gray-400">
+              </TableCell>
+              <TableCell class="py-2.5 text-gray-600 dark:text-gray-400">
                 {{ attempt.submittedAt ? formatDateTime(attempt.submittedAt) : 'Not submitted' }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
     </template>
   </section>

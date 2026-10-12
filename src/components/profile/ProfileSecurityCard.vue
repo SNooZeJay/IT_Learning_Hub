@@ -73,12 +73,12 @@
           <label for="new-password" class="mb-1.5 block text-sm font-medium text-ink">
             New password
           </label>
-          <input
+          <Input
             id="new-password"
             v-model="newPassword"
             type="password"
             autocomplete="new-password"
-            :class="[inputClass, passwordFieldError ? 'border-error-500' : '']"
+            :class="['rounded-md px-3', passwordFieldError ? 'border-error-500' : '']"
             :aria-invalid="passwordFieldError ? 'true' : undefined"
             :aria-describedby="
               `new-password-hint ${passwordFieldError ? 'new-password-error' : ''}`.trim()
@@ -99,12 +99,12 @@
           <label for="confirm-password" class="mb-1.5 block text-sm font-medium text-ink">
             Confirm new password
           </label>
-          <input
+          <Input
             id="confirm-password"
             v-model="confirmPassword"
             type="password"
             autocomplete="new-password"
-            :class="[inputClass, confirmError ? 'border-error-500' : '']"
+            :class="['rounded-md px-3', confirmError ? 'border-error-500' : '']"
             :aria-invalid="confirmError ? 'true' : undefined"
             :aria-describedby="confirmError ? 'confirm-password-error' : undefined"
           />
@@ -181,6 +181,7 @@ import { computed, ref } from 'vue'
 import { LoaderCircle, Mail } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
 import Button from '@/components/ui/Button.vue'
+import { Input } from '@/components/public/ui/input'
 import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/types'
 import type { Profile } from '@/types'
@@ -268,9 +269,6 @@ const facts = computed<Array<{ label: string; value: string }>>(() => {
 function capitalise(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1)
 }
-
-const inputClass =
-  'w-full rounded-md border border-hairline-strong bg-canvas px-4 py-3 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden dark:bg-white/[0.03]'
 
 async function changePassword(): Promise<void> {
   passwordFieldError.value = ''

@@ -17,7 +17,15 @@ import { computed, ref, watch } from 'vue'
 import { FileUp, Link2, Type } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import type { LessonMaterial, MaterialType } from '@/types'
-import { formSelectClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import { Textarea } from '@/components/public/ui/textarea'
 import { materialIsInlineText, materialIsLink, materialNeedsFile } from '@/types'
 import {
   materialTypeLabel,
@@ -212,13 +220,13 @@ const isTextType = computed(() => materialIsInlineText(materialType.value))
         <label for="material-title" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Name
         </label>
-        <input
+        <Input
           id="material-title"
           v-model="title"
           type="text"
           maxlength="255"
           placeholder="Starter file"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 rounded-md px-3"
           :aria-invalid="Boolean(titleError)"
         />
         <p v-if="titleError" class="mt-1.5 text-sm text-error-600 dark:text-error-400">
@@ -230,11 +238,16 @@ const isTextType = computed(() => materialIsInlineText(materialType.value))
         <label for="material-type" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           What kind of thing is it
         </label>
-        <select id="material-type" v-model="materialType" ::class="formSelectClass">
-          <option v-for="option in OPTIONS" :key="option.value" :value="option.value">
-            {{ materialTypeLabel(option.value) }} — {{ option.hint }}
-          </option>
-        </select>
+        <Select v-model="materialType">
+          <SelectTrigger id="material-type" class="mt-1.5 w-full rounded-md px-3">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="option in OPTIONS" :key="option.value" :value="option.value">
+              {{ materialTypeLabel(option.value) }} — {{ option.hint }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <!-- One body field, chosen by the type. Showing all three at once and
@@ -253,22 +266,22 @@ const isTextType = computed(() => materialIsInlineText(materialType.value))
           {{ bodyLabel }}
         </label>
         <p class="mt-0.5 text-xs text-slate">{{ bodyHint }}</p>
-        <textarea
+        <Textarea
           v-if="isTextType"
           id="material-body"
           v-model="contentText"
           rows="6"
           :placeholder="materialType === 'code' ? 'def greet(name):' : 'Write the reading here.'"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 rounded-md px-3 leading-relaxed"
           :class="materialType === 'code' ? 'font-mono text-xs' : ''"
         />
-        <input
+        <Input
           v-else
           id="material-body"
           v-model="externalUrl"
           type="url"
           placeholder="https://docs.python.org/3/"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 rounded-md px-3"
         />
       </div>
 

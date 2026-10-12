@@ -14,7 +14,15 @@
  */
 import { ref, watch } from 'vue'
 import Button from '@/components/ui/Button.vue'
-import { formSelectClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import { Textarea } from '@/components/public/ui/textarea'
 import type { ContentStatus, Module } from '@/types'
 
 const props = defineProps<{
@@ -81,13 +89,13 @@ function submit(): void {
         <label for="module-title" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Name
         </label>
-        <input
+        <Input
           id="module-title"
           v-model="title"
           type="text"
           maxlength="255"
           placeholder="Getting started"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 rounded-md px-3"
           :aria-invalid="Boolean(titleError)"
           :aria-describedby="titleError ? 'module-title-error' : undefined"
         />
@@ -108,13 +116,13 @@ function submit(): void {
           What this module covers
           <span class="font-normal text-gray-400">(optional)</span>
         </label>
-        <textarea
+        <Textarea
           id="module-description"
           v-model="description"
           rows="2"
           maxlength="2000"
           placeholder="One line so learners know what they are about to start."
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 rounded-md px-3"
         />
       </div>
 
@@ -122,11 +130,16 @@ function submit(): void {
         <label for="module-status" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Visibility
         </label>
-        <select id="module-status" v-model="status" ::class="formSelectClass">
-          <option value="draft">Draft — only you can see this</option>
-          <option value="published">Published — students can see this</option>
-          <option value="archived">Archived — hidden from everyone</option>
-        </select>
+        <Select v-model="status">
+          <SelectTrigger id="module-status" class="mt-1.5 w-full rounded-md px-3">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="draft">Draft — only you can see this</SelectItem>
+            <SelectItem value="published">Published — students can see this</SelectItem>
+            <SelectItem value="archived">Archived — hidden from everyone</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </div>
 

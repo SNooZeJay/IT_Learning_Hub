@@ -23,6 +23,13 @@
           what made this field look inset relative to every other bordered control in
           the header.
         -->
+        <!--
+          Native control, deliberately: the ⌘K shortcut and `clear()` call
+          `.focus()` / `.select()` on this ref, which must resolve to the
+          input element itself. A component ref resolves to the instance, and
+          `?.` would swallow the failure - a shortcut that silently stops
+          working. Converted once, reverted on that exact ground.
+        -->
         <input
           id="course-search"
           ref="inputRef"
@@ -31,7 +38,7 @@
           name="q"
           autocomplete="off"
           :placeholder="placeholder"
-          class="h-10 w-full rounded-md border border-hairline bg-surface-soft ps-10 pe-10 text-sm text-ink transition-colors placeholder:text-slate focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 [&::-webkit-search-cancel-button]:appearance-none dark:bg-white/[0.03] dark:text-gray-100 dark:placeholder:text-slate dark:focus:border-brand-400"
+          class="h-10 w-full rounded-md border border-hairline bg-surface-soft ps-10 pe-10 text-sm text-ink transition-colors motion-reduce:transition-none placeholder:text-slate focus:border-brand-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/20 [&::-webkit-search-cancel-button]:appearance-none dark:bg-white/[0.03] dark:text-gray-100 dark:placeholder:text-slate dark:focus:border-brand-400"
           @keydown.esc="clear"
         />
 

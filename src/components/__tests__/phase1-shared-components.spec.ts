@@ -149,35 +149,45 @@ describe('shared dashboard components keep their API on shadcn internals', () =>
       view that regresses back to a native control fails whether it was
       committed yesterday or edited just now.
     */
-    it('no raw table, select, input or pill survives in student/instructor/admin views', () => {
+    it('no raw table, select, input, textarea or pill survives the app surfaces', () => {
       const dirs = [
         path.resolve(__dirname, '..', '..', 'views', 'student'),
         path.resolve(__dirname, '..', '..', 'views', 'instructor'),
         path.resolve(__dirname, '..', '..', 'views', 'admin'),
+        path.resolve(__dirname, '..', '..', 'components'),
       ]
       const offenders: string[] = []
       const walk = (d: string) => {
         for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
           const full = path.join(d, entry.name)
           if (entry.isDirectory()) {
+            // The shadcn registry home renders native elements itself (the
+            // Input renders an `<input>`) - that is the primitive, not a call
+            // site. Test files assert; they do not render.
+            if (entry.name === 'public' || entry.name === '__tests__') continue
             walk(full)
             continue
           }
           if (!full.endsWith('.vue')) continue
+          // The header search stays native deliberately (see its comment): the
+          // ⌘K shortcut calls `.focus()` on its ref, which must resolve to the
+          // element itself. Converted once, reverted on exactly that ground.
+          if (/SearchBar\.vue$/.test(full)) continue
           const content = fs.readFileSync(full, 'utf-8')
           if (/<table[\s>]/.test(content)) offenders.push(`${entry.name}: raw <table`)
           if (/<select[\s>]/.test(content)) offenders.push(`${entry.name}: raw <select`)
           /*
-            Native radio and checkbox stay native deliberately: single-purpose,
-            styled inline, and fully accessible without a component. A shadcn
-            Checkbox/RadioGroup here would add indirection for no gain, and the
-            status pills in CourseEditor are a checked-state pattern, not a
-            missing component. `hidden` is not a control at all.
+            Native radio, checkbox, file, datetime-local and hidden stay native
+            deliberately: single-purpose, styled inline, and fully accessible
+            without a component. A calendar picker and a file picker are
+            platform controls no component improves.
           */
           const textInputs = [...content.matchAll(/<input\b[^>]*>/g)].filter(
-            (m) => !/type="(radio|checkbox|hidden)"/.test(m[0]),
+            (m) =>
+              !/type="(radio|checkbox|hidden|file)"/.test(m[0]) && !/datetime-local/.test(m[0]),
           )
           if (textInputs.length) offenders.push(`${entry.name}: raw <input x${textInputs.length}`)
+          if (/<textarea\b[^>]*>/.test(content)) offenders.push(`${entry.name}: raw <textarea`)
           if (/rounded-full px-2\.5 py-1 text-xs font-medium/.test(content))
             offenders.push(`${entry.name}: hand-rolled pill`)
           /*

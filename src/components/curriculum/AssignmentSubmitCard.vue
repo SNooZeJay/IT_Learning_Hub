@@ -18,6 +18,7 @@
 import { ref, watch } from 'vue'
 import { CircleCheck, Clock, FileText, Paperclip, X } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
+import { Textarea } from '@/components/public/ui/textarea'
 import {
   SUBMISSION_FILE_MAX_BYTES,
   describeSubmissionFile,
@@ -198,12 +199,12 @@ function submit(): void {
         </template>
         <template v-else>Plain text. Leave a blank line between paragraphs.</template>
       </p>
-      <textarea
+      <Textarea
         :id="`submission-${assignment.id}`"
         v-model="text"
         rows="7"
         placeholder="Write your answer here, or attach a file below."
-        class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+        class="mt-1.5 rounded-md px-3 leading-relaxed"
         :aria-invalid="Boolean(textError)"
         :aria-describedby="textError ? `submission-error-${assignment.id}` : undefined"
       />

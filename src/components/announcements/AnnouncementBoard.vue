@@ -32,30 +32,30 @@
             <label for="notice-course" class="mb-1.5 block text-sm font-medium text-ink">
               Who it is for
             </label>
-            <select
-              v-if="courses.length > 0"
-              id="notice-course"
-              v-model="form.courseId"
-              :class="selectClass"
-            >
-              <option v-if="allowPlatformWide" value="">Everyone</option>
-              <option v-for="course in courses" :key="course.id" :value="course.id">
-                {{ course.title }}
-              </option>
-            </select>
-            <input
+            <Select v-if="courses.length > 0" v-model="form.courseId">
+              <SelectTrigger id="notice-course" class="w-full" :class="fieldClass">
+                <SelectValue placeholder="Everyone" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-if="allowPlatformWide" value="everyone">Everyone</SelectItem>
+                <SelectItem v-for="course in courses" :key="course.id" :value="course.id">
+                  {{ course.title }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
               v-else
               id="notice-course"
               v-model="form.courseId"
               type="text"
               placeholder="Paste the course reference"
-              :class="[inputClass, fieldErrors.course ? 'border-error-500' : '']"
+              :class="['rounded-md px-3', fieldErrors.course ? 'border-error-500' : '']"
               :aria-invalid="fieldErrors.course ? 'true' : undefined"
               :aria-describedby="fieldErrors.course ? 'notice-course-error' : undefined"
             />
             <p class="mt-1.5 text-xs text-slate">
               {{
-                !form.courseId
+                !form.courseId || form.courseId === 'everyone'
                   ? 'Every signed-in account will see it. Use this for maintenance and closures.'
                   : 'Only people enrolled in this course will see it.'
               }}
@@ -74,11 +74,20 @@
             <label for="notice-kind" class="mb-1.5 block text-sm font-medium text-ink">
               What kind of notice
             </label>
-            <select id="notice-kind" v-model="form.kind" :class="selectClass">
-              <option v-for="kind in ANNOUNCEMENT_KINDS" :key="kind.value" :value="kind.value">
-                {{ kind.label }}
-              </option>
-            </select>
+            <Select v-model="form.kind">
+              <SelectTrigger id="notice-kind" class="w-full" :class="fieldClass">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                  v-for="kind in ANNOUNCEMENT_KINDS"
+                  :key="kind.value"
+                  :value="kind.value"
+                >
+                  {{ kind.label }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
             <p class="mt-1.5 text-xs text-slate">
               Students see this as a label on the notice, so pick the one that fits rather than the
               one that sounds most official.
@@ -89,13 +98,13 @@
             <label for="notice-title" class="mb-1.5 block text-sm font-medium text-ink">
               Title
             </label>
-            <input
+            <Input
               id="notice-title"
               v-model="form.title"
               type="text"
               maxlength="120"
               placeholder="Room change for Thursday's class"
-              :class="[inputClass, fieldErrors.title ? 'border-error-500' : '']"
+              :class="['rounded-md px-3', fieldErrors.title ? 'border-error-500' : '']"
               :aria-invalid="fieldErrors.title ? 'true' : undefined"
               :aria-describedby="fieldErrors.title ? 'notice-title-error' : undefined"
             />
@@ -113,13 +122,13 @@
             <label for="notice-body" class="mb-1.5 block text-sm font-medium text-ink">
               What people need to know
             </label>
-            <textarea
+            <Textarea
               id="notice-body"
               v-model="form.body"
               rows="4"
               maxlength="1000"
               placeholder="We are in Room 402 this week. Bring a laptop with the files from last session."
-              :class="[inputClass, 'resize-y', fieldErrors.body ? 'border-error-500' : '']"
+              :class="['rounded-md px-3 resize-y', fieldErrors.body ? 'border-error-500' : '']"
               :aria-invalid="fieldErrors.body ? 'true' : undefined"
               :aria-describedby="`notice-body-hint ${fieldErrors.body ? 'notice-body-error' : ''}`"
             />
@@ -302,9 +311,25 @@ const fieldErrors = reactive({ course: '', title: '', body: '' })
  * grepping for `selectClass` and seeing two hits rather than reading the import.
  *
  * A local declaration that shadows a shared one is worse than a copy, because it
- * survives the copy being fixed. Both now come from `controlClasses.ts`.
+ * survives the copy being fixed. Both controls are shadcn primitives now, sharing
+ * one `fieldClass` geometry declared below.
  */
-import { selectClass, textInputClass as inputClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import { Textarea } from '@/components/public/ui/textarea'
+
+/**
+ * Every control on this form shares one geometry. No top margin: the labels
+ * above carry `mb-1.5`, which is the gap. (Forms whose labels carry no margin
+ * give their controls `mt-1.5` instead - same 6px, owned by exactly one side.)
+ */
+const fieldClass = 'rounded-md px-3'
 
 /** A null course is an audience, not a missing value, so it reads as a word. */
 function audienceOf(notice: Announcement): string {
@@ -381,7 +406,7 @@ async function post(publishNow: boolean): Promise<void> {
       body: form.body,
       // `validate()` has already refused an empty course for a role that may not choose
       // "everybody", so the null here is always a deliberate platform-wide notice.
-      courseId: form.courseId.trim() || null,
+      courseId: !form.courseId || form.courseId === 'everyone' ? null : form.courseId.trim(),
       kind: form.kind,
       publishNow,
     })

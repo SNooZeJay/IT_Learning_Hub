@@ -24,12 +24,12 @@
       <div class="grid gap-5 sm:grid-cols-2">
         <div>
           <label for="fullName" class="mb-1.5 block text-sm font-medium text-ink">Full name</label>
-          <input
+          <Input
             id="fullName"
             v-model.trim="fullName"
             type="text"
             autocomplete="name"
-            :class="[inputClass, nameError ? 'border-error-500' : '']"
+            :class="['rounded-md px-3', nameError ? 'border-error-500' : '']"
             :aria-invalid="nameError ? 'true' : undefined"
             :aria-describedby="nameError ? 'fullName-error' : undefined"
           />
@@ -55,12 +55,12 @@
             somebody showing an address they can no longer sign in with, which is
             a lockout rather than a preference.
           -->
-          <input
+          <Input
             id="email"
             :value="profile.email"
             type="email"
             readonly
-            :class="[inputClass, 'cursor-not-allowed bg-surface-soft text-slate']"
+            :class="['rounded-md px-3', 'cursor-not-allowed bg-surface-soft text-slate']"
             aria-describedby="email-note"
           />
           <p id="email-note" class="mt-1.5 text-xs text-slate">
@@ -70,24 +70,24 @@
 
         <div>
           <label for="phone" class="mb-1.5 block text-sm font-medium text-ink">Phone</label>
-          <input
+          <Input
             id="phone"
             v-model.trim="phone"
             type="tel"
             autocomplete="tel"
             placeholder="+63 900 000 0000"
-            :class="inputClass"
+            class="rounded-md px-3"
           />
         </div>
 
         <div>
           <label for="role" class="mb-1.5 block text-sm font-medium text-ink">Role</label>
-          <input
+          <Input
             id="role"
             :value="roleLabel"
             type="text"
             readonly
-            :class="[inputClass, 'cursor-not-allowed bg-surface-soft text-slate']"
+            :class="['rounded-md px-3', 'cursor-not-allowed bg-surface-soft text-slate']"
             aria-describedby="role-note"
           />
           <p id="role-note" class="mt-1.5 text-xs text-slate">
@@ -97,15 +97,15 @@
 
         <div class="sm:col-span-2">
           <label for="bio" class="mb-1.5 block text-sm font-medium text-ink">About you</label>
-          <textarea
+          <Textarea
             id="bio"
             v-model="bio"
             rows="4"
             :maxlength="bioLimit"
-            :class="[inputClass, 'resize-y']"
+            :class="['rounded-md px-3', 'resize-y']"
             aria-describedby="bio-hint"
             placeholder="A short introduction shown to your instructors."
-          ></textarea>
+          />
           <!--
             A `maxlength` plus a live counter, not a submit-time refusal.
 
@@ -144,6 +144,8 @@ import { computed, ref, watch } from 'vue'
 import { LoaderCircle } from 'lucide-vue-next'
 import Alert from '@/components/ui/Alert.vue'
 import Button from '@/components/ui/Button.vue'
+import { Input } from '@/components/public/ui/input'
+import { Textarea } from '@/components/public/ui/textarea'
 import type { Profile } from '@/types'
 
 /**
@@ -223,9 +225,6 @@ const roleLabel = computed(() => {
       return 'Student'
   }
 })
-
-const inputClass =
-  'w-full rounded-md border border-hairline-strong bg-canvas px-4 py-3 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden read-only:cursor-not-allowed dark:bg-white/[0.03]'
 
 function onSubmit(): void {
   nameError.value = ''

@@ -16,7 +16,15 @@
  */
 import { computed, ref, watch } from 'vue'
 import Button from '@/components/ui/Button.vue'
-import { formSelectClass, textInputClass, textareaClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import { Textarea } from '@/components/public/ui/textarea'
 import type { AuthoredQuiz, QuizDraft } from '@/services/quizAuthoring.service'
 
 const props = defineProps<{
@@ -132,13 +140,13 @@ function submit(): void {
         >
           Title
         </label>
-        <input
+        <Input
           :id="`${fieldPrefix}-title`"
           v-model="title"
           type="text"
           maxlength="255"
           placeholder="Module 3 check-in"
-          :class="['mt-1.5', textInputClass]"
+          class="mt-1.5 rounded-md px-3"
         />
       </div>
 
@@ -153,13 +161,13 @@ function submit(): void {
         <p class="mt-0.5 text-xs text-slate">
           One line about what this quiz covers. Shown where the quiz is listed.
         </p>
-        <textarea
+        <Textarea
           :id="`${fieldPrefix}-description`"
           v-model="description"
           rows="2"
           maxlength="2000"
           placeholder="Covers the request methods and status codes from the lesson."
-          :class="['mt-1.5', textInputClass]"
+          class="mt-1.5 rounded-md px-3"
         />
       </div>
 
@@ -174,13 +182,13 @@ function submit(): void {
         <p class="mt-0.5 text-xs text-slate">
           Shown to the student before they start. Put the rules here.
         </p>
-        <textarea
+        <Textarea
           :id="`${fieldPrefix}-instructions`"
           v-model="instructions"
           rows="4"
           maxlength="4000"
           placeholder="You have 10 minutes and 3 attempts. Leaving the tab warns you, and three warnings ends the attempt."
-          :class="['mt-1.5', textareaClass]"
+          class="mt-1.5 rounded-md px-3"
         />
       </div>
 
@@ -193,14 +201,14 @@ function submit(): void {
             Pass mark
           </label>
           <div class="mt-1.5 flex items-center gap-2">
-            <input
+            <Input
               :id="`${fieldPrefix}-passing`"
               v-model="passingScore"
               type="number"
               min="1"
               max="100"
               step="1"
-              class="w-28 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+              class="w-28 rounded-md px-3"
             />
             <span class="shrink-0 section-subheading">%</span>
           </div>
@@ -214,15 +222,16 @@ function submit(): void {
           >
             Attempts allowed
           </label>
-          <select
-            :id="`${fieldPrefix}-attempts`"
-            v-model.number="attemptsAllowed"
-            :class="formSelectClass"
-          >
-            <option v-for="choice in ATTEMPT_CHOICES" :key="choice" :value="choice">
-              {{ choice }} attempt{{ choice === 1 ? '' : 's' }}
-            </option>
-          </select>
+          <Select v-model.number="attemptsAllowed">
+            <SelectTrigger :id="`${fieldPrefix}-attempts`" class="mt-1.5 w-full rounded-md px-3">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="choice in ATTEMPT_CHOICES" :key="choice" :value="choice">
+                {{ choice }} attempt{{ choice === 1 ? '' : 's' }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
           <p class="mt-1.5 text-xs text-slate">How many times a student may sit this quiz.</p>
         </div>
 
@@ -235,14 +244,14 @@ function submit(): void {
             <span class="font-normal text-gray-400">(optional)</span>
           </label>
           <div class="mt-1.5 flex items-center gap-2">
-            <input
+            <Input
               :id="`${fieldPrefix}-time`"
               v-model="timeLimitMinutes"
               type="number"
               min="1"
               step="1"
               placeholder="No limit"
-              class="w-28 rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+              class="w-28 rounded-md px-3"
             />
             <span class="shrink-0 section-subheading">minutes</span>
           </div>
@@ -258,15 +267,16 @@ function submit(): void {
           >
             Warnings before the attempt ends
           </label>
-          <select
-            :id="`${fieldPrefix}-warnings`"
-            v-model.number="maxWarnings"
-            :class="formSelectClass"
-          >
-            <option v-for="choice in WARNING_CHOICES" :key="choice" :value="choice">
-              {{ choice }} warning{{ choice === 1 ? '' : 's' }}
-            </option>
-          </select>
+          <Select v-model.number="maxWarnings">
+            <SelectTrigger :id="`${fieldPrefix}-warnings`" class="mt-1.5 w-full rounded-md px-3">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="choice in WARNING_CHOICES" :key="choice" :value="choice">
+                {{ choice }} warning{{ choice === 1 ? '' : 's' }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
           <p class="mt-1.5 text-xs text-slate">
             A warning is raised when a student leaves the quiz tab.
           </p>

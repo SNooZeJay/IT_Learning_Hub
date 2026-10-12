@@ -18,6 +18,15 @@
 import { ref, watch } from 'vue'
 import { formSelectClass } from '@/components/ui/controlClasses'
 import Button from '@/components/ui/Button.vue'
+import { Input } from '@/components/public/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import { Textarea } from '@/components/public/ui/textarea'
 import {
   DEFAULT_ASSIGNMENT_POINTS,
   validateAssignmentDraft,
@@ -129,7 +138,9 @@ function submit(): void {
     instructions: instructions.value.trim() === '' ? null : instructions.value.trim(),
     // An empty option value is the "not filed under a module" choice, and the
     // column is nullable, so it stays null rather than becoming a bad uuid.
-    moduleId: moduleId.value === '' ? null : moduleId.value,
+    // The select uses the 'none' sentinel (reka forbids empty option values);
+    // the initial '' from loading shows the placeholder and submits as null too.
+    moduleId: !moduleId.value || moduleId.value === 'none' ? null : moduleId.value,
     dueAt: dueAt.value.trim() === '' ? null : new Date(dueAt.value.trim()).toISOString(),
     maxPoints: points,
     status: status.value,
@@ -157,13 +168,13 @@ function submit(): void {
         <label for="assignment-title" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Title
         </label>
-        <input
+        <Input
           id="assignment-title"
           v-model="title"
           type="text"
           maxlength="255"
           placeholder="Reflection on the first module"
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 rounded-md px-3"
           :aria-invalid="Boolean(titleError)"
         />
         <p v-if="titleError" class="mt-1.5 text-sm text-error-600 dark:text-error-400">
@@ -182,12 +193,12 @@ function submit(): void {
         <p class="mt-0.5 text-xs text-slate">
           What the student is being asked for. This is the whole brief they read before typing.
         </p>
-        <textarea
+        <Textarea
           id="assignment-instructions"
           v-model="instructions"
           rows="5"
           placeholder="Write 300 words on the one idea from this module you would explain to someone starting out."
-          class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+          class="mt-1.5 rounded-md px-3 leading-relaxed"
         />
       </div>
 
@@ -196,12 +207,17 @@ function submit(): void {
           Which module
           <span class="font-normal text-gray-400">(optional)</span>
         </label>
-        <select id="assignment-module" v-model="moduleId" ::class="formSelectClass">
-          <option value="">The whole course — not tied to one module</option>
-          <option v-for="module in modules" :key="module.id" :value="module.id">
-            {{ module.title }}
-          </option>
-        </select>
+        <Select v-model="moduleId">
+          <SelectTrigger id="assignment-module" class="mt-1.5 w-full rounded-md px-3">
+            <SelectValue placeholder="The whole course" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">The whole course — not tied to one module</SelectItem>
+            <SelectItem v-for="module in modules" :key="module.id" :value="module.id">
+              {{ module.title }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
         <p v-if="modules.length === 0" class="mt-1.5 text-xs text-slate">
           This course has no modules yet, so the assignment will belong to the course as a whole.
         </p>
@@ -216,13 +232,13 @@ function submit(): void {
             Points
           </label>
           <div class="mt-1.5 flex items-center gap-2">
-            <input
+            <Input
               id="assignment-points"
               v-model.number="maxPoints"
               type="number"
               min="0"
               step="1"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-slate focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-white/[0.03] dark:text-white/90"
+              class="rounded-md px-3"
               :aria-invalid="Boolean(pointsError)"
             />
             <span class="shrink-0 section-subheading">points</span>
@@ -244,7 +260,7 @@ function submit(): void {
             id="assignment-due"
             v-model="dueAt"
             type="datetime-local"
-            ::class="formSelectClass"
+            :class="formSelectClass"
             :aria-invalid="Boolean(dueAtError)"
           />
           <p class="mt-1.5 text-xs text-slate">
@@ -261,10 +277,15 @@ function submit(): void {
         <label for="assignment-status" class="text-sm font-medium text-gray-700 dark:text-gray-300">
           Visibility
         </label>
-        <select id="assignment-status" v-model="status" ::class="formSelectClass">
-          <option value="draft">Draft — only you can see this</option>
-          <option value="published">Published — students can see and hand this in</option>
-        </select>
+        <Select v-model="status">
+          <SelectTrigger id="assignment-status" class="mt-1.5 w-full rounded-md px-3">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="draft">Draft — only you can see this</SelectItem>
+            <SelectItem value="published">Published — students can see and hand this in</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </div>
 
