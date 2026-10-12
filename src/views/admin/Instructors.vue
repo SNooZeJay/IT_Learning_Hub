@@ -61,34 +61,48 @@
             class="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-muted"
             aria-hidden="true"
           />
-          <input
+          <Input
             v-model.trim="search"
             type="search"
             aria-label="Search instructor name, email or course"
             placeholder="Search name, email or course"
-            :class="searchClass"
+            class="rounded-md px-3 ps-9"
           />
         </div>
 
         <div class="grid gap-3 sm:grid-cols-2">
-          <label class="block">
-            <span class="mb-1 block text-xs font-medium text-slate">Account status</span>
-            <select v-model="statusFilter" :class="selectClass">
-              <option value="all">All statuses</option>
-              <option v-for="status in ACCOUNT_STATUSES" :key="status" :value="status">
-                {{ ACCOUNT_STATUS_LABELS[status] }}
-              </option>
-            </select>
-          </label>
+          <div>
+            <Label for="ins-status-filter" class="mb-1 block text-xs font-medium text-slate">
+              Account status
+            </Label>
+            <Select v-model="statusFilter">
+              <SelectTrigger id="ins-status-filter" class="w-full">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem v-for="status in ACCOUNT_STATUSES" :key="status" :value="status">
+                  {{ ACCOUNT_STATUS_LABELS[status] }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <label class="block">
-            <span class="mb-1 block text-xs font-medium text-slate">Course load</span>
-            <select v-model="loadFilter" :class="selectClass">
-              <option value="all">Any load</option>
-              <option value="none">No courses</option>
-              <option value="some">At least one</option>
-            </select>
-          </label>
+          <div>
+            <Label for="ins-load-filter" class="mb-1 block text-xs font-medium text-slate">
+              Course load
+            </Label>
+            <Select v-model="loadFilter">
+              <SelectTrigger id="ins-load-filter" class="w-full">
+                <SelectValue placeholder="Any load" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any load</SelectItem>
+                <SelectItem value="none">No courses</SelectItem>
+                <SelectItem value="some">At least one</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -140,14 +154,9 @@
             </div>
 
             <div class="flex shrink-0 items-center gap-2">
-              <span
-                :class="[
-                  'rounded-full px-2.5 py-1 text-xs font-medium',
-                  statusToneClass[instructor.status],
-                ]"
-              >
+              <Badge :class="statusToneClass[instructor.status]">
                 {{ ACCOUNT_STATUS_LABELS[instructor.status] }}
-              </span>
+              </Badge>
               <span class="rounded-full bg-surface px-2.5 py-1 text-xs font-medium text-slate">
                 {{ instructor.courseCount }}
                 {{ instructor.courseCount === 1 ? 'course' : 'courses' }}
@@ -218,7 +227,16 @@ import {
 } from '@/services/admin.service'
 import { formatDate } from '@/types'
 import type { AdminInstructor } from '@/services/admin.service'
-import { searchInputClass, selectClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
+import { Label } from '@/components/public/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import { Badge } from '@/components/public/ui/badge'
 import type { AccountStatus, CourseStatus } from '@/types'
 import type { Component } from 'vue'
 
@@ -231,10 +249,6 @@ const loadFilter = ref<LoadFilter>('all')
 
 const isLoading = ref(true)
 const errorMessage = ref('')
-
-/* See `controlClasses.ts`: the canonical search field. This was a local copy that
-   drifted to 4px corners and a placeholder below AA contrast. */
-const searchClass = searchInputClass
 
 const statusToneClass: Record<AccountStatus, string> = {
   active: 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',

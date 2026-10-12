@@ -79,35 +79,49 @@
             class="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-muted"
             aria-hidden="true"
           />
-          <input
+          <Input
             v-model.trim="search"
             type="search"
             aria-label="Search name or email"
             placeholder="Search name or email"
-            :class="searchClass"
+            class="ps-9"
           />
         </div>
 
         <div class="grid gap-3 sm:grid-cols-3">
-          <label class="block">
-            <span class="mb-1 block text-xs font-medium text-slate">Role</span>
-            <select v-model="roleFilter" :class="selectClass">
-              <option value="all">All roles</option>
-              <option v-for="role in ROLES" :key="role" :value="role">
-                {{ ROLE_LABELS[role] }}
-              </option>
-            </select>
-          </label>
+          <div>
+            <Label for="role-filter" class="mb-1 block text-xs font-medium text-slate">
+              Role
+            </Label>
+            <Select v-model="roleFilter">
+              <SelectTrigger id="role-filter" class="w-full">
+                <SelectValue placeholder="All roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All roles</SelectItem>
+                <SelectItem v-for="role in ROLES" :key="role" :value="role">
+                  {{ ROLE_LABELS[role] }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <label class="block">
-            <span class="mb-1 block text-xs font-medium text-slate">Status</span>
-            <select v-model="statusFilter" :class="selectClass">
-              <option value="all">All statuses</option>
-              <option v-for="status in ACCOUNT_STATUSES" :key="status" :value="status">
-                {{ ACCOUNT_STATUS_LABELS[status] }}
-              </option>
-            </select>
-          </label>
+          <div>
+            <Label for="status-filter" class="mb-1 block text-xs font-medium text-slate">
+              Status
+            </Label>
+            <Select v-model="statusFilter">
+              <SelectTrigger id="status-filter" class="w-full">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem v-for="status in ACCOUNT_STATUSES" :key="status" :value="status">
+                  {{ ACCOUNT_STATUS_LABELS[status] }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <p class="self-end pb-2 text-sm text-slate sm:text-end">
             {{ filtered.length }} of {{ users.length }}
@@ -133,23 +147,27 @@
 
       <div v-else class="mt-6 surface-card-shell">
         <div class="overflow-x-auto custom-scrollbar">
-          <table class="min-w-full text-start text-sm">
-            <caption class="sr-only">
+          <Table class="min-w-full text-sm">
+            <TableCaption class="sr-only">
               Every account, with role and account status controls
-            </caption>
-            <thead>
-              <tr class="bg-surface text-xs tracking-wide text-slate uppercase">
-                <th scope="col" class="px-5 py-3 text-start font-medium">Person</th>
-                <th scope="col" class="px-5 py-3 text-start font-medium">Role</th>
-                <th scope="col" class="px-5 py-3 text-start font-medium">Account</th>
-                <th scope="col" class="px-5 py-3 text-start font-medium">Joined</th>
-                <th scope="col" class="px-5 py-3 text-end font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-hairline">
+            </TableCaption>
+            <TableHeader>
+              <TableRow
+                class="bg-surface text-xs tracking-wide text-slate uppercase hover:bg-surface"
+              >
+                <TableHead scope="col" class="px-5 py-3 font-medium">Person</TableHead>
+                <TableHead scope="col" class="px-5 py-3 font-medium">Role</TableHead>
+                <TableHead scope="col" class="px-5 py-3 font-medium">Account</TableHead>
+                <TableHead scope="col" class="px-5 py-3 font-medium">Joined</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-end font-medium">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody class="divide-y divide-hairline">
               <template v-for="user in filtered" :key="user.id">
-                <tr class="align-top transition-colors hover:bg-surface-soft">
-                  <td class="px-5 py-4">
+                <TableRow
+                  class="align-top transition-colors motion-reduce:transition-none hover:bg-surface-soft"
+                >
+                  <TableCell class="px-5 py-4">
                     <div class="flex items-center gap-3">
                       <span
                         class="inline-flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-50 text-xs font-semibold text-brand-700 dark:bg-brand-500/15 dark:text-brand-400"
@@ -175,36 +193,40 @@
                         <p class="truncate text-slate">{{ user.email }}</p>
                       </div>
                     </div>
-                  </td>
+                  </TableCell>
 
-                  <td class="px-5 py-4">
-                    <select
-                      :value="user.role"
+                  <TableCell class="px-5 py-4">
+                    <Select
+                      :model-value="user.role"
                       :disabled="isBusy(user.id)"
-                      :aria-label="`Role for ${user.fullName}`"
-                      :class="[cellSelectClass, roleToneClass[user.role]]"
-                      @change="onRoleChange(user, $event)"
+                      @update:model-value="(role) => onRoleChange(user, role as Role)"
                     >
-                      <option v-for="role in ROLES" :key="role" :value="role">
-                        {{ ROLE_LABELS[role] }}
-                      </option>
-                    </select>
-                  </td>
+                      <SelectTrigger
+                        size="sm"
+                        :aria-label="`Role for ${user.fullName}`"
+                        :class="roleToneClass[user.role]"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem v-for="role in ROLES" :key="role" :value="role">
+                          {{ ROLE_LABELS[role] }}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
 
-                  <td class="px-5 py-4">
-                    <span
-                      :class="[
-                        'rounded-full px-2.5 py-1 text-xs font-medium',
-                        statusToneClass[user.status],
-                      ]"
-                    >
+                  <TableCell class="px-5 py-4">
+                    <Badge :class="statusToneClass[user.status]">
                       {{ ACCOUNT_STATUS_LABELS[user.status] }}
-                    </span>
-                  </td>
+                    </Badge>
+                  </TableCell>
 
-                  <td class="px-5 py-4 text-slate">{{ formatDate(user.createdAt) }}</td>
+                  <TableCell class="px-5 py-4 text-slate">{{
+                    formatDate(user.createdAt)
+                  }}</TableCell>
 
-                  <td class="px-5 py-4 text-end">
+                  <TableCell class="px-5 py-4 text-end">
                     <button
                       v-if="user.status !== 'suspended'"
                       type="button"
@@ -238,16 +260,16 @@
                       <CircleCheck v-else class="size-3.5" aria-hidden="true" />
                       Activate
                     </button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
 
                 <!--
                   The database's refusal, shown on the row that caused it. The
                   self-role-change and last-administrator guards both raise plain
                   sentences, and a generic toast would throw both away.
                 -->
-                <tr v-if="rowNotices[user.id]" class="bg-surface-soft">
-                  <td :colspan="5" class="px-5 py-3">
+                <TableRow v-if="rowNotices[user.id]" class="bg-surface-soft hover:bg-surface-soft">
+                  <TableCell :colspan="5" class="px-5 py-3">
                     <p
                       class="flex items-start gap-2 text-sm"
                       :class="
@@ -264,11 +286,11 @@
                       <CircleAlert v-else class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                       <span>{{ rowNotices[user.id] }}</span>
                     </p>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               </template>
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
 
@@ -321,7 +343,25 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/types'
 import type { AdminUser } from '@/services/admin.service'
-import { cellSelectClass, searchInputClass, selectClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
+import { Label } from '@/components/public/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import { Badge } from '@/components/public/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/public/ui/table'
 import type { AccountStatus, Role } from '@/types'
 
 const auth = useAuthStore()
@@ -338,10 +378,6 @@ const busyRowId = ref<string | null>(null)
 const rowNotices = ref<Record<string, string>>({})
 const rowNoticeTone = ref<Record<string, 'success' | 'error'>>({})
 const auditWarning = ref('')
-
-/* See `controlClasses.ts`: the canonical search field. This was a local copy that
-   drifted to 4px corners and a placeholder below AA contrast. */
-const searchClass = searchInputClass
 
 const actionButtonClass =
   'inline-flex items-center gap-1.5 rounded-md border border-hairline-strong bg-canvas px-2.5 py-1.5 text-xs font-medium text-ink transition hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50'
@@ -459,8 +495,7 @@ async function refresh(): Promise<void> {
   }
 }
 
-async function onRoleChange(user: AdminUser, event: Event): Promise<void> {
-  const next = (event.target as HTMLSelectElement).value as Role
+async function onRoleChange(user: AdminUser, next: Role): Promise<void> {
   if (next === user.role) return
 
   busyRowId.value = `${user.id}:role`

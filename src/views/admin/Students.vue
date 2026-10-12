@@ -61,35 +61,49 @@
             class="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-muted"
             aria-hidden="true"
           />
-          <input
+          <Input
             v-model.trim="search"
             type="search"
             aria-label="Search student name or email"
             placeholder="Search name or email"
-            :class="searchClass"
+            class="ps-9"
           />
         </div>
 
         <div class="grid gap-3 sm:grid-cols-2">
-          <label class="block">
-            <span class="mb-1 block text-xs font-medium text-slate">Account status</span>
-            <select v-model="statusFilter" :class="selectClass">
-              <option value="all">All statuses</option>
-              <option v-for="status in ACCOUNT_STATUSES" :key="status" :value="status">
-                {{ ACCOUNT_STATUS_LABELS[status] }}
-              </option>
-            </select>
-          </label>
+          <div>
+            <Label for="stu-status-filter" class="mb-1 block text-xs font-medium text-slate">
+              Account status
+            </Label>
+            <Select v-model="statusFilter">
+              <SelectTrigger id="stu-status-filter" class="w-full">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem v-for="status in ACCOUNT_STATUSES" :key="status" :value="status">
+                  {{ ACCOUNT_STATUS_LABELS[status] }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <label class="block">
-            <span class="mb-1 block text-xs font-medium text-slate">Enrollments</span>
-            <select v-model="enrolmentFilter" :class="selectClass">
-              <option value="all">Any number</option>
-              <option value="none">None yet</option>
-              <option value="some">At least one</option>
-              <option value="completed">Finished one</option>
-            </select>
-          </label>
+          <div>
+            <Label for="stu-enrol-filter" class="mb-1 block text-xs font-medium text-slate">
+              Enrollments
+            </Label>
+            <Select v-model="enrolmentFilter">
+              <SelectTrigger id="stu-enrol-filter" class="w-full">
+                <SelectValue placeholder="Any number" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any number</SelectItem>
+                <SelectItem value="none">None yet</SelectItem>
+                <SelectItem value="some">At least one</SelectItem>
+                <SelectItem value="completed">Finished one</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -115,55 +129,56 @@
 
       <div v-else class="mt-4 surface-card-shell">
         <div class="overflow-x-auto custom-scrollbar">
-          <table class="min-w-full text-start text-sm">
-            <caption class="sr-only">
-              Students with their enrollment counts
-            </caption>
-            <thead>
-              <tr class="bg-surface text-xs tracking-wide text-slate uppercase">
-                <th scope="col" class="px-5 py-3 text-start font-medium">Student</th>
-                <th scope="col" class="px-5 py-3 text-start font-medium">Account</th>
-                <th scope="col" class="px-5 py-3 text-end font-medium">Enrolled</th>
-                <th scope="col" class="px-5 py-3 text-end font-medium">Active</th>
-                <th scope="col" class="px-5 py-3 text-end font-medium">Completed</th>
-                <th scope="col" class="px-5 py-3 text-start font-medium">Last enrolled</th>
-                <th scope="col" class="px-5 py-3 text-start font-medium">Joined</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-hairline">
-              <tr
+          <Table class="min-w-full text-start text-sm">
+            <TableCaption class="sr-only"> Students with their enrollment counts </TableCaption>
+            <TableHeader>
+              <TableRow
+                class="bg-surface text-xs tracking-wide text-slate uppercase hover:bg-surface"
+              >
+                <TableHead scope="col" class="px-5 py-3 text-start font-medium">Student</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-start font-medium">Account</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-end font-medium">Enrolled</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-end font-medium">Active</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-end font-medium">Completed</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-start font-medium"
+                  >Last enrolled</TableHead
+                >
+                <TableHead scope="col" class="px-5 py-3 text-start font-medium">Joined</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody class="divide-y divide-hairline">
+              <TableRow
                 v-for="student in filtered"
                 :key="student.id"
                 class="transition-colors hover:bg-surface-soft"
               >
-                <td class="px-5 py-4">
+                <TableCell class="px-5 py-4">
                   <p class="truncate font-medium text-ink">{{ student.fullName }}</p>
                   <p class="truncate text-slate">{{ student.email }}</p>
-                </td>
-                <td class="px-5 py-4">
-                  <span
-                    :class="[
-                      'rounded-full px-2.5 py-1 text-xs font-medium',
-                      statusToneClass[student.status],
-                    ]"
-                  >
+                </TableCell>
+                <TableCell class="px-5 py-4">
+                  <Badge :class="statusToneClass[student.status]">
                     {{ ACCOUNT_STATUS_LABELS[student.status] }}
-                  </span>
-                </td>
-                <td class="px-5 py-4 text-end tabular-nums text-ink">
+                  </Badge>
+                </TableCell>
+                <TableCell class="px-5 py-4 text-end tabular-nums text-ink">
                   {{ student.enrolmentCount }}
-                </td>
-                <td class="px-5 py-4 text-end tabular-nums text-ink">{{ student.activeCount }}</td>
-                <td class="px-5 py-4 text-end tabular-nums text-ink">
+                </TableCell>
+                <TableCell class="px-5 py-4 text-end tabular-nums text-ink">{{
+                  student.activeCount
+                }}</TableCell>
+                <TableCell class="px-5 py-4 text-end tabular-nums text-ink">
                   {{ student.completedCount }}
-                </td>
-                <td class="px-5 py-4 text-slate">
+                </TableCell>
+                <TableCell class="px-5 py-4 text-slate">
                   {{ student.lastEnrolledAt ? formatDate(student.lastEnrolledAt) : '—' }}
-                </td>
-                <td class="px-5 py-4 text-slate">{{ formatDate(student.createdAt) }}</td>
-              </tr>
-            </tbody>
-          </table>
+                </TableCell>
+                <TableCell class="px-5 py-4 text-slate">{{
+                  formatDate(student.createdAt)
+                }}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </div>
       </div>
 
@@ -187,7 +202,25 @@ import LoadingState from '@/components/common/LoadingState.vue'
 import { ACCOUNT_STATUSES, ACCOUNT_STATUS_LABELS, listAllStudents } from '@/services/admin.service'
 import { formatDate } from '@/types'
 import type { AdminStudent } from '@/services/admin.service'
-import { searchInputClass, selectClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
+import { Label } from '@/components/public/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import { Badge } from '@/components/public/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/public/ui/table'
 import type { AccountStatus } from '@/types'
 
 type EnrolmentFilter = 'all' | 'none' | 'some' | 'completed'
@@ -199,10 +232,6 @@ const enrolmentFilter = ref<EnrolmentFilter>('all')
 
 const isLoading = ref(true)
 const errorMessage = ref('')
-
-/* See `controlClasses.ts`: the canonical search field. This was a local copy that
-   drifted to 4px corners and a placeholder below AA contrast. */
-const searchClass = searchInputClass
 
 const statusToneClass: Record<AccountStatus, string> = {
   active: 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',

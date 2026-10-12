@@ -78,13 +78,13 @@
         <div class="mt-4 grid gap-4 lg:grid-cols-2">
           <div>
             <label for="category-name" class="mb-1 block text-sm font-medium text-ink">Name</label>
-            <input
+            <Input
               id="category-name"
               v-model.trim="form.name"
               type="text"
               maxlength="80"
               placeholder="Networking and Security"
-              :class="inputClass"
+              class="rounded-md px-3"
             />
             <p class="mt-1 text-xs text-slate">Unique. A name already in use is refused.</p>
           </div>
@@ -99,13 +99,13 @@
               value, deriving the slug from the name and silently overwriting
               what was on screen - the field looked editable and was not.
             -->
-            <input
+            <Input
               id="category-slug"
               v-model.trim="form.slug"
               type="text"
               maxlength="80"
               placeholder="networking-and-security"
-              :class="inputClass"
+              class="rounded-md px-3"
               @input="slugTouched = true"
             />
             <p class="mt-1 text-xs text-slate">
@@ -117,25 +117,25 @@
             <label for="category-description" class="mb-1 block text-sm font-medium text-ink">
               Description
             </label>
-            <textarea
+            <Textarea
               id="category-description"
               v-model.trim="form.description"
               rows="2"
               maxlength="300"
               placeholder="One line about what belongs in this category."
-              :class="[inputClass, 'resize-y']"
-            ></textarea>
+              class="rounded-md px-3 resize-y"
+            />
           </div>
 
           <div>
             <label for="category-icon" class="mb-1 block text-sm font-medium text-ink">Icon</label>
-            <input
+            <Input
               id="category-icon"
               v-model.trim="form.icon"
               type="text"
               maxlength="60"
               placeholder="ShieldCheck"
-              :class="inputClass"
+              class="rounded-md px-3"
             />
           </div>
         </div>
@@ -307,6 +307,8 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import Alert from '@/components/ui/Alert.vue'
+import { Input } from '@/components/public/ui/input'
+import { Textarea } from '@/components/public/ui/textarea'
 import {
   AdminError,
   createCategory,
@@ -344,9 +346,6 @@ const rowNoticeTone = ref<Record<string, 'success' | 'error'>>({})
 const form = ref({ name: '', slug: '', description: '', icon: '' })
 /** Whether the slug was last typed by hand, so it stops following the name. */
 const slugTouched = ref(false)
-
-const inputClass =
-  'w-full rounded border border-hairline-strong bg-canvas px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-hidden'
 
 const actionButtonClass =
   'inline-flex items-center gap-1.5 rounded-md border border-hairline-strong bg-canvas px-2.5 py-1.5 text-xs font-medium text-ink transition hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50'

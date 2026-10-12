@@ -70,35 +70,49 @@
             class="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-muted"
             aria-hidden="true"
           />
-          <input
+          <Input
             v-model.trim="search"
             type="search"
             aria-label="Search payment by name, course or reference"
             placeholder="Search name, course or reference"
-            :class="searchClass"
+            class="ps-9"
           />
         </div>
 
         <div class="grid gap-3 sm:grid-cols-2">
-          <label class="block">
-            <span class="mb-1 block text-xs font-medium text-slate">Status</span>
-            <select v-model="statusFilter" :class="selectClass">
-              <option value="all">All statuses</option>
-              <option v-for="status in PAYMENT_STATUSES" :key="status" :value="status">
-                {{ PAYMENT_STATUS_LABELS[status] }}
-              </option>
-            </select>
-          </label>
+          <div>
+            <Label for="pay-status-filter" class="mb-1 block text-xs font-medium text-slate">
+              Status
+            </Label>
+            <Select v-model="statusFilter">
+              <SelectTrigger id="pay-status-filter" class="w-full">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem v-for="status in PAYMENT_STATUSES" :key="status" :value="status">
+                  {{ PAYMENT_STATUS_LABELS[status] }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <label class="block">
-            <span class="mb-1 block text-xs font-medium text-slate">Provider</span>
-            <select v-model="providerFilter" :class="selectClass">
-              <option value="all">All providers</option>
-              <option v-for="provider in providers" :key="provider" :value="provider">
-                {{ provider }}
-              </option>
-            </select>
-          </label>
+          <div>
+            <Label for="pay-provider-filter" class="mb-1 block text-xs font-medium text-slate">
+              Provider
+            </Label>
+            <Select v-model="providerFilter">
+              <SelectTrigger id="pay-provider-filter" class="w-full">
+                <SelectValue placeholder="All providers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All providers</SelectItem>
+                <SelectItem v-for="provider in providers" :key="provider" :value="provider">
+                  {{ provider }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -133,28 +147,32 @@
 
       <div v-else class="mt-4 surface-card-shell">
         <div class="overflow-x-auto custom-scrollbar">
-          <table class="min-w-full text-start text-sm">
-            <caption class="sr-only">
+          <Table class="min-w-full text-start text-sm">
+            <TableCaption class="sr-only">
               Every payment with its amount, status, provider and reference number
-            </caption>
-            <thead>
-              <tr class="bg-surface text-xs tracking-wide text-slate uppercase">
-                <th scope="col" class="px-5 py-3 text-start font-medium">Reference</th>
-                <th scope="col" class="px-5 py-3 text-start font-medium">Student</th>
-                <th scope="col" class="px-5 py-3 text-start font-medium">Course</th>
-                <th scope="col" class="px-5 py-3 text-end font-medium">Amount</th>
-                <th scope="col" class="px-5 py-3 text-start font-medium">Status</th>
-                <th scope="col" class="px-5 py-3 text-start font-medium">Provider</th>
-                <th scope="col" class="px-5 py-3 text-start font-medium">Paid</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-hairline">
-              <tr
+            </TableCaption>
+            <TableHeader>
+              <TableRow
+                class="bg-surface text-xs tracking-wide text-slate uppercase hover:bg-surface"
+              >
+                <TableHead scope="col" class="px-5 py-3 text-start font-medium"
+                  >Reference</TableHead
+                >
+                <TableHead scope="col" class="px-5 py-3 text-start font-medium">Student</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-start font-medium">Course</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-end font-medium">Amount</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-start font-medium">Status</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-start font-medium">Provider</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-start font-medium">Paid</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody class="divide-y divide-hairline">
+              <TableRow
                 v-for="payment in filtered"
                 :key="payment.id"
                 class="transition-colors hover:bg-surface-soft"
               >
-                <td class="px-5 py-4">
+                <TableCell class="px-5 py-4">
                   <!--
                     `break-all` on every provider identifier here.
 
@@ -180,35 +198,30 @@
                   <p class="mt-1 text-xs text-slate">
                     Raised {{ formatDateTime(payment.createdAt) }}
                   </p>
-                </td>
-                <td class="px-5 py-4 text-ink">{{ payment.studentName }}</td>
-                <td class="px-5 py-4 text-slate">{{ payment.courseTitle }}</td>
-                <td class="px-5 py-4 text-end tabular-nums font-medium text-ink">
+                </TableCell>
+                <TableCell class="px-5 py-4 text-ink">{{ payment.studentName }}</TableCell>
+                <TableCell class="px-5 py-4 text-slate">{{ payment.courseTitle }}</TableCell>
+                <TableCell class="px-5 py-4 text-end tabular-nums font-medium text-ink">
                   {{ formatPeso(payment.amountCentavos) }}
                   <p class="text-xs font-normal text-slate">{{ payment.currency }}</p>
-                </td>
-                <td class="px-5 py-4">
-                  <span
-                    :class="[
-                      'rounded-full px-2.5 py-1 text-xs font-medium',
-                      statusToneClass[payment.status],
-                    ]"
-                  >
+                </TableCell>
+                <TableCell class="px-5 py-4">
+                  <Badge :class="statusToneClass[payment.status]">
                     {{ PAYMENT_STATUS_LABELS[payment.status] }}
-                  </span>
-                </td>
-                <td class="px-5 py-4 text-slate">
+                  </Badge>
+                </TableCell>
+                <TableCell class="px-5 py-4 text-slate">
                   {{ payment.provider }}
                   <p v-if="payment.providerCheckoutId" class="mt-0.5 font-mono text-xs break-all">
                     {{ payment.providerCheckoutId }}
                   </p>
-                </td>
-                <td class="px-5 py-4 text-slate">
+                </TableCell>
+                <TableCell class="px-5 py-4 text-slate">
                   {{ payment.paidAt ? formatDateTime(payment.paidAt) : '—' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </div>
       </div>
 
@@ -268,24 +281,18 @@
               </div>
 
               <div class="flex shrink-0 flex-col items-start gap-1.5 sm:items-end">
-                <span
-                  :class="[
-                    'rounded-full px-2.5 py-1 text-xs font-medium',
-                    eventToneClass[event.processingStatus],
-                  ]"
-                >
+                <Badge :class="eventToneClass[event.processingStatus]">
                   {{ event.processingStatus }}
-                </span>
-                <span
-                  :class="[
-                    'rounded-full px-2.5 py-1 text-xs font-medium',
+                </Badge>
+                <Badge
+                  :class="
                     event.signatureVerified
                       ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400'
-                      : 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400',
-                  ]"
+                      : 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400'
+                  "
                 >
                   {{ event.signatureVerified ? 'Signature verified' : 'Signature not verified' }}
-                </span>
+                </Badge>
                 <span class="text-xs text-slate">
                   {{ event.livemode ? 'Live mode' : 'Test mode' }}
                 </span>
@@ -315,7 +322,25 @@ import {
   listAdminPaymentEvents,
   listAdminPayments,
 } from '@/services/admin.service'
-import { searchInputClass, selectClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
+import { Label } from '@/components/public/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import { Badge } from '@/components/public/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/public/ui/table'
 import { formatDateTime, formatPeso } from '@/types'
 import type {
   AdminPayment,
@@ -335,10 +360,6 @@ const providerFilter = ref<string>('all')
 
 const isLoading = ref(true)
 const errorMessage = ref('')
-
-/* See `controlClasses.ts`: the canonical search field. This was a local copy that
-   drifted to 4px corners and a placeholder below AA contrast. */
-const searchClass = searchInputClass
 
 const statusToneClass: Record<AdminPaymentStatus, string> = {
   paid: 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400',

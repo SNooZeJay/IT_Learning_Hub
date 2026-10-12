@@ -65,35 +65,49 @@
             aria-hidden="true"
           />
           <label for="course-search" class="sr-only">Search course titles</label>
-          <input
+          <Input
             v-model.trim="search"
             type="search"
             aria-label="Search course title"
             placeholder="Search course title"
-            :class="searchInputClass"
+            class="ps-9"
           />
         </div>
 
         <div class="grid gap-3 sm:grid-cols-2">
-          <label class="block">
-            <span :class="filterLabelClass">Status</span>
-            <select v-model="statusFilter" :class="selectClass">
-              <option value="all">All statuses</option>
-              <option v-for="status in COURSE_STATUSES" :key="status" :value="status">
-                {{ COURSE_STATUS_LABELS[status] }}
-              </option>
-            </select>
-          </label>
+          <div>
+            <Label for="status-filter" class="mb-1 block text-xs font-medium text-slate">
+              Status
+            </Label>
+            <Select v-model="statusFilter">
+              <SelectTrigger id="status-filter" class="w-full">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem v-for="status in COURSE_STATUSES" :key="status" :value="status">
+                  {{ COURSE_STATUS_LABELS[status] }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <label class="block">
-            <span :class="filterLabelClass">Category</span>
-            <select v-model="categoryFilter" :class="selectClass">
-              <option value="all">All categories</option>
-              <option v-for="category in categories" :key="category.id" :value="category.id">
-                {{ category.name }} ({{ category.courseCount }})
-              </option>
-            </select>
-          </label>
+          <div>
+            <Label for="category-filter" class="mb-1 block text-xs font-medium text-slate">
+              Category
+            </Label>
+            <Select v-model="categoryFilter">
+              <SelectTrigger id="category-filter" class="w-full">
+                <SelectValue placeholder="All categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                <SelectItem v-for="category in categories" :key="category.id" :value="category.id">
+                  {{ category.name }} ({{ category.courseCount }})
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -119,23 +133,29 @@
 
       <div v-else class="mt-4 surface-card-shell">
         <div class="overflow-x-auto custom-scrollbar">
-          <table class="min-w-full text-start text-sm">
-            <caption class="sr-only">
+          <Table class="min-w-full text-start text-sm">
+            <TableCaption class="sr-only">
               Every course with its publication status and instructor assignments
-            </caption>
-            <thead>
-              <tr class="bg-surface text-xs tracking-wide text-slate uppercase">
-                <th scope="col" class="px-5 py-3 text-start font-medium">Course</th>
-                <th scope="col" class="px-5 py-3 text-start font-medium">Status</th>
-                <th scope="col" class="px-5 py-3 text-end font-medium">Price</th>
-                <th scope="col" class="px-5 py-3 text-end font-medium">Enrollments</th>
-                <th scope="col" class="px-5 py-3 text-start font-medium">Instructors</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-hairline">
+            </TableCaption>
+            <TableHeader>
+              <TableRow
+                class="bg-surface text-xs tracking-wide text-slate uppercase hover:bg-surface"
+              >
+                <TableHead scope="col" class="px-5 py-3 text-start font-medium">Course</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-start font-medium">Status</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-end font-medium">Price</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-end font-medium"
+                  >Enrollments</TableHead
+                >
+                <TableHead scope="col" class="px-5 py-3 text-start font-medium"
+                  >Instructors</TableHead
+                >
+              </TableRow>
+            </TableHeader>
+            <TableBody class="divide-y divide-hairline">
               <template v-for="course in filtered" :key="course.id">
-                <tr class="align-top transition-colors hover:bg-surface-soft">
-                  <td class="px-5 py-4">
+                <TableRow class="align-top transition-colors hover:bg-surface-soft">
+                  <TableCell class="px-5 py-4">
                     <p class="font-medium text-ink">{{ course.title }}</p>
                     <p class="text-slate">
                       {{ course.categoryName ?? 'Uncategorised' }} ·
@@ -147,12 +167,12 @@
                     <p v-if="course.publishedAt" class="mt-1 text-slate">
                       Published {{ formatDate(course.publishedAt) }}
                     </p>
-                  </td>
+                  </TableCell>
 
-                  <td class="px-5 py-4">
-                    <span :class="[statusPillClass, COURSE_TONE[course.status]]">
+                  <TableCell class="px-5 py-4">
+                    <Badge :class="COURSE_TONE[course.status]">
                       {{ COURSE_STATUS_LABELS[course.status] }}
-                    </span>
+                    </Badge>
 
                     <div class="mt-2 flex flex-wrap gap-1.5">
                       <button
@@ -217,24 +237,24 @@
                         Restore to draft
                       </button>
                     </div>
-                  </td>
+                  </TableCell>
 
-                  <td class="px-5 py-4 text-end tabular-nums text-ink">
+                  <TableCell class="px-5 py-4 text-end tabular-nums text-ink">
                     {{ course.priceCentavos > 0 ? formatPeso(course.priceCentavos) : 'Free' }}
                     <p v-if="course.passingScore" class="text-xs text-slate">
                       {{ course.passingScore }}% to pass
                     </p>
-                  </td>
+                  </TableCell>
 
-                  <td class="px-5 py-4 text-end tabular-nums text-ink">
+                  <TableCell class="px-5 py-4 text-end tabular-nums text-ink">
                     {{ course.enrolmentCount }}
                     <p class="text-xs text-slate">
                       {{ course.activeEnrolmentCount }} active ·
                       {{ course.completedEnrolmentCount }} done
                     </p>
-                  </td>
+                  </TableCell>
 
-                  <td class="px-5 py-4">
+                  <TableCell class="px-5 py-4">
                     <ul v-if="course.instructors.length" class="flex flex-wrap gap-1.5">
                       <li v-for="instructor in course.instructors" :key="instructor.id">
                         <span
@@ -264,32 +284,38 @@
                     </p>
 
                     <p v-if="assignableInstructors(course).length" class="mt-2">
-                      <select
-                        :value="''"
+                      <Select
+                        :model-value="undefined"
                         :disabled="busyId !== null"
-                        :aria-label="`Assign an instructor to ${course.title}`"
-                        :class="[selectClass, 'py-1.5 text-xs']"
-                        @change="onAssign(course, $event)"
+                        @update:model-value="(id) => onAssign(course, id as string)"
                       >
-                        <option value="">Assign an instructor…</option>
-                        <option
-                          v-for="instructor in assignableInstructors(course)"
-                          :key="instructor.id"
-                          :value="instructor.id"
+                        <SelectTrigger
+                          size="sm"
+                          :aria-label="`Assign an instructor to ${course.title}`"
+                          class="py-1.5 text-xs"
                         >
-                          {{ instructor.fullName }}
-                        </option>
-                      </select>
+                          <SelectValue placeholder="Assign an instructor…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem
+                            v-for="instructor in assignableInstructors(course)"
+                            :key="instructor.id"
+                            :value="instructor.id"
+                          >
+                            {{ instructor.fullName }}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </p>
                     <p v-else-if="instructors.length > 0" class="mt-2 text-xs text-slate">
                       Every instructor is already on this course.
                     </p>
                     <p v-else class="mt-2 text-xs text-slate">No instructor accounts exist yet.</p>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
 
-                <tr v-if="rowNotices[course.id]" class="bg-surface-soft">
-                  <td colspan="5" class="px-5 py-3">
+                <TableRow v-if="rowNotices[course.id]" class="bg-surface-soft">
+                  <TableCell colspan="5" class="px-5 py-3">
                     <p
                       class="flex items-start gap-2 text-sm"
                       :class="
@@ -306,11 +332,11 @@
                       <CircleAlert v-else class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                       <span>{{ rowNotices[course.id] }}</span>
                     </p>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               </template>
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
 
@@ -345,15 +371,26 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import Alert from '@/components/ui/Alert.vue'
+import { TONE, quietButtonClass, rowActionClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
+import { Label } from '@/components/public/ui/label'
 import {
-  TONE,
-  filterLabelClass,
-  quietButtonClass,
-  rowActionClass,
-  searchInputClass,
-  selectClass,
-  statusPillClass,
-} from '@/components/ui/controlClasses'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import { Badge } from '@/components/public/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/public/ui/table'
 import {
   AdminError,
   COURSE_STATUSES,
@@ -555,11 +592,10 @@ async function onStatusChange(course: AdminCourse, status: CourseStatus): Promis
   }
 }
 
-async function onAssign(course: AdminCourse, event: Event): Promise<void> {
-  const select = event.target as HTMLSelectElement
-  const instructorId = select.value
-  // Reset first so choosing the same instructor twice in a row still fires.
-  select.value = ''
+async function onAssign(course: AdminCourse, instructorId: string): Promise<void> {
+  // No reset needed: the select is bound to `undefined`, so it always shows
+  // the placeholder and every choice fires. The native version had to clear
+  // `select.value` by hand so picking the same instructor twice still fired.
   if (!instructorId) return
 
   const instructor = instructors.value.find((person) => person.id === instructorId)
