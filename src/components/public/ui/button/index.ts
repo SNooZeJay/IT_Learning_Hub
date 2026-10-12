@@ -34,14 +34,14 @@ export const buttonVariants = cva(
           shared by every CTA on the public surface.
         */
         default:
-          'h-12 bg-lp-ink px-7 text-lp-ink-inverse shadow-lp-button transition-opacity duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:opacity-90',
+          'h-12 bg-lp-ink px-7 text-lp-ink-inverse shadow-lp-button transition-opacity duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:opacity-90 motion-reduce:transition-none',
 
         /*
           The secondary action beside it. A hairline on the card surface, not a
           grey - a grey outline next to an ink pill reads as a disabled button.
         */
         outline:
-          'h-12 border border-lp-line-strong bg-lp-card px-7 text-lp-ink transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-lp-canvas',
+          'h-12 border border-lp-line-strong bg-lp-card px-7 text-lp-ink transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-lp-canvas motion-reduce:transition-none',
 
         /* For controls on the card surface: hover only, no resting fill. */
         ghost:

@@ -5,13 +5,20 @@ import { cn } from '@/lib/utils'
 
 const props = defineProps<{
   defaultValue?: string | number
-  modelValue?: string | number
+  modelValue?: string | number | null
   class?: HTMLAttributes['class']
 }>()
 
 const emits = defineEmits<{
   (e: 'update:modelValue', payload: string | number): void
 }>()
+
+/*
+  `modelValue` accepts `null` because `v-model.number` on an emptied numeric
+  field yields `null`, and the native control accepted it. The grading and
+  course forms bind numbers that start empty; refusing `null` here would force
+  every one of them to coalesce before binding.
+*/
 
 const modelValue = useVModel(props, 'modelValue', emits, {
   passive: true,

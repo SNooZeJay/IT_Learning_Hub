@@ -43,12 +43,18 @@ const VIEWS = resolve(__dirname, '..')
 const files = vueFiles(VIEWS).filter((f) => !f.includes('__tests__'))
 
 /**
- * Every wrapper that contains a `<Label>`, with both margins reported.
+ * Every `<Label>`, with the margin state of its DIRECT parent div.
  *
- * "Exactly one contributor" is not "no wrapper may have a margin". A row that
- * owns the spacing beneath it and passes its Label `mb-0` is correct - that is
- * the pattern this file ends up recommending. What is wrong is a wrapper with a
- * margin ABOVE a Label that still carries one of its own, because the two stack.
+ * Only the direct parent matters. A grandparent's bottom margin sits below the
+ * whole row - under the control, not between the label and the field - so it
+ * never stacks with the label's own. The previous version of this check walked
+ * every ancestor and flagged filter rows whose outer container carries the
+ * spacing below the bar, which is correct layout, not a defect.
+ *
+ * The defect this catches: a wrapper div with its own `mb-*` directly around
+ * a Label that still carries one - the two stack in the gap between the row
+ * and the field. A wrapper that owns the gap passes its Label `mb-0`, which
+ * is the correct pattern and passes here.
  */
 function wrappersContainingALabel(
   content: string,
@@ -59,30 +65,45 @@ function wrappersContainingALabel(
     wrapperMargin: boolean
     labelOverrides: boolean
   }[] = []
+
+  // All div opens with their matching closes, so each Label can be placed in
+  // its innermost enclosing div.
+  const divs: { open: number; close: number; attrs: string }[] = []
   const openTag = /<div\b([^>]*)>/g
   let m: RegExpExecArray | null
-
   while ((m = openTag.exec(content)) !== null) {
     const attrs = m[1]
-    const line = content.slice(0, m.index).split('\n').length
     let depth = 1
-    let i = m.index + m[0].length
+    const i = m.index + m[0].length
     const tag = /<\/?div\b[^>]*>/g
     tag.lastIndex = i
     let t: RegExpExecArray | null
+    let close = content.length
     while ((t = tag.exec(content)) !== null) {
       depth += t[0].startsWith('</') ? -1 : 1
       if (depth === 0) {
-        i = t.index
+        close = t.index
         break
       }
     }
-    const inner = content.slice(m.index, i)
-    const labelTag = inner.match(/<Label\b([^>]*)>/)
-    if (!labelTag) continue
+    divs.push({ open: m.index, close, attrs })
+  }
 
-    const cls = attrs.match(/class="([^"]*)"/)?.[1] ?? ''
-    const labelCls = labelTag[1].match(/class="([^"]*)"/)?.[1] ?? ''
+  const labelTag = /<Label\b([^>]*)>/g
+  let l: RegExpExecArray | null
+  while ((l = labelTag.exec(content)) !== null) {
+    // Innermost enclosing div = the one that opens last before the Label.
+    // (An ancestor always opens earlier than a descendant.)
+    let parent: { open: number; close: number; attrs: string } | null = null
+    for (const d of divs) {
+      if (d.open < l.index && l.index < d.close) {
+        if (!parent || d.open > parent.open) parent = d
+      }
+    }
+    if (!parent) continue
+    const line = content.slice(0, parent.open).split('\n').length
+    const cls = parent.attrs.match(/class="([^"]*)"/)?.[1] ?? ''
+    const labelCls = l[1].match(/class="([^"]*)"/)?.[1] ?? ''
     out.push({
       cls,
       line,

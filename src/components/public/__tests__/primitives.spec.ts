@@ -251,7 +251,13 @@ describe('public primitives', () => {
         // the substring `transition-none`. Counting it would make every
         // correctly-written escape hatch look like an unhandled transition and
         // then demand a second escape hatch beside itself, which never converges.
-        const transitions = (content.match(/transition-(?!duration|none)[a-z-]+/g) ?? []).length
+        //
+        // The bracket alternative catches `transition-[color,box-shadow]`, the
+        // form shadcn uses most. Without it a component transitions and the
+        // test waves it through - which is how Badge shipped without an escape.
+        const transitions = (
+          content.match(/transition-(?:(?!duration|none)[a-z-]+|\[[^\]]+\])/g) ?? []
+        ).length
         const escapes = (content.match(/motion-reduce:/g) ?? []).length
         expect(
           escapes,

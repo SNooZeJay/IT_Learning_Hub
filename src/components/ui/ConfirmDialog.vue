@@ -1,43 +1,51 @@
 <template>
-  <Modal v-if="request" full-screen-backdrop @close="cancel">
-    <template #body>
-      <div
-        class="relative w-full max-w-md rounded-lg bg-white p-6 shadow-theme-lg dark:bg-gray-900"
-        role="dialog"
-        aria-modal="true"
-      >
-        <h3 class="section-heading">{{ request.title }}</h3>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">{{ request.message }}</p>
+  <!--
+    The shadcn AlertDialog renders the question now, not the hand-built Modal
+    box. Same store, same promise: `ask()` opens, `settle()` resolves, and the
+    `destructive-confirm.spec.ts` contract (every destructive path passes
+    through `useConfirm`) is untouched - only the surface changed.
 
-        <div class="mt-6 flex flex-wrap gap-3">
-          <button
-            type="button"
-            class="inline-flex items-center justify-center rounded-md border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.06]"
-            @click="cancel"
-          >
-            {{ request.cancelText }}
-          </button>
-          <button
-            type="button"
-            :class="[
-              'inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-medium text-white transition-colors',
-              request.variant === 'danger'
-                ? 'bg-error-600 hover:bg-error-700'
-                : 'bg-brand-500 hover:bg-brand-600',
-            ]"
-            @click="confirm"
-          >
-            {{ request.confirmText }}
-          </button>
-        </div>
-      </div>
-    </template>
-  </Modal>
+    `open` is driven by the store's `request`, so there is no local visibility
+    state to drift from it. Cancel is the quiet action, confirm carries the
+    variant: danger is the destructive red, anything else the brand green.
+  -->
+  <AlertDialog :open="request !== null" @update:open="(open) => { if (!open) cancel() }">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>{{ request?.title }}</AlertDialogTitle>
+        <AlertDialogDescription>{{ request?.message }}</AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel @click="cancel">
+          {{ request?.cancelText }}
+        </AlertDialogCancel>
+        <AlertDialogAction
+          :class="
+            request?.variant === 'danger'
+              ? 'bg-error-600 text-white hover:bg-error-700'
+              : 'bg-brand-500 text-white hover:bg-brand-600'
+          "
+          @click="confirm"
+        >
+          {{ request?.confirmText }}
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import Modal from '@/components/ui/Modal.vue'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/public/ui/alert-dialog'
 import { useConfirmStore } from '@/stores/confirm'
 
 const store = useConfirmStore()

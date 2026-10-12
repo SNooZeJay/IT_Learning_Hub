@@ -2,6 +2,8 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import fs from 'node:fs'
+import path from 'node:path'
 
 import LoadingState from '@/components/common/LoadingState.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -135,39 +137,53 @@ describe('shared dashboard components keep their API on shadcn internals', () =>
     })
   })
 
-  describe('no call site was touched', () => {
-    it('only the six component files changed, nothing that imports them', async () => {
-      const { execSync } = await import('node:child_process')
-      const out = execSync('git status --short -- src/', { encoding: 'utf-8' })
-      const changed = out
-        .split('\n')
-        .map((l) => l.trim().split(/\s+/).pop() ?? '')
-        .filter(Boolean)
-      const allowed = new Set([
-        'src/components/common/LoadingState.vue',
-        'src/components/common/EmptyState.vue',
-        'src/components/common/ErrorState.vue',
-        'src/components/common/PageHeader.vue',
-        'src/components/common/StatCard.vue',
-        'src/components/ui/ToastHost.vue',
-        // Phase 1's own additions: the new shadcn primitives and this spec.
-        // Anything else under src/views or src/components is a call site.
-        'src/components/__tests__/phase1-shared-components.spec.ts',
-      ])
-      const viewChanges = changed.filter((f) => {
-        if (allowed.has(f)) return false
-        if (f.startsWith('src/components/public/ui/')) return false
-        // Track A (landing motion) intentionally edits the landing page and
-        // adds its own spec. Those are the rebuild, not call-site drift - and
-        // they are pinned by landing-motion.spec.ts instead.
-        if (f === 'src/views/auth/Landing.vue') return false
-        if (f === 'src/views/__tests__/landing-motion.spec.ts') return false
-        if (f === 'src/views/__tests__/landing-public-components.spec.ts') return false
-        if (f === 'src/composables/useReducedMotion.ts') return false
-        if (f === 'src/assets/main.css') return false
-        return f.startsWith('src/views/') || f.startsWith('src/components/')
-      })
-      expect(viewChanges, `call sites changed: ${viewChanges.join(', ')}`).toEqual([])
+  describe('dashboard views carry no raw controls', () => {
+    /*
+      Track B completion rule. Phase 1 proved the shared components could be
+      rebuilt without touching call sites; Track B intentionally rebuilds the
+      call sites themselves, so that test is retired. What replaces it pins
+      the finished state instead: no dashboard view renders a raw `<table`,
+      a raw `<select`, or a hand-rolled status pill.
+
+      Content scan, not git status: it holds regardless of commit state, and a
+      view that regresses back to a native control fails whether it was
+      committed yesterday or edited just now.
+    */
+    it('no raw table, select, input or pill survives in student/instructor/admin views', () => {
+      const dirs = [
+        path.resolve(__dirname, '..', '..', 'views', 'student'),
+        path.resolve(__dirname, '..', '..', 'views', 'instructor'),
+        path.resolve(__dirname, '..', '..', 'views', 'admin'),
+      ]
+      const offenders: string[] = []
+      const walk = (d: string) => {
+        for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+          const full = path.join(d, entry.name)
+          if (entry.isDirectory()) {
+            walk(full)
+            continue
+          }
+          if (!full.endsWith('.vue')) continue
+          const content = fs.readFileSync(full, 'utf-8')
+          if (/<table[\s>]/.test(content)) offenders.push(`${entry.name}: raw <table`)
+          if (/<select[\s>]/.test(content)) offenders.push(`${entry.name}: raw <select`)
+          /*
+            Native radio and checkbox stay native deliberately: single-purpose,
+            styled inline, and fully accessible without a component. A shadcn
+            Checkbox/RadioGroup here would add indirection for no gain, and the
+            status pills in CourseEditor are a checked-state pattern, not a
+            missing component. `hidden` is not a control at all.
+          */
+          const textInputs = [...content.matchAll(/<input\b[^>]*>/g)].filter(
+            (m) => !/type="(radio|checkbox|hidden)"/.test(m[0]),
+          )
+          if (textInputs.length) offenders.push(`${entry.name}: raw <input x${textInputs.length}`)
+          if (/rounded-full px-2\.5 py-1 text-xs font-medium/.test(content))
+            offenders.push(`${entry.name}: hand-rolled pill`)
+        }
+      }
+      dirs.forEach(walk)
+      expect(offenders, `\n${offenders.join('\n')}`).toEqual([])
     })
   })
 })
