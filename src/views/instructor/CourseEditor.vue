@@ -63,14 +63,14 @@
                 >
                   Title
                 </label>
-                <input
+                <Input
                   id="title"
                   v-model.trim="form.title"
                   type="text"
                   required
                   maxlength="200"
                   placeholder="Introduction to Web Development"
-                  :class="inputClass"
+                  :class="fieldClass"
                 />
               </div>
 
@@ -81,7 +81,7 @@
                 >
                   Slug
                 </label>
-                <input
+                <Input
                   id="slug"
                   v-model.trim="form.slug"
                   @input="markSlugTouched"
@@ -89,7 +89,7 @@
                   required
                   maxlength="200"
                   placeholder="introduction-to-web-development"
-                  :class="inputClass"
+                  :class="fieldClass"
                 />
                 <!--
                   The slug is the public address. It says so here rather than
@@ -115,13 +115,13 @@
                 >
                   Description
                 </label>
-                <textarea
+                <Textarea
                   id="description"
                   v-model.trim="form.description"
                   rows="5"
                   placeholder="What a student will be able to do by the end."
-                  :class="textInputClass"
-                ></textarea>
+                  :class="fieldClass"
+                />
               </div>
 
               <div class="grid gap-5 sm:grid-cols-2">
@@ -132,12 +132,21 @@
                   >
                     Category
                   </label>
-                  <select id="category" v-model="form.categoryId" :class="selectClass">
-                    <option value="">No category</option>
-                    <option v-for="category in categories" :key="category.id" :value="category.id">
-                      {{ category.name }}
-                    </option>
-                  </select>
+                  <Select v-model="form.categoryId">
+                    <SelectTrigger id="category" class="w-full" :class="fieldClass">
+                      <SelectValue placeholder="No category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No category</SelectItem>
+                      <SelectItem
+                        v-for="category in categories"
+                        :key="category.id"
+                        :value="category.id"
+                      >
+                        {{ category.name }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
@@ -147,11 +156,16 @@
                   >
                     Level
                   </label>
-                  <select id="level" v-model="form.level" :class="selectClass">
-                    <option v-for="level in LEVELS" :key="level" :value="level">
-                      {{ LEVEL_LABELS[level] }}
-                    </option>
-                  </select>
+                  <Select v-model="form.level">
+                    <SelectTrigger id="level" class="w-full" :class="fieldClass">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="level in LEVELS" :key="level" :value="level">
+                        {{ LEVEL_LABELS[level] }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -169,13 +183,13 @@
                     submit handler writes. Storing what was typed would make
                     ₱1,500 into 1500 centavos, which is ₱15.
                   -->
-                  <input
+                  <Input
                     id="price"
                     :value="pesoInput"
                     type="text"
                     inputmode="decimal"
                     placeholder="0"
-                    :class="inputClass"
+                    :class="fieldClass"
                     :aria-invalid="Boolean(priceError)"
                     :aria-describedby="priceError ? 'price-error' : 'price-hint'"
                     @input="onPriceInput"
@@ -199,14 +213,14 @@
                   >
                     Duration (minutes)
                   </label>
-                  <input
+                  <Input
                     id="duration"
                     v-model.number="form.durationMinutes"
                     type="number"
                     min="0"
                     step="1"
                     placeholder="Leave blank to decide later"
-                    :class="inputClass"
+                    :class="fieldClass"
                   />
                 </div>
 
@@ -217,7 +231,7 @@
                   >
                     Pass mark (%)
                   </label>
-                  <input
+                  <Input
                     id="passing"
                     v-model.number="form.passingScore"
                     type="number"
@@ -225,7 +239,7 @@
                     max="100"
                     step="1"
                     placeholder="70"
-                    :class="inputClass"
+                    :class="fieldClass"
                   />
                 </div>
               </div>
@@ -361,12 +375,12 @@
                       >
                         Module title
                       </label>
-                      <input
+                      <Input
                         :id="`module-title-${module.id}`"
                         v-model.trim="moduleDraft.title"
                         type="text"
                         maxlength="200"
-                        :class="inputClass"
+                        :class="fieldClass"
                       />
                     </div>
                     <div>
@@ -376,12 +390,12 @@
                       >
                         Description
                       </label>
-                      <textarea
+                      <Textarea
                         :id="`module-description-${module.id}`"
                         v-model.trim="moduleDraft.description"
                         rows="2"
-                        :class="textAreaClass"
-                      ></textarea>
+                        :class="fieldClass"
+                      />
                     </div>
                     <div class="flex flex-wrap gap-2">
                       <button
@@ -519,13 +533,13 @@
                 >
                   Title
                 </label>
-                <input
+                <Input
                   id="new-module-title"
                   v-model.trim="moduleDraft.title"
                   type="text"
                   maxlength="200"
                   placeholder="Getting started"
-                  :class="inputClass"
+                  :class="fieldClass"
                 />
               </div>
               <div>
@@ -535,13 +549,13 @@
                 >
                   Description
                 </label>
-                <textarea
+                <Textarea
                   id="new-module-description"
                   v-model.trim="moduleDraft.description"
                   rows="3"
                   placeholder="Optional."
-                  :class="textAreaClass"
-                ></textarea>
+                  :class="fieldClass"
+                />
               </div>
               <div class="flex flex-wrap gap-2">
                 <button
@@ -588,12 +602,12 @@
                 >
                   Title
                 </label>
-                <input
+                <Input
                   id="lesson-title"
                   v-model.trim="lessonDraft.title"
                   type="text"
                   maxlength="200"
-                  :class="inputClass"
+                  :class="fieldClass"
                 />
               </div>
 
@@ -636,12 +650,12 @@
                 >
                   Video URL
                 </label>
-                <input
+                <Input
                   id="video-url"
                   v-model.trim="lessonDraft.videoUrl"
                   type="url"
                   placeholder="https://…"
-                  :class="inputClass"
+                  :class="fieldClass"
                 />
               </div>
 
@@ -652,13 +666,13 @@
                 >
                   Content
                 </label>
-                <textarea
+                <Textarea
                   id="lesson-content"
                   v-model="lessonDraft.content"
                   rows="8"
                   placeholder="The lesson body."
-                  :class="[textInputClass, 'font-mono']"
-                ></textarea>
+                  :class="[fieldClass, 'font-mono']"
+                />
               </div>
 
               <div class="grid gap-4 sm:grid-cols-2">
@@ -669,14 +683,14 @@
                   >
                     Duration (minutes)
                   </label>
-                  <input
+                  <Input
                     id="lesson-duration"
                     v-model.number="lessonDraft.durationMinutes"
                     type="number"
                     min="0"
                     step="1"
                     placeholder="10"
-                    :class="inputClass"
+                    :class="fieldClass"
                   />
                 </div>
 
@@ -773,47 +787,50 @@
       </form>
 
       <!-- Delete confirmation -->
-      <Modal v-if="confirmDelete" full-screen-backdrop @close="confirmDelete = false">
-        <template #body>
-          <div
-            class="relative w-full max-w-lg overflow-y-auto rounded-lg bg-white p-6 shadow-theme-lg dark:bg-gray-900"
-            role="dialog"
-            aria-modal="true"
-          >
-            <h3 class="section-heading">Delete “{{ form.title }}”?</h3>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+      <Dialog
+        :open="confirmDelete"
+        @update:open="
+          (open) => {
+            if (!open) confirmDelete = false
+          }
+        "
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete “{{ form.title }}”?</DialogTitle>
+            <DialogDescription>
               {{ modules.length }} module{{ modules.length === 1 ? '' : 's' }},
               {{ lessonCount }} lesson{{ lessonCount === 1 ? '' : 's' }} and all enrolled students'
               progress will be removed. This cannot be undone.
-            </p>
-            <Alert
-              v-if="deleteError"
-              variant="error"
-              title="Could not delete"
-              :message="deleteError"
-              class="mt-4"
-            />
-            <div class="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 rounded-md bg-error-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-error-700 disabled:opacity-60"
-                :disabled="isDeleting"
-                @click="removeCourse"
-              >
-                <LoaderCircle v-if="isDeleting" class="size-4 animate-spin" />
-                Delete permanently
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center justify-center rounded-md border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.06]"
-                @click="confirmDelete = false"
-              >
-                Keep the course
-              </button>
-            </div>
-          </div>
-        </template>
-      </Modal>
+            </DialogDescription>
+          </DialogHeader>
+          <Alert
+            v-if="deleteError"
+            variant="error"
+            title="Could not delete"
+            :message="deleteError"
+            class="mt-4"
+          />
+          <DialogFooter>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 rounded-md bg-error-600 px-5 py-2.5 text-sm font-medium text-white transition-colors motion-reduce:transition-none hover:bg-error-700 disabled:opacity-60"
+              :disabled="isDeleting"
+              @click="removeCourse"
+            >
+              <LoaderCircle v-if="isDeleting" class="size-4 animate-spin" />
+              Delete permanently
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-md border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors motion-reduce:transition-none hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.06]"
+              @click="confirmDelete = false"
+            >
+              Keep the course
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </template>
   </div>
 </template>
@@ -836,7 +853,6 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import Alert from '@/components/ui/Alert.vue'
-import Modal from '@/components/ui/Modal.vue'
 import {
   canClaimNewCourses,
   createInstructorCourse,
@@ -860,7 +876,23 @@ import { MAX_COURSE_PRICE_PESOS, parseNumericField, readNumericInput } from '@/u
 import type { CourseLevel, CourseStatus, Lesson, LessonType } from '@/types'
 import { courseStatusLabel, formatPeso } from '@/types'
 import { useAuthStore } from '@/stores/auth'
-import { selectClass, textInputClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import { Textarea } from '@/components/public/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/public/ui/dialog'
 import { useConfirm } from '@/composables/useConfirm'
 
 const route = useRoute()
@@ -925,7 +957,7 @@ const priceError = ref('')
 /**
  * Read the price field without letting it become a number.
  *
- * `v-model` on `<input type="number">` casts to a number, and this ref was read as a
+ * `v-model` on `<Input type="number">` casts to a number, and this ref was read as a
  * string - `pesoInput.value.trim()` - so typing any digit threw during render and
  * blanked the page. The sidebar survived because it renders outside this component,
  * which is what made it look like the form had gone dark rather than the component
@@ -1002,9 +1034,8 @@ const lessonDraft = ref({
   videoUrl: '',
 })
 
-const inputClass = [textInputClass, 'mt-1.5']
-
-const textAreaClass = [textInputClass, 'mt-1.5']
+/** Every text control on this form shares one geometry. */
+const fieldClass = 'mt-1.5 rounded-md px-3'
 
 const LEVELS: CourseLevel[] = ['beginner', 'intermediate', 'advanced']
 

@@ -12,24 +12,29 @@
         <Search
           class="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-gray-400"
         />
-        <input
+        <Input
           v-model.trim="search"
           type="search"
           aria-label="Search the grading queue"
           placeholder="Search by student, course or assignment"
-          :class="searchClass"
+          class="rounded-md px-3 ps-9"
         />
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
         <div class="relative sm:w-56">
-          <label for="course-filter" class="sr-only">Filter by course</label>
-          <select id="course-filter" v-model="courseFilter" :class="selectClass">
-            <option value="">All courses</option>
-            <option v-for="course in courseOptions" :key="course" :value="course">
-              {{ course }}
-            </option>
-          </select>
+          <Label for="course-filter" class="sr-only">Filter by course</Label>
+          <Select v-model="courseFilter">
+            <SelectTrigger id="course-filter" class="w-full sm:w-56">
+              <SelectValue placeholder="All courses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All courses</SelectItem>
+              <SelectItem v-for="course in courseOptions" :key="course" :value="course">
+                {{ course }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <button
@@ -196,13 +201,13 @@
                   >
                     Grade
                   </label>
-                  <input
+                  <Input
                     :id="`grade-${item.id}`"
-                    :value="grades[item.id] ?? ''"
+                    :model-value="grades[item.id] ?? ''"
                     type="text"
                     inputmode="decimal"
                     :placeholder="`0–${item.maxPoints}`"
-                    :class="inputClass"
+                    class="mt-1.5 rounded-md px-3"
                     :aria-invalid="Boolean(gradeErrors[item.id])"
                     :aria-describedby="
                       gradeErrors[item.id] ? `grade-error-${item.id}` : `grade-hint-${item.id}`
@@ -234,13 +239,13 @@
                   >
                     Feedback
                   </label>
-                  <textarea
+                  <Textarea
                     :id="`feedback-${item.id}`"
                     v-model="feedbacks[item.id]"
                     rows="4"
                     placeholder="Optional. What worked, and what to do next."
-                    :class="textInputClass"
-                  ></textarea>
+                    class="rounded-md px-3"
+                  />
                 </div>
               </div>
 
@@ -284,7 +289,16 @@ import { gradeSubmission, listGradingQueue } from '@/services/instructor.service
 import type { GradingQueueItem } from '@/services/instructor.service'
 import { formatDateTime } from '@/types'
 import { useAuthStore } from '@/stores/auth'
-import { searchInputClass, selectClass, textInputClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
+import { Label } from '@/components/public/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import { Textarea } from '@/components/public/ui/textarea'
 import { parseNumericField, readNumericInput } from '@/utils/numericField'
 import { useToast } from '@/composables/useToast'
 
@@ -305,10 +319,6 @@ const feedbacks = ref<Record<string, string>>({})
 /** submissionId -> message from the failed attempt. */
 const gradeErrors = ref<Record<string, string>>({})
 const isSaving = ref<string | null>(null)
-
-const searchClass = searchInputClass
-
-const inputClass = [textInputClass, 'mt-1.5']
 
 const filtered = computed(() => {
   const term = search.value.toLowerCase()

@@ -28,12 +28,12 @@
           <Search
             class="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-gray-400"
           />
-          <input
+          <Input
             v-model.trim="search"
             type="search"
             aria-label="Search your courses"
             placeholder="Search your courses"
-            :class="searchClass"
+            class="rounded-md px-3 ps-9"
           />
         </div>
         <div class="flex items-center gap-2">
@@ -173,7 +173,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Archive, CircleDot, Library, Pencil, PencilLine, Plus, Search } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
-import { searchInputClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
@@ -220,8 +220,6 @@ watch(search, (value) => {
 const status = ref<CourseStatus | 'all'>('all')
 const isLoading = ref(true)
 const errorMessage = ref('')
-
-const searchClass = searchInputClass
 
 const STATUS_FILTERS: Array<{ value: CourseStatus | 'all'; label: string }> = [
   { value: 'all', label: 'All' },

@@ -42,6 +42,15 @@ import LoadingState from '@/components/common/LoadingState.vue'
 import TrendChart from '@/components/common/TrendChart.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import Button from '@/components/ui/Button.vue'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/public/ui/table'
 import { useAuthStore } from '@/stores/auth'
 import { loadInstructorDashboard, type InstructorDashboard } from '@/services/dashboard.service'
 import { enrollmentStatusLabel, formatDateTime } from '@/types'
@@ -209,51 +218,53 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                 broken; one that scrolls only when it must does not.
               -->
               <div class="overflow-x-auto">
-                <table class="w-full min-w-[34rem] border-collapse text-start text-sm">
-                  <caption class="sr-only">
+                <Table class="w-full min-w-[34rem] border-collapse text-start text-sm">
+                  <TableCaption class="sr-only">
                     The most recent graded quiz attempts across your courses, with the score,
                     whether it passed, and how the attempt ended.
-                  </caption>
-                  <thead>
-                    <tr class="border-y border-gray-200 text-start dark:border-gray-800">
-                      <th
+                  </TableCaption>
+                  <TableHeader>
+                    <TableRow
+                      class="border-y border-gray-200 text-start hover:bg-transparent dark:border-gray-800"
+                    >
+                      <TableHead
                         scope="col"
                         class="px-6 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400"
                       >
                         Student
-                      </th>
-                      <th
+                      </TableHead>
+                      <TableHead
                         scope="col"
                         class="px-4 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400"
                       >
                         Quiz
-                      </th>
-                      <th
+                      </TableHead>
+                      <TableHead
                         scope="col"
                         class="px-4 py-3 text-end text-xs font-medium text-gray-500 dark:text-gray-400"
                       >
                         Score
-                      </th>
-                      <th
+                      </TableHead>
+                      <TableHead
                         scope="col"
                         class="px-4 py-3 text-start text-xs font-medium text-gray-500 dark:text-gray-400"
                       >
                         Ended
-                      </th>
-                      <th
+                      </TableHead>
+                      <TableHead
                         scope="col"
                         class="px-6 py-3 text-end text-xs font-medium text-gray-500 dark:text-gray-400"
                       >
                         When
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
-                    <tr
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody class="divide-y divide-gray-200 dark:divide-gray-800">
+                    <TableRow
                       v-for="attempt in dashboard.recentQuizAttempts"
                       :key="`${attempt.studentId ?? attempt.studentName}-${attempt.submittedAt}`"
                     >
-                      <td class="px-6 py-3.5">
+                      <TableCell class="px-6 py-3.5">
                         <div class="flex items-center gap-2.5">
                           <span
                             class="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface text-xs font-medium text-slate dark:bg-white/[0.06] dark:text-gray-300"
@@ -265,16 +276,16 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                             {{ attempt.studentName ?? 'Unknown student' }}
                           </span>
                         </div>
-                      </td>
-                      <td class="px-4 py-3.5">
+                      </TableCell>
+                      <TableCell class="px-4 py-3.5">
                         <span class="block text-gray-700 dark:text-gray-200">
                           {{ attempt.quizTitle }}
                         </span>
                         <span class="mt-0.5 block text-xs text-slate">
                           {{ attempt.courseTitle }}
                         </span>
-                      </td>
-                      <td class="px-4 py-3.5 text-end">
+                      </TableCell>
+                      <TableCell class="px-4 py-3.5 text-end">
                         <span
                           class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tabular-nums"
                           :class="
@@ -290,8 +301,8 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                           </template>
                           <template v-else>—</template>
                         </span>
-                      </td>
-                      <td class="px-4 py-3.5">
+                      </TableCell>
+                      <TableCell class="px-4 py-3.5">
                         <span
                           class="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium"
                           :class="
@@ -311,15 +322,15 @@ const hasCourses = computed(() => (dashboard.value?.courses ?? 0) > 0)
                           />
                           {{ endedLabel(attempt.endedVia).text }}
                         </span>
-                      </td>
-                      <td
+                      </TableCell>
+                      <TableCell
                         class="px-6 py-3.5 text-end text-xs whitespace-nowrap text-gray-500 tabular-nums dark:text-gray-400"
                       >
                         {{ formatDateTime(attempt.submittedAt) }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </div>
             </div>
 

@@ -25,12 +25,12 @@
           <Search
             class="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-gray-400"
           />
-          <input
+          <Input
             v-model.trim="search"
             type="search"
             aria-label="Search courses"
             placeholder="Search courses"
-            :class="searchClass"
+            class="rounded-md px-3 ps-9"
           />
         </div>
         <p class="section-subheading">
@@ -62,7 +62,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { BookOpen, Search } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
-import { searchInputClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
@@ -113,8 +113,6 @@ watch(search, (value) => {
 
 const isLoading = ref(true)
 const errorMessage = ref('')
-
-const searchClass = searchInputClass
 
 const filtered = computed(() => {
   const term = search.value.toLowerCase()

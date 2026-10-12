@@ -101,26 +101,29 @@
       <!-- The figures themselves. The charts answer "which course"; this answers
            "by how much", which a bar height alone does not. -->
       <div class="mt-6 overflow-x-auto surface-card-shell">
-        <table class="w-full min-w-3xl text-start">
-          <thead>
-            <tr class="border-b border-gray-200 dark:border-gray-800">
-              <th
+        <Table class="w-full min-w-3xl text-start">
+          <TableCaption class="sr-only">
+            Per-course enrollments, completions and average quiz scores
+          </TableCaption>
+          <TableHeader>
+            <TableRow class="border-b border-gray-200 dark:border-gray-800 hover:bg-transparent">
+              <TableHead
                 v-for="heading in HEADINGS"
                 :key="heading"
                 scope="col"
                 class="px-6 py-3 text-start text-xs font-medium tracking-wide text-slate uppercase"
               >
                 {{ heading }}
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
-            <tr
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody class="divide-y divide-gray-200 dark:divide-gray-800">
+            <TableRow
               v-for="course in stats.courses"
               :key="course.courseId"
               class="transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03]"
             >
-              <td class="px-6 py-4">
+              <TableCell class="px-6 py-4">
                 <router-link
                   :to="`/instructor/courses/${course.courseId}`"
                   class="inline-block py-1 text-sm font-medium text-gray-900 hover:text-brand-600 dark:text-white/90 dark:hover:text-brand-400"
@@ -130,14 +133,14 @@
                 <p class="mt-0.5 text-xs text-slate">
                   {{ courseStatusLabel(course.status) }}
                 </p>
-              </td>
-              <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+              </TableCell>
+              <TableCell class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                 {{ course.enrolments }}
-              </td>
-              <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+              </TableCell>
+              <TableCell class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                 {{ course.completions }}
-              </td>
-              <td class="px-6 py-4">
+              </TableCell>
+              <TableCell class="px-6 py-4">
                 <div class="flex items-center gap-3">
                   <div
                     class="h-2 min-w-16 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-white/[0.08]"
@@ -157,8 +160,8 @@
                     {{ course.completionRate }}%
                   </span>
                 </div>
-              </td>
-              <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+              </TableCell>
+              <TableCell class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                 <!-- Null means no attempts. "0%" would claim a student scored
                      nothing, which is a different statement. -->
                 <!--
@@ -174,10 +177,10 @@
                 <p v-if="course.attempts > 0" class="text-xs text-slate">
                   {{ course.attempts }} attempt{{ course.attempts === 1 ? '' : 's' }}
                 </p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
 
       <!--
@@ -210,6 +213,15 @@ import StatCard from '@/components/common/StatCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/public/ui/table'
 import { getInstructorInsights } from '@/services/instructor.service'
 import type { InstructorInsights } from '@/services/instructor.service'
 import { courseStatusLabel } from '@/types'

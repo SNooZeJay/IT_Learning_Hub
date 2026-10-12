@@ -24,22 +24,28 @@
           <Search
             class="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-gray-400"
           />
-          <input
+          <Input
             v-model.trim="search"
             type="search"
+            aria-label="Search by name, email or course"
             placeholder="Search by name, email or course"
-            :class="searchClass"
+            class="ps-9"
           />
         </div>
 
         <div class="relative sm:w-64">
-          <label for="course-filter" class="sr-only">Filter by course</label>
-          <select id="course-filter" v-model="courseFilter" :class="selectClass">
-            <option value="">All courses</option>
-            <option v-for="course in courseOptions" :key="course" :value="course">
-              {{ course }}
-            </option>
-          </select>
+          <Label for="course-filter" class="sr-only">Filter by course</Label>
+          <Select v-model="courseFilter">
+            <SelectTrigger id="course-filter" class="w-full sm:w-64">
+              <SelectValue placeholder="All courses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All courses</SelectItem>
+              <SelectItem v-for="course in courseOptions" :key="course" :value="course">
+                {{ course }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -87,10 +93,13 @@
         </dl>
 
         <div class="overflow-x-auto surface-card-shell">
-          <table class="w-full min-w-3xl text-start">
-            <thead>
-              <tr class="border-b border-gray-200 dark:border-gray-800">
-                <th
+          <Table class="w-full min-w-3xl text-start">
+            <TableCaption class="sr-only">
+              Students with their course enrollments and progress
+            </TableCaption>
+            <TableHeader>
+              <TableRow class="border-b border-gray-200 dark:border-gray-800 hover:bg-transparent">
+                <TableHead
                   v-for="heading in HEADINGS"
                   :key="heading"
                   scope="col"
@@ -98,16 +107,16 @@
                   :class="heading === 'Progress' ? 'w-56' : ''"
                 >
                   {{ heading }}
-                </th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
-              <tr
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody class="divide-y divide-gray-200 dark:divide-gray-800">
+              <TableRow
                 v-for="row in filtered"
                 :key="row.enrollmentId"
                 class="transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03]"
               >
-                <td class="px-6 py-4">
+                <TableCell class="px-6 py-4">
                   <div class="flex items-center gap-3">
                     <span
                       class="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-medium text-gray-600 dark:bg-white/[0.06] dark:text-gray-300"
@@ -129,27 +138,27 @@
                       </p>
                     </div>
                   </div>
-                </td>
+                </TableCell>
 
-                <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                <TableCell class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                   <router-link
                     :to="`/instructor/courses/${row.courseId}`"
                     class="inline-block py-1 hover:text-brand-600 dark:hover:text-brand-400"
                   >
                     {{ row.courseTitle }}
                   </router-link>
-                </td>
+                </TableCell>
 
-                <td class="px-6 py-4">
+                <TableCell class="px-6 py-4">
                   <span
                     class="inline-flex rounded px-2 py-1 text-xs font-medium"
                     :class="statusClass(row.status)"
                   >
                     {{ enrollmentStatusLabel(row.status) }}
                   </span>
-                </td>
+                </TableCell>
 
-                <td class="px-6 py-4">
+                <TableCell class="px-6 py-4">
                   <!--
                     A course with no lessons has no denominator, so it renders as
                     "no lessons yet" rather than a 0% bar. A progress bar at zero
@@ -188,14 +197,14 @@
                       {{ row.lessonsCompleted }} of {{ row.lessonsTotal }} lessons
                     </p>
                   </template>
-                </td>
+                </TableCell>
 
-                <td class="px-6 py-4 section-subheading">
+                <TableCell class="px-6 py-4 section-subheading">
                   {{ formatDate(row.enrolledAt) }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </div>
       </template>
     </template>
@@ -213,7 +222,24 @@ import { listInstructorStudents } from '@/services/instructor.service'
 import type { InstructorStudentRow } from '@/services/instructor.service'
 import type { EnrollmentStatus } from '@/types'
 import { enrollmentStatusLabel, formatDate } from '@/types'
-import { searchInputClass, selectClass } from '@/components/ui/controlClasses'
+import { Input } from '@/components/public/ui/input'
+import { Label } from '@/components/public/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/public/ui/table'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -225,8 +251,6 @@ const isLoading = ref(true)
 const errorMessage = ref('')
 
 const HEADINGS = ['Student', 'Course', 'Status', 'Progress', 'Enrolled']
-
-const searchClass = searchInputClass
 
 const filtered = computed(() => {
   const term = search.value.toLowerCase()
