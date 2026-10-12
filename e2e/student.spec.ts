@@ -104,7 +104,19 @@ test.describe('Student', () => {
 
     const firstLesson = page.locator('a[href^="/student/lessons/"]').first()
     // No skip: an enrolled course that shows no lessons is a defect, and the assertion
-    // below is what should report it.
+    // below is what should report it. The outline collapses finished work by default,
+    // so open closed disclosures in order until the link appears - exactly what a
+    // student does. If nothing opens it, the course genuinely has no reachable
+    // lesson and the visibility assertion reports it.
+    if (!(await firstLesson.isVisible())) {
+      const triggers = page.locator('[data-slot="accordion-trigger"]')
+      const n = await triggers.count()
+      for (let i = 0; i < n && !(await firstLesson.isVisible()); i++) {
+        if ((await triggers.nth(i).getAttribute('aria-expanded')) === 'false') {
+          await triggers.nth(i).click()
+        }
+      }
+    }
     await expect(firstLesson).toBeVisible()
     await firstLesson.click()
 
