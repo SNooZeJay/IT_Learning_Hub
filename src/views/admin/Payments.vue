@@ -6,6 +6,22 @@
       :crumbs="[{ label: 'Admin', to: '/admin/dashboard' }, { label: 'Payments' }]"
     >
       <template #actions>
+        <!--
+          Exports the rows on screen, filters and search included, in the order
+          they appear. Not the whole ledger: this list is capped, and the warning
+          above the table says so in as many words. Disabled when nothing matches,
+          because a header-only file is worse than no button - it looks like a
+          result.
+        -->
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-md border border-hairline-strong bg-canvas px-3 py-2 text-sm font-medium text-ink transition hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="isLoading || filtered.length === 0"
+          @click="exportCsv"
+        >
+          <Download class="size-4" aria-hidden="true" />
+          Export CSV
+        </button>
         <button
           type="button"
           class="inline-flex items-center gap-2 rounded-md border border-hairline-strong bg-canvas px-3 py-2 text-sm font-medium text-ink transition hover:bg-surface"
@@ -121,11 +137,18 @@
         {{ payments.length === 1 ? 'payment' : 'payments' }}
       </p>
 
+      <!--
+        The truncation warning says so about the export too, not just about the
+        table. A downloaded file is the one that leaves the building: an
+        administrator who exports while this is showing would otherwise hand a
+        spreadsheet to the school's books with rows quietly missing, and nothing
+        in the file itself would say so.
+      -->
       <Alert
         v-if="paymentsTruncated"
         variant="warning"
         title="Older payments are not shown"
-        :message="`Showing the ${ADMIN_PAYMENT_LIMIT} most recent payments. Earlier ones are still recorded and can be looked up by reference.`"
+        :message="`Showing the ${ADMIN_PAYMENT_LIMIT} most recent payments. Earlier ones are still recorded and can be looked up by reference. An exported CSV carries these rows only - it is not the full ledger.`"
         class="mt-4"
       />
 
@@ -307,7 +330,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Clock, CircleX, RotateCcw, Search, Wallet, Webhook } from 'lucide-vue-next'
+import { Clock, CircleX, Download, RotateCcw, Search, Wallet, Webhook } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatCard from '@/components/common/StatCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -323,6 +346,7 @@ import {
   listAdminPayments,
 } from '@/services/admin.service'
 import { Input } from '@/components/public/ui/input'
+import { adminPaymentsToCsv, downloadCsv } from '@/utils/csv'
 import { Label } from '@/components/public/ui/label'
 import {
   Select,
@@ -427,6 +451,20 @@ const filtered = computed(() => {
     )
   })
 })
+
+/**
+ * Download exactly the rows on screen.
+ *
+ * The same `filtered` the table renders, so the file can never disagree with
+ * the screen it came from - same search word, same status and provider filters,
+ * same order. Dated in the filename from the local clock rather than from the
+ * newest row, because a filtered export's newest row can be weeks old and
+ * naming the file after it would be a small lie of its own.
+ */
+function exportCsv(): void {
+  const today = new Date().toISOString().slice(0, 10)
+  downloadCsv(`payments-${today}.csv`, adminPaymentsToCsv(filtered.value))
+}
 
 async function load(): Promise<void> {
   isLoading.value = true

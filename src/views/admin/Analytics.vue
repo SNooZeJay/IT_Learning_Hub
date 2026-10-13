@@ -235,6 +235,88 @@
       </section>
 
       <!--
+        Recent student results: who sat what, and how it went.
+
+        The panel above counts attempts and averages percentages; this names the
+        people behind them. A platform administrator's most common question after
+        "how is assessment going" is "who is falling behind", and no chart above
+        can answer it - only rows can. Ten newest outcomes platform-wide:
+        submitted quiz attempts and graded assignments, each with the student, the
+        course, the score and the date.
+
+        Every row is a row somewhere, read straight. Submitted-only and graded-only
+        is deliberate rather than lazy: work sitting unmarked in an instructor's
+        queue has no outcome yet, and "In progress" above already counts it. A card
+        that read "no results" while a queue sat waiting would be true about
+        outcomes and misleading about activity.
+      -->
+      <div class="mt-6 surface-card-shell">
+        <h2 class="section-heading">Recent student results</h2>
+        <p class="mt-1 section-subheading">
+          Submitted quizzes and graded assignments across every course, newest first.
+        </p>
+
+        <p v-if="resultsError" class="mt-4 text-sm text-error-600 dark:text-error-400">
+          {{ resultsError }}
+        </p>
+
+        <p v-else-if="results.length === 0" class="mt-4 section-subheading">
+          No results yet. Rows appear here the moment a student submits a quiz or an instructor
+          grades an assignment.
+        </p>
+
+        <div v-else class="mt-4 overflow-x-auto custom-scrollbar">
+          <Table class="min-w-full text-start text-sm">
+            <TableCaption class="sr-only">
+              Recent quiz and assignment results across every course
+            </TableCaption>
+            <TableHeader>
+              <TableRow class="border-b border-gray-200 hover:bg-transparent dark:border-gray-800">
+                <TableHead scope="col" class="px-5 py-3 font-medium">Student</TableHead>
+                <TableHead scope="col" class="px-5 py-3 font-medium">Item</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-end font-medium">Score</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-end font-medium">Submitted</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody class="divide-y divide-gray-200 dark:divide-gray-800">
+              <TableRow
+                v-for="row in results"
+                :key="`${row.kind}-${row.id}`"
+                class="transition-colors motion-reduce:transition-none hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+              >
+                <TableCell class="px-5 py-4">
+                  <p class="font-medium text-ink">{{ row.studentName }}</p>
+                  <p class="text-slate">{{ row.courseTitle }}</p>
+                </TableCell>
+                <TableCell class="px-5 py-4">
+                  <p class="text-ink">{{ row.itemTitle }}</p>
+                  <p class="text-xs text-slate">
+                    {{ row.kind === 'quiz' ? 'Quiz' : 'Assignment' }}
+                  </p>
+                </TableCell>
+                <TableCell class="px-5 py-4 text-end">
+                  <Badge
+                    :class="
+                      row.passed === true
+                        ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400'
+                        : row.passed === false
+                          ? 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400'
+                          : 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400'
+                    "
+                  >
+                    {{ row.scoreText }}
+                  </Badge>
+                </TableCell>
+                <TableCell class="px-5 py-4 text-end text-slate">
+                  {{ formatDateTime(row.submittedAt) }}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      <!--
         The series are capped at six months by design, and this says so where the
         number is rather than leaving a reader to assume the window is unbounded.
       -->
@@ -266,13 +348,26 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import { useTheme } from '@/composables/useTheme'
-import { getPlatformAnalytics } from '@/services/admin.service'
-import { formatPeso } from '@/types'
-import type { PlatformAnalytics } from '@/services/admin.service'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/public/ui/table'
+import { Badge } from '@/components/public/ui/badge'
+import { getPlatformAnalytics, listAdminRecentResults } from '@/services/admin.service'
+import { formatDateTime, formatPeso } from '@/types'
+import type { AdminResultRow, PlatformAnalytics } from '@/services/admin.service'
 
 const analytics = ref<PlatformAnalytics | null>(null)
 const isLoading = ref(true)
 const errorMessage = ref('')
+
+const results = ref<AdminResultRow[]>([])
+const resultsError = ref('')
 
 /**
  * The resolved theme, for the six charts on this screen.
@@ -545,8 +640,23 @@ const paymentStatusChartOptions = computed<ApexOptions>(() => ({
 async function load(): Promise<void> {
   isLoading.value = true
   errorMessage.value = ''
+  // Reset on entry, not only on success. A retry that fails would otherwise leave
+  // the previous load's figures on screen under an error message, which reads as
+  // "these are the numbers, and something else is wrong".
+  results.value = []
+  resultsError.value = ''
   try {
     analytics.value = await getPlatformAnalytics()
+    // Loaded beside the aggregates, not inside them: a failure here must not take
+    // down six charts. But it must not read as "no results" either - an empty card
+    // would claim nobody sat anything, which a failed read cannot know. So the
+    // failure gets its own sentence under the heading.
+    try {
+      results.value = await listAdminRecentResults()
+    } catch (error) {
+      results.value = []
+      resultsError.value = error instanceof Error ? error.message : 'Could not load recent results.'
+    }
   } catch (error) {
     errorMessage.value =
       error instanceof Error ? error.message : 'Could not load platform analytics.'

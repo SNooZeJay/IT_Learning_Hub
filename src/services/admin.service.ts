@@ -72,11 +72,12 @@ const PAYMENT_COLUMNS =
 const ATTEMPT_COLUMNS = 'id, quiz_id, course_id, percentage, passed, status, submitted_at'
 
 /**
- * `payment_events` and `certificates` are real tables with admin-visible rows,
- * but neither is in the hand-written `Database` type in
+ * `payment_events`, `certificates` and the two assessment tables
+ * (`assignments`, `assignment_submissions`) are real tables with admin-visible
+ * rows, but none of them is in the hand-written `Database` type in
  * `services/supabase/types.ts`, which is deliberately maintained in its own
  * change. Rather than widen the shared client for every caller in the app, the
- * two untyped surfaces this file needs are given the narrowest shape that still
+ * untyped surfaces this file needs are given the narrowest shape that still
  * lets Postgres answer, and their error is surfaced untouched.
  *
  * It is an adapter, not an escape hatch: nothing crosses it un-narrowed, and both
@@ -94,6 +95,7 @@ interface QueryResponse {
 interface UntypedQuery extends PromiseLike<QueryResponse> {
   select(columns: string, options?: { count?: 'exact'; head?: boolean }): UntypedQuery
   eq(column: string, value: string): UntypedQuery
+  in(column: string, values: readonly string[]): UntypedQuery
   order(column: string, options: { ascending: boolean; nullsFirst?: boolean }): UntypedQuery
   limit(count: number): UntypedQuery
   then<TResult1 = QueryResponse, TResult2 = never>(
@@ -1325,6 +1327,182 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalytics> {
     revenueByMonth,
     enrollmentsByMonth,
   }
+}
+
+/**
+ * One graded outcome, from either assessment kind.
+ *
+ * Deliberately the same row shape the instructor card uses, so the two screens
+ * cannot drift into telling different stories about the same submission: a
+ * `scoreText` is `91%` on a quiz and `8/10` on an assignment, and `passed` is
+ * null on an assignment because assignments carry no pass flag of their own.
+ */
+export interface AdminResultRow {
+  id: string
+  kind: 'quiz' | 'assignment'
+  studentName: string
+  courseTitle: string
+  itemTitle: string
+  /** `91%` for a quiz, `8/10` for an assignment. Never invented: null stays out. */
+  scoreText: string
+  /** Null for assignments, which carry no pass flag of their own. */
+  passed: boolean | null
+  submittedAt: string
+}
+
+/**
+ * The newest student outcomes across the whole platform, newest first.
+ *
+ * The admin's counterpart to `listInstructorRecentResults`, and the reason it
+ * takes no instructor id: an admin already sees every course, so scoping the
+ * first two reads would filter rows an admin is entitled to and add nothing.
+ * Everything downstream is still bounded - `limit` rows per kind, then only the
+ * quizzes, assignments, courses and profiles those rows actually name.
+ *
+ * Submitted attempts and graded submissions only, for the same reason the
+ * instructor card does it: work still in a grading queue is not an outcome, and
+ * `getPlatformAnalytics` already counts it as in-progress. A card that showed
+ * "no results" while a queue sat unmarked would be telling the truth about
+ * outcomes and the lie about activity.
+ */
+export async function listAdminRecentResults(limit = 10): Promise<AdminResultRow[]> {
+  const [attemptRes, submissionRes] = await Promise.all([
+    untypedTables
+      .from('quiz_attempts')
+      .select('id, quiz_id, course_id, student_id, percentage, passed, submitted_at')
+      .eq('status', 'submitted')
+      .order('submitted_at', { ascending: false })
+      .limit(limit),
+    untypedTables
+      .from('assignment_submissions')
+      .select('id, assignment_id, course_id, student_id, grade, submitted_at')
+      .eq('status', 'graded')
+      .order('submitted_at', { ascending: false })
+      .limit(limit),
+  ])
+
+  if (attemptRes.error) throw fail(attemptRes.error, 'Could not load recent quiz results.')
+  if (submissionRes.error)
+    throw fail(submissionRes.error, 'Could not load recent assignment results.')
+
+  interface AttemptRow {
+    id: string
+    quiz_id: string
+    course_id: string
+    student_id: string
+    percentage: string | number | null
+    passed: boolean | null
+    submitted_at: string
+  }
+  interface SubmissionRow {
+    id: string
+    assignment_id: string
+    course_id: string
+    student_id: string
+    grade: string | number | null
+    submitted_at: string
+  }
+
+  // The untyped surface hands back `unknown`; these two narrowings are the
+  // shape check the adapter's own comment promises its readers perform.
+  const attempts = (attemptRes.data as AttemptRow[] | null) ?? []
+  const submissions = (submissionRes.data as SubmissionRow[] | null) ?? []
+  if (attempts.length === 0 && submissions.length === 0) return []
+
+  const quizIds = [...new Set(attempts.map((row) => row.quiz_id))]
+  const assignmentIds = [...new Set(submissions.map((row) => row.assignment_id))]
+  const courseIds = [
+    ...new Set([
+      ...attempts.map((row) => row.course_id),
+      ...submissions.map((row) => row.course_id),
+    ]),
+  ]
+  const studentIds = [
+    ...new Set([
+      ...attempts.map((row) => row.student_id),
+      ...submissions.map((row) => row.student_id),
+    ]),
+  ]
+
+  const [quizRes, assignmentRes, courseRes, profileRes] = await Promise.all([
+    quizIds.length > 0
+      ? supabase.from('quizzes').select('id, title').in('id', quizIds)
+      : Promise.resolve({ data: [], error: null }),
+    assignmentIds.length > 0
+      ? untypedTables.from('assignments').select('id, title, max_points').in('id', assignmentIds)
+      : Promise.resolve({ data: [], error: null }),
+    supabase.from('courses').select('id, title').in('id', courseIds),
+    supabase.from('profiles').select(NAME_COLUMNS).in('id', studentIds),
+  ])
+
+  if (quizRes.error) throw fail(quizRes.error, 'Could not load quiz titles.')
+  if (assignmentRes.error) throw fail(assignmentRes.error, 'Could not load assignment titles.')
+  if (courseRes.error) throw fail(courseRes.error, 'Could not load courses.')
+  if (profileRes.error) throw fail(profileRes.error, 'Could not load student profiles.')
+
+  const quizTitles = new Map(
+    ((quizRes.data ?? []) as Array<{ id: string; title: string }>).map((row) => [
+      row.id,
+      row.title,
+    ]),
+  )
+  const assignmentById = new Map(
+    (
+      (assignmentRes.data ?? []) as Array<{
+        id: string
+        title: string
+        max_points: string | number
+      }>
+    ).map((row) => [row.id, row]),
+  )
+  const courseTitles = new Map(
+    ((courseRes.data ?? []) as Array<{ id: string; title: string }>).map((row) => [
+      row.id,
+      row.title,
+    ]),
+  )
+  const studentNames = new Map(
+    ((profileRes.data ?? []) as Array<{ id: string; full_name: string }>).map((row) => [
+      row.id,
+      row.full_name,
+    ]),
+  )
+
+  const rows: AdminResultRow[] = [
+    ...attempts
+      // A submitted attempt with no percentage is a scoring failure upstream,
+      // not a zero. Dropping it beats printing `NaN%` on the admin's screen.
+      .filter((row) => row.percentage !== null)
+      .map((row) => ({
+        id: row.id,
+        kind: 'quiz' as const,
+        studentName: studentNames.get(row.student_id) ?? 'Student details unavailable',
+        courseTitle: courseTitles.get(row.course_id) ?? 'Untitled course',
+        itemTitle: quizTitles.get(row.quiz_id) ?? 'Untitled quiz',
+        scoreText: `${Number(row.percentage)}%`,
+        passed: row.passed,
+        submittedAt: row.submitted_at,
+      })),
+    ...submissions.map((row) => {
+      const assignment = assignmentById.get(row.assignment_id)
+      const maxPoints = assignment ? Number(assignment.max_points) : 0
+      return {
+        id: row.id,
+        kind: 'assignment' as const,
+        studentName: studentNames.get(row.student_id) ?? 'Student details unavailable',
+        courseTitle: courseTitles.get(row.course_id) ?? 'Untitled course',
+        itemTitle: assignment?.title ?? 'Untitled assignment',
+        scoreText:
+          row.grade === null ? `Ungraded/${maxPoints}` : `${Number(row.grade)}/${maxPoints}`,
+        passed: null,
+        submittedAt: row.submitted_at,
+      }
+    }),
+  ]
+
+  // ISO timestamps sort lexicographically, newest first, then cut to the limit
+  // across both kinds - ten quiz rows must not crowd out ten assignments.
+  return rows.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)).slice(0, limit)
 }
 
 /**

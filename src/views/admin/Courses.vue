@@ -64,11 +64,11 @@
             class="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-muted"
             aria-hidden="true"
           />
-          <label for="course-search" class="sr-only">Search course titles</label>
+          <label for="admin-course-search" class="sr-only">Search course titles</label>
           <Input
+            id="admin-course-search"
             v-model.trim="search"
             type="search"
-            aria-label="Search course title"
             placeholder="Search course title"
             class="ps-9"
           />

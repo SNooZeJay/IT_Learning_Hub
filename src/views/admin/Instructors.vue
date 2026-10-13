@@ -153,11 +153,22 @@
               </div>
             </div>
 
-            <div class="flex shrink-0 items-center gap-2">
+            <!--
+              The course count is deliberately NOT a second pill.
+
+              It used to be a `rounded-full` span sitting directly beside the status
+              `Badge`, and two tokens of identical shape meant two different things
+              in the same glance - one is an account state, the other is a number.
+              Worse, the hand-rolled span was `px-2.5 py-1` while `Badge` is
+              `px-2 py-0.5`, so the two pills were visibly different sizes as well
+              as ambiguously different meanings. As plain text it reads as what it
+              is: supporting detail about the person, not a second verdict on them.
+            -->
+            <div class="flex shrink-0 flex-col items-end gap-1">
               <Badge :class="statusToneClass[instructor.status]">
                 {{ ACCOUNT_STATUS_LABELS[instructor.status] }}
               </Badge>
-              <span class="rounded-full bg-surface px-2.5 py-1 text-xs font-medium text-slate">
+              <span class="text-xs text-slate tabular-nums">
                 {{ instructor.courseCount }}
                 {{ instructor.courseCount === 1 ? 'course' : 'courses' }}
               </span>
