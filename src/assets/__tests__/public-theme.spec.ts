@@ -57,6 +57,8 @@ describe('public theme bridge', () => {
     '--border',
     '--input',
     '--ring',
+    '--popover',
+    '--popover-foreground',
   ] as const
 
   /** Pull the body of one top-level block, e.g. `:root` or `.dark`. */

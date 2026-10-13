@@ -49,6 +49,23 @@
         >
           {{ includeGraded ? 'Including graded' : 'Awaiting grade only' }}
         </button>
+
+        <!--
+          The queue as a spreadsheet. An instructor's gradebook lives outside
+          this product, and retyping rows is how errors get in - so the file
+          carries exactly what the queue shows, filtered or not. Grades stay
+          blank until marked: a blank cell says "not marked", a zero says
+          "marked zero".
+        -->
+        <button
+          type="button"
+          :disabled="filtered.length === 0"
+          class="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-hairline-strong px-4 text-sm font-medium text-ink transition-colors motion-reduce:transition-none hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/[0.03]"
+          @click="exportCsv"
+        >
+          <Download class="size-4" aria-hidden="true" />
+          Export CSV
+        </button>
       </div>
     </div>
 
@@ -279,7 +296,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { CircleCheck, ListChecks, LoaderCircle, Paperclip, Search } from 'lucide-vue-next'
+import { CircleCheck, Download, ListChecks, LoaderCircle, Paperclip, Search } from 'lucide-vue-next'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
@@ -300,6 +317,7 @@ import {
 } from '@/components/public/ui/select'
 import { Textarea } from '@/components/public/ui/textarea'
 import { parseNumericField, readNumericInput } from '@/utils/numericField'
+import { downloadCsv, gradingQueueToCsv } from '@/utils/csv'
 import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
@@ -370,6 +388,12 @@ async function load(): Promise<void> {
 async function toggleIncludeGraded(): Promise<void> {
   includeGraded.value = !includeGraded.value
   await load()
+}
+
+/** Download the visible queue - filters applied, same order, same rows. */
+function exportCsv(): void {
+  const stamp = new Date().toISOString().slice(0, 10)
+  downloadCsv(`grading-queue-${stamp}.csv`, gradingQueueToCsv(filtered.value))
 }
 
 /**

@@ -27,6 +27,7 @@ import {
   DEFAULT_ASSIGNMENT_POINTS,
   deleteAssignment,
   InstructorError,
+  listInstructorRecentResults,
   MAX_ASSIGNMENT_POINTS,
   updateAssignment,
   validateAssignmentDraft,
@@ -336,5 +337,93 @@ describe('deleteAssignment', () => {
     // The refusal still propagates, and the table name no longer travels with it.
     await expect(deleteAssignment('a1')).rejects.toThrow('You do not have access to that.')
     await expect(deleteAssignment('a1')).rejects.not.toThrow(/permission denied/)
+  })
+})
+
+describe('listInstructorRecentResults', () => {
+  const courseLinks = [{ course_id: 'c1' }]
+  const attemptRows = [
+    {
+      id: 'qa1',
+      quiz_id: 'q1',
+      course_id: 'c1',
+      student_id: 's1',
+      percentage: '87.5',
+      passed: true,
+      submitted_at: '2026-10-08T20:13:00Z',
+      status: 'submitted',
+    },
+  ]
+  const submissionRows = [
+    {
+      id: 'as1',
+      assignment_id: 'a1',
+      course_id: 'c1',
+      student_id: 's2',
+      grade: '8',
+      status: 'graded',
+      submitted_at: '2026-10-07T09:00:00Z',
+    },
+  ]
+  const quizRows = [{ id: 'q1', title: 'Request methods' }]
+  const assignmentRows = [{ ...assignmentRow, id: 'a1', title: 'Reflection', max_points: '10' }]
+  const courseRows = [{ id: 'c1', title: 'Web Fundamentals' }]
+  const profileRows = [
+    { id: 's1', full_name: 'Ann Reyes', email: 'ann@example.com' },
+    { id: 's2', full_name: 'Bo Tan', email: 'bo@example.com' },
+  ]
+
+  function respondWithResults() {
+    respondByTable({
+      course_instructors: { data: courseLinks },
+      quiz_attempts: { data: attemptRows },
+      assignment_submissions: { data: submissionRows },
+      quizzes: { data: quizRows },
+      assignments: { data: assignmentRows },
+      courses: { data: courseRows },
+      profiles: { data: profileRows },
+    })
+  }
+
+  it('merges quiz attempts and graded submissions, newest first', async () => {
+    respondWithResults()
+
+    const rows = await listInstructorRecentResults('instructor-1')
+
+    expect(rows).toHaveLength(2)
+    // Newest first: the Oct 8 quiz attempt outranks the Oct 7 submission.
+    expect(rows[0]).toMatchObject({
+      kind: 'quiz',
+      studentName: 'Ann Reyes',
+      courseTitle: 'Web Fundamentals',
+      itemTitle: 'Request methods',
+      scoreText: '87.5%',
+      passed: true,
+    })
+    expect(rows[1]).toMatchObject({
+      kind: 'assignment',
+      studentName: 'Bo Tan',
+      scoreText: '8/10',
+      passed: null,
+    })
+  })
+
+  it('returns nothing, asking nothing further, when the instructor teaches nothing', async () => {
+    respondByTable({ course_instructors: { data: [] } })
+
+    await expect(listInstructorRecentResults('instructor-1')).resolves.toEqual([])
+    expect(builders['quiz_attempts']).toBeUndefined()
+    expect(builders['assignment_submissions']).toBeUndefined()
+  })
+
+  it('reports a refusal on the attempts read rather than an empty history', async () => {
+    respondByTable({
+      course_instructors: { data: courseLinks },
+      quiz_attempts: { error: { message: 'permission denied for table quiz_attempts' } },
+    })
+
+    await expect(listInstructorRecentResults('instructor-1')).rejects.toThrow(
+      'You do not have access to that.',
+    )
   })
 })

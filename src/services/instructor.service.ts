@@ -1522,6 +1522,181 @@ export async function getInstructorInsights(instructorId: string): Promise<Instr
   }
 }
 
+/**
+ * One row of the recent-results history: a submitted quiz attempt or a graded
+ * assignment submission, with who sat it and what for.
+ *
+ * Only outcomes, never in-flight work. Quiz attempts count once submitted;
+ * assignments count once graded. The grading queue owns everything awaiting a
+ * marker, and showing it here too would double-count the same submission in
+ * two places with two different meanings.
+ */
+export interface InstructorResultRow {
+  id: string
+  kind: 'quiz' | 'assignment'
+  studentName: string
+  courseTitle: string
+  itemTitle: string
+  /** `87.5%` for a quiz, `8/10` for an assignment. Never invented: null stays out. */
+  scoreText: string
+  /** Null for assignments, which carry no pass flag of their own. */
+  passed: boolean | null
+  submittedAt: string
+}
+
+/**
+ * The newest outcomes across the instructor's courses, newest first.
+ *
+ * Five reads, each scoped to the instructor's own course ids exactly the way
+ * the neighbouring functions scope theirs: attempts and submissions first,
+ * then the quizzes, assignments, courses and profiles they name, joined in
+ * Maps. An empty course list short-circuits before any of it, so an
+ * instructor with nothing to teach asks the database for nothing.
+ */
+export async function listInstructorRecentResults(
+  instructorId: string,
+  limit = 10,
+): Promise<InstructorResultRow[]> {
+  const courseIds = await listInstructorCourseIds(instructorId)
+  if (courseIds.length === 0) return []
+
+  const [attemptRes, submissionRes] = await Promise.all([
+    supabase
+      .from('quiz_attempts')
+      .select('id, quiz_id, course_id, student_id, percentage, passed, submitted_at')
+      .in('course_id', courseIds)
+      .eq('status', 'submitted')
+      .order('submitted_at', { ascending: false })
+      .limit(limit),
+    assessment
+      .from('assignment_submissions')
+      .select('id, assignment_id, course_id, student_id, grade, submitted_at')
+      .in('course_id', courseIds)
+      .eq('status', 'graded')
+      .order('submitted_at', { ascending: false })
+      .limit(limit),
+  ])
+
+  if (attemptRes.error)
+    throw new InstructorError(messageOf(attemptRes.error, 'Could not load recent quiz results.'))
+  if (submissionRes.error)
+    throw new InstructorError(
+      messageOf(submissionRes.error, 'Could not load recent assignment results.'),
+    )
+
+  type AttemptRow = {
+    id: string
+    quiz_id: string
+    course_id: string
+    student_id: string
+    percentage: string | number | null
+    passed: boolean | null
+    submitted_at: string
+  }
+  type SubmissionRow = {
+    id: string
+    assignment_id: string
+    course_id: string
+    student_id: string
+    grade: string | number | null
+    submitted_at: string
+  }
+  const attempts = (attemptRes.data ?? []) as unknown as AttemptRow[]
+  const submissions = (submissionRes.data ?? []) as unknown as SubmissionRow[]
+  if (attempts.length === 0 && submissions.length === 0) return []
+
+  const quizIds = [...new Set(attempts.map((row) => row.quiz_id))]
+  const assignmentIds = [...new Set(submissions.map((row) => row.assignment_id))]
+  const studentIds = [
+    ...new Set([
+      ...attempts.map((row) => row.student_id),
+      ...submissions.map((row) => row.student_id),
+    ]),
+  ]
+
+  const [quizRes, assignmentRes, courseRes, profileRes] = await Promise.all([
+    quizIds.length > 0
+      ? supabase.from('quizzes').select('id, title').in('id', quizIds)
+      : Promise.resolve({ data: [], error: null }),
+    assignmentIds.length > 0
+      ? assessment.from('assignments').select('id, title, max_points').in('id', assignmentIds)
+      : Promise.resolve({ data: [], error: null }),
+    supabase.from('courses').select('id, title').in('id', courseIds),
+    supabase.from('profiles').select(PROFILE_COLUMNS).in('id', studentIds),
+  ])
+
+  if (quizRes.error)
+    throw new InstructorError(messageOf(quizRes.error, 'Could not load quiz titles.'))
+  if (assignmentRes.error)
+    throw new InstructorError(messageOf(assignmentRes.error, 'Could not load assignment titles.'))
+  if (courseRes.error)
+    throw new InstructorError(messageOf(courseRes.error, 'Could not load your courses.'))
+  if (profileRes.error)
+    throw new InstructorError(messageOf(profileRes.error, 'Could not load the student profiles.'))
+
+  const quizTitles = new Map(
+    ((quizRes.data ?? []) as Array<{ id: string; title: string }>).map((row) => [
+      row.id,
+      row.title,
+    ]),
+  )
+  const assignmentById = new Map(
+    (
+      (assignmentRes.data ?? []) as Array<{
+        id: string
+        title: string
+        max_points: string | number
+      }>
+    ).map((row) => [row.id, row]),
+  )
+  const courseTitles = new Map(
+    ((courseRes.data ?? []) as Array<{ id: string; title: string }>).map((row) => [
+      row.id,
+      row.title,
+    ]),
+  )
+  const studentNames = new Map(
+    ((profileRes.data ?? []) as Array<{ id: string; full_name: string }>).map((row) => [
+      row.id,
+      row.full_name,
+    ]),
+  )
+
+  const rows: InstructorResultRow[] = [
+    ...attempts
+      .filter((row) => row.percentage !== null)
+      .map((row) => ({
+        id: row.id,
+        kind: 'quiz' as const,
+        studentName: studentNames.get(row.student_id) ?? 'Student details unavailable',
+        courseTitle: courseTitles.get(row.course_id) ?? 'Untitled course',
+        itemTitle: quizTitles.get(row.quiz_id) ?? 'Untitled quiz',
+        scoreText: `${Number(row.percentage)}%`,
+        passed: row.passed,
+        submittedAt: row.submitted_at,
+      })),
+    ...submissions.map((row) => {
+      const assignment = assignmentById.get(row.assignment_id)
+      const maxPoints = assignment ? Number(assignment.max_points) : 0
+      return {
+        id: row.id,
+        kind: 'assignment' as const,
+        studentName: studentNames.get(row.student_id) ?? 'Student details unavailable',
+        courseTitle: courseTitles.get(row.course_id) ?? 'Untitled course',
+        itemTitle: assignment?.title ?? 'Untitled assignment',
+        scoreText:
+          row.grade === null ? `Ungraded/${maxPoints}` : `${Number(row.grade)}/${maxPoints}`,
+        passed: null,
+        submittedAt: row.submitted_at,
+      }
+    }),
+  ]
+
+  // ISO timestamps sort lexicographically, newest first, then cut to the limit
+  // across both kinds - ten quiz rows must not crowd out ten assignments.
+  return rows.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)).slice(0, limit)
+}
+
 // ---------------------------------------------------------------------------
 // Assignments
 // ---------------------------------------------------------------------------

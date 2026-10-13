@@ -196,6 +196,82 @@
         Only courses assigned to you are included. Attempt averages use submitted attempts only; an
         attempt in progress has no score yet and would otherwise count as a zero.
       </p>
+
+      <!--
+        Recent student results: who sat what, and how it went.
+
+        The charts above answer "which course" and the per-course table answers
+        "by how much". Neither answers "who" - and "who is falling behind" is
+        the question an instructor opens this page to ask. Ten newest outcomes
+        across your courses: submitted quiz attempts and graded assignments,
+        each with the student, the course, the score and the date. Nothing here
+        is computed or estimated; every row is a row somewhere, read straight.
+      -->
+      <div class="mt-6 surface-card-shell">
+        <h2 class="section-heading">Recent student results</h2>
+        <p class="mt-1 section-subheading">
+          Submitted quizzes and graded assignments across your courses, newest first.
+        </p>
+
+        <p v-if="resultsError" class="mt-4 text-sm text-error-600 dark:text-error-400">
+          {{ resultsError }}
+        </p>
+
+        <p v-else-if="results.length === 0" class="mt-4 section-subheading">
+          No results yet. Rows appear here the moment a student submits a quiz or you grade an
+          assignment.
+        </p>
+
+        <div v-else class="mt-4 overflow-x-auto custom-scrollbar">
+          <Table class="min-w-full text-start text-sm">
+            <TableCaption class="sr-only">
+              Recent quiz and assignment results across your courses
+            </TableCaption>
+            <TableHeader>
+              <TableRow class="border-b border-gray-200 hover:bg-transparent dark:border-gray-800">
+                <TableHead scope="col" class="px-5 py-3 font-medium">Student</TableHead>
+                <TableHead scope="col" class="px-5 py-3 font-medium">Item</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-end font-medium">Score</TableHead>
+                <TableHead scope="col" class="px-5 py-3 text-end font-medium">Submitted</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody class="divide-y divide-gray-200 dark:divide-gray-800">
+              <TableRow
+                v-for="row in results"
+                :key="`${row.kind}-${row.id}`"
+                class="transition-colors motion-reduce:transition-none hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+              >
+                <TableCell class="px-5 py-4">
+                  <p class="font-medium text-ink">{{ row.studentName }}</p>
+                  <p class="text-slate">{{ row.courseTitle }}</p>
+                </TableCell>
+                <TableCell class="px-5 py-4">
+                  <p class="text-ink">{{ row.itemTitle }}</p>
+                  <p class="text-xs text-slate">
+                    {{ row.kind === 'quiz' ? 'Quiz' : 'Assignment' }}
+                  </p>
+                </TableCell>
+                <TableCell class="px-5 py-4 text-end">
+                  <Badge
+                    :class="
+                      row.passed === true
+                        ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400'
+                        : row.passed === false
+                          ? 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400'
+                          : 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400'
+                    "
+                  >
+                    {{ row.scoreText }}
+                  </Badge>
+                </TableCell>
+                <TableCell class="px-5 py-4 text-end text-slate">
+                  {{ formatDateTime(row.submittedAt) }}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -222,9 +298,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/public/ui/table'
-import { getInstructorInsights } from '@/services/instructor.service'
-import type { InstructorInsights } from '@/services/instructor.service'
-import { courseStatusLabel } from '@/types'
+import { getInstructorInsights, listInstructorRecentResults } from '@/services/instructor.service'
+import type { InstructorInsights, InstructorResultRow } from '@/services/instructor.service'
+import { Badge } from '@/components/public/ui/badge'
+import { courseStatusLabel, formatDateTime } from '@/types'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -255,6 +332,8 @@ const EMPTY_INSIGHTS: InstructorInsights = {
 }
 
 const stats = ref<InstructorInsights>(EMPTY_INSIGHTS)
+const results = ref<InstructorResultRow[]>([])
+const resultsError = ref('')
 const isLoading = ref(true)
 const errorMessage = ref('')
 
@@ -392,6 +471,8 @@ async function load(): Promise<void> {
   // leave the previous load's figures on screen under an error message, which
   // reads as "these are the numbers, and something else is wrong".
   stats.value = EMPTY_INSIGHTS
+  results.value = []
+  resultsError.value = ''
   try {
     // Scoped to the signed-in instructor, so the profile has to resolve first.
     await auth.ensureReady()
@@ -400,6 +481,17 @@ async function load(): Promise<void> {
       return
     }
     stats.value = await getInstructorInsights(auth.profile.id)
+    // Loaded beside the aggregates, not inside them: a failure here must not
+    // take down the charts. But it must not read as "no results" either - an
+    // empty card would claim nobody sat anything, which a failed read cannot
+    // know. So the failure gets its own sentence under the heading.
+    resultsError.value = ''
+    try {
+      results.value = await listInstructorRecentResults(auth.profile.id)
+    } catch (error) {
+      results.value = []
+      resultsError.value = error instanceof Error ? error.message : 'Could not load recent results.'
+    }
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Could not load your insights.'
   } finally {

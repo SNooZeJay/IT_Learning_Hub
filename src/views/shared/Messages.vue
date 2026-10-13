@@ -36,6 +36,18 @@ import {
 import PageHeader from '@/components/common/PageHeader.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
+import { Badge } from '@/components/public/ui/badge'
+import { Card, CardContent } from '@/components/public/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/public/ui/dialog'
+import { Input } from '@/components/public/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/public/ui/select'
+import { Textarea } from '@/components/public/ui/textarea'
 import {
   MessagingError,
   countUnreadMessages,
@@ -58,6 +70,9 @@ import { useToast } from '@/composables/useToast'
 const auth = useAuthStore()
 const toast = useToast()
 const route = useRoute()
+
+/** Compose controls share one geometry; their labels carry `mb-1.5`. */
+const fieldClass = 'rounded-md px-3'
 const router = useRouter()
 const unread = useUnreadMessages()
 
@@ -331,42 +346,42 @@ onMounted(async () => {
         class="min-w-0"
         :class="openThreadId ? 'hidden lg:block' : 'block'"
       >
-        <div class="rounded-lg border border-hairline bg-canvas dark:border-white/10">
-          <h2 id="messages-list-heading" class="sr-only">Your conversations</h2>
+        <Card class="min-w-0 rounded-lg p-0">
+          <CardContent class="p-0">
+            <h2 id="messages-list-heading" class="sr-only">Your conversations</h2>
 
-          <p
-            v-if="conversations.length === 0"
-            class="flex flex-col items-center gap-2 px-6 py-12 text-center"
-          >
-            <Inbox class="size-7 text-stone" aria-hidden="true" />
-            <span class="text-sm font-medium text-ink">No conversations yet</span>
-            <span class="max-w-xs text-sm text-slate">
-              Start one with an instructor, or with a student in one of your courses.
-            </span>
-          </p>
+            <p
+              v-if="conversations.length === 0"
+              class="flex flex-col items-center gap-2 px-6 py-12 text-center"
+            >
+              <Inbox class="size-7 text-stone" aria-hidden="true" />
+              <span class="text-sm font-medium text-ink">No conversations yet</span>
+              <span class="max-w-xs text-sm text-slate">
+                Start one with an instructor, or with a student in one of your courses.
+              </span>
+            </p>
 
-          <ul v-else role="list" class="divide-y divide-hairline dark:divide-white/10">
-            <li v-for="conversation in conversations" :key="conversation.id">
-              <button
-                type="button"
-                class="flex w-full flex-col items-start gap-1 px-4 py-3.5 text-start transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-500 dark:hover:bg-white/[0.03]"
-                :class="conversation.id === openThreadId ? 'bg-brand-50 dark:bg-brand-500/10' : ''"
-                :aria-current="conversation.id === openThreadId ? 'true' : undefined"
-                @click="openThread(conversation.id)"
-              >
-                <span class="flex w-full items-baseline justify-between gap-2">
-                  <span class="min-w-0 truncate text-sm font-medium text-ink">
-                    {{ conversation.withName }}
+            <ul v-else role="list" class="divide-y divide-hairline dark:divide-white/10">
+              <li v-for="conversation in conversations" :key="conversation.id">
+                <button
+                  type="button"
+                  class="flex w-full flex-col items-start gap-1 px-4 py-3.5 text-start transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-500 dark:hover:bg-white/[0.03]"
+                  :class="
+                    conversation.id === openThreadId ? 'bg-brand-50 dark:bg-brand-500/10' : ''
+                  "
+                  :aria-current="conversation.id === openThreadId ? 'true' : undefined"
+                  @click="openThread(conversation.id)"
+                >
+                  <span class="flex w-full items-baseline justify-between gap-2">
+                    <span class="min-w-0 truncate text-sm font-medium text-ink">
+                      {{ conversation.withName }}
+                    </span>
+                    <Badge v-if="conversation.unreadCount > 0" class="shrink-0 tabular-nums">
+                      {{ conversation.unreadCount }}
+                      <span class="sr-only">unread messages</span>
+                    </Badge>
                   </span>
-                  <span
-                    v-if="conversation.unreadCount > 0"
-                    class="shrink-0 rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] leading-none font-semibold text-white tabular-nums"
-                  >
-                    {{ conversation.unreadCount }}
-                    <span class="sr-only">unread messages</span>
-                  </span>
-                </span>
-                <!--
+                  <!--
                 `line-clamp-2` on both preview lines, not `truncate`.
 
                 At 375px a one-line clip showed "Good morning. Both are graded - the
@@ -383,25 +398,26 @@ onMounted(async () => {
                 the panel itself scrolls, so two lines here does not mean the rest of
                 the list is pushed out of reach.
               -->
-                <span
-                  class="w-full line-clamp-2 text-start text-xs text-slate"
-                  :title="conversation.subject"
-                >
-                  {{ conversation.subject }}
-                </span>
-                <span
-                  class="w-full line-clamp-2 text-start text-xs text-slate"
-                  :title="conversation.lastMessagePreview ?? undefined"
-                >
-                  {{ conversation.lastMessagePreview }}
-                </span>
-                <span class="text-xs text-slate tabular-nums">
-                  {{ formatDateTime(conversation.lastMessageAt) }}
-                </span>
-              </button>
-            </li>
-          </ul>
-        </div>
+                  <span
+                    class="w-full line-clamp-2 text-start text-xs text-slate"
+                    :title="conversation.subject"
+                  >
+                    {{ conversation.subject }}
+                  </span>
+                  <span
+                    class="w-full line-clamp-2 text-start text-xs text-slate"
+                    :title="conversation.lastMessagePreview ?? undefined"
+                  >
+                    {{ conversation.lastMessagePreview }}
+                  </span>
+                  <span class="text-xs text-slate tabular-nums">
+                    {{ formatDateTime(conversation.lastMessageAt) }}
+                  </span>
+                </button>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
       </section>
 
       <!-- The thread. `min-w-0` for the same reason as the list above. -->
@@ -410,134 +426,138 @@ onMounted(async () => {
         class="min-w-0"
         :class="openThreadId ? 'block' : 'hidden lg:block'"
       >
-        <div class="rounded-lg border border-hairline bg-canvas dark:border-white/10">
-          <template v-if="openThreadId">
-            <div
-              class="flex items-center gap-3 border-b border-hairline px-4 py-3 dark:border-white/10"
-            >
-              <!--
+        <Card class="min-w-0 rounded-lg p-0">
+          <CardContent class="p-0">
+            <template v-if="openThreadId">
+              <div
+                class="flex items-center gap-3 border-b border-hairline px-4 py-3 dark:border-white/10"
+              >
+                <!--
                 The narrow-screen back control. `lg:hidden` because from `lg` the list is
                 visible alongside, and a back control that returns to a list you can
                 already see is noise.
               -->
-              <button
-                type="button"
-                class="-ms-1 flex size-9 shrink-0 items-center justify-center rounded-md text-slate transition-colors hover:bg-surface hover:text-ink lg:hidden dark:hover:bg-white/[0.06]"
-                aria-label="Back to your conversations"
-                @click="closeThread"
-              >
-                <ArrowLeft class="size-4" aria-hidden="true" />
-              </button>
-              <h2 id="messages-thread-heading" class="min-w-0 flex-1">
-                <span class="block truncate text-sm font-medium text-ink">
-                  {{ openConversation?.withName ?? 'Conversation' }}
-                </span>
-                <span class="block truncate text-xs text-slate">
-                  {{ openConversation?.subject }}
-                </span>
-              </h2>
-            </div>
-
-            <LoadingState v-if="isThreadLoading" label="Loading the conversation" />
-
-            <ErrorState
-              v-else-if="threadError"
-              class="m-4"
-              :message="threadError"
-              @retry="() => openThreadId && loadThread(openThreadId)"
-            />
-
-            <template v-else>
-              <p v-if="messages.length === 0" class="px-4 py-10 text-center text-sm text-slate">
-                No messages yet. Say something.
-              </p>
-
-              <ul
-                v-else
-                role="log"
-                aria-label="Messages in this conversation"
-                aria-live="polite"
-                class="flex max-h-[26rem] flex-col gap-3 overflow-y-auto px-4 py-4"
-              >
-                <li
-                  v-for="message in messages"
-                  :key="message.id"
-                  class="flex flex-col gap-1"
-                  :class="message.senderId === myId ? 'items-end' : 'items-start'"
+                <button
+                  type="button"
+                  class="-ms-1 flex size-9 shrink-0 items-center justify-center rounded-md text-slate transition-colors hover:bg-surface hover:text-ink lg:hidden dark:hover:bg-white/[0.06]"
+                  aria-label="Back to your conversations"
+                  @click="closeThread"
                 >
-                  <span
-                    class="max-w-[85%] rounded-lg px-3 py-2 text-sm"
-                    :class="
-                      message.senderId === myId
-                        ? 'bg-brand-600 text-white'
-                        : 'bg-surface text-ink dark:bg-white/[0.06]'
-                    "
-                  >
-                    {{ message.body }}
+                  <ArrowLeft class="size-4" aria-hidden="true" />
+                </button>
+                <h2 id="messages-thread-heading" class="min-w-0 flex-1">
+                  <span class="block truncate text-sm font-medium text-ink">
+                    {{ openConversation?.withName ?? 'Conversation' }}
                   </span>
-                  <span class="text-xs text-slate tabular-nums">
-                    {{ formatDateTime(message.createdAt) }}
+                  <span class="block truncate text-xs text-slate">
+                    {{ openConversation?.subject }}
                   </span>
-                </li>
-              </ul>
+                </h2>
+              </div>
 
-              <form
-                class="border-t border-hairline p-4 dark:border-white/10"
-                novalidate
-                @submit.prevent="onSend"
-              >
-                <label for="message-body" class="sr-only">Your message</label>
-                <textarea
-                  id="message-body"
-                  v-model="draft"
-                  rows="3"
-                  maxlength="4000"
-                  placeholder="Write a message"
-                  :aria-invalid="Boolean(sendError)"
-                  :aria-describedby="sendError ? 'message-error' : undefined"
-                  class="w-full resize-y rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-slate focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-500 dark:border-white/10 dark:bg-white/[0.04]"
-                ></textarea>
+              <LoadingState v-if="isThreadLoading" label="Loading the conversation" />
 
-                <p
-                  v-if="sendError"
-                  id="message-error"
-                  class="mt-2 text-xs text-error-600 dark:text-error-400"
-                >
-                  {{ sendError }}
-                </p>
-                <p v-if="sendNotice" class="mt-2 text-xs text-success-600 dark:text-success-400">
-                  {{ sendNotice }}
+              <ErrorState
+                v-else-if="threadError"
+                class="m-4"
+                :message="threadError"
+                @retry="() => openThreadId && loadThread(openThreadId)"
+              />
+
+              <template v-else>
+                <p v-if="messages.length === 0" class="px-4 py-10 text-center text-sm text-slate">
+                  No messages yet. Say something.
                 </p>
 
-                <div class="mt-3 flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    class="inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-slate transition-colors hover:bg-surface hover:text-ink"
-                    @click="draft = ''"
+                <ul
+                  v-else
+                  role="log"
+                  aria-label="Messages in this conversation"
+                  aria-live="polite"
+                  class="flex max-h-[26rem] flex-col gap-3 overflow-y-auto px-4 py-4"
+                >
+                  <li
+                    v-for="message in messages"
+                    :key="message.id"
+                    class="flex flex-col gap-1"
+                    :class="message.senderId === myId ? 'items-end' : 'items-start'"
                   >
-                    <X class="size-4" aria-hidden="true" />
-                    Clear
-                  </button>
-                  <button
-                    type="submit"
-                    class="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-brand-600 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    :disabled="isSending || draft.trim().length === 0"
+                    <span
+                      class="max-w-[85%] rounded-lg px-3 py-2 text-sm"
+                      :class="
+                        message.senderId === myId
+                          ? 'bg-brand-600 text-white'
+                          : 'bg-surface text-ink dark:bg-white/[0.06]'
+                      "
+                    >
+                      {{ message.body }}
+                    </span>
+                    <span class="text-xs text-slate tabular-nums">
+                      {{ formatDateTime(message.createdAt) }}
+                    </span>
+                  </li>
+                </ul>
+
+                <form
+                  class="border-t border-hairline p-4 dark:border-white/10"
+                  novalidate
+                  @submit.prevent="onSend"
+                >
+                  <label for="message-body" class="sr-only">Your message</label>
+                  <Textarea
+                    id="message-body"
+                    v-model="draft"
+                    rows="3"
+                    maxlength="4000"
+                    placeholder="Write a message"
+                    :aria-invalid="Boolean(sendError)"
+                    :aria-describedby="sendError ? 'message-error' : undefined"
+                    class="rounded-md px-3"
+                  />
+
+                  <p
+                    v-if="sendError"
+                    id="message-error"
+                    class="mt-2 text-xs text-error-600 dark:text-error-400"
                   >
-                    <Send class="size-4" aria-hidden="true" />
-                    {{ isSending ? 'Sending…' : 'Send' }}
-                  </button>
-                </div>
-              </form>
+                    {{ sendError }}
+                  </p>
+                  <p v-if="sendNotice" class="mt-2 text-xs text-success-600 dark:text-success-400">
+                    {{ sendNotice }}
+                  </p>
+
+                  <div class="mt-3 flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      class="inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-slate transition-colors hover:bg-surface hover:text-ink"
+                      @click="draft = ''"
+                    >
+                      <X class="size-4" aria-hidden="true" />
+                      Clear
+                    </button>
+                    <button
+                      type="submit"
+                      class="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-brand-600 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      :disabled="isSending || draft.trim().length === 0"
+                    >
+                      <Send class="size-4" aria-hidden="true" />
+                      {{ isSending ? 'Sending…' : 'Send' }}
+                    </button>
+                  </div>
+                </form>
+              </template>
             </template>
-          </template>
 
-          <!-- No thread open. -->
-          <div v-else class="flex flex-col items-center gap-2 px-6 py-16 text-center">
-            <MessageSquare class="size-7 text-stone" aria-hidden="true" />
-            <p class="text-sm font-medium text-ink">Choose a conversation</p>
-            <p class="max-w-xs text-sm text-slate">Pick one from your list to read it and reply.</p>
-          </div>
-        </div>
+            <!-- No thread open. -->
+            <div v-else class="flex flex-col items-center gap-2 px-6 py-16 text-center">
+              <MessageSquare class="size-7 text-stone" aria-hidden="true" />
+              <p class="text-sm font-medium text-ink">Choose a conversation</p>
+              <p class="max-w-xs text-sm text-slate">
+                Pick one from your list to read it and reply.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </section>
     </div>
 
@@ -545,33 +565,18 @@ onMounted(async () => {
       Compose. A dialog rather than a panel, because it is a short task with a definite
       end, and a list the user can still see behind it would compete with it.
     -->
-    <div
-      v-if="isComposing"
-      class="fixed inset-0 z-99999 flex items-end justify-center p-0 sm:items-center sm:p-6"
+    <Dialog
+      :open="isComposing"
+      @update:open="
+        (open) => {
+          if (!open) isComposing = false
+        }
+      "
     >
-      <div
-        class="absolute inset-0 bg-gray-900/50"
-        aria-hidden="true"
-        @click="isComposing = false"
-      ></div>
-
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="compose-heading"
-        class="relative w-full max-w-lg rounded-t-xl border border-hairline bg-canvas p-6 shadow-theme-lg sm:rounded-xl dark:border-white/10 dark:bg-gray-900"
-      >
-        <div class="flex items-start justify-between gap-3">
-          <h2 id="compose-heading" class="text-theme-sm text-ink">New message</h2>
-          <button
-            type="button"
-            class="-me-2 -mt-1 flex size-9 items-center justify-center rounded-md text-slate transition-colors hover:bg-surface dark:hover:bg-white/[0.06]"
-            aria-label="Close"
-            @click="isComposing = false"
-          >
-            <X class="size-4" aria-hidden="true" />
-          </button>
-        </div>
+      <DialogContent class="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>New message</DialogTitle>
+        </DialogHeader>
 
         <LoadingState v-if="isComposing && isLoadingPeople" label="Finding people" />
 
@@ -596,31 +601,30 @@ onMounted(async () => {
             <label for="compose-recipient" class="mb-1.5 block text-sm font-medium text-ink">
               To
             </label>
-            <select
-              id="compose-recipient"
-              v-model="recipientId"
-              required
-              class="select-chevron w-full appearance-none rounded-md border border-hairline bg-surface py-2.5 ps-3 pe-9 text-sm text-ink dark:border-white/10 dark:bg-white/[0.04]"
-            >
-              <option value="" disabled>Choose someone</option>
-              <option v-for="person in people" :key="person.id" :value="person.id">
-                {{ person.fullName }} — {{ person.via }}
-              </option>
-            </select>
+            <Select v-model="recipientId" required>
+              <SelectTrigger id="compose-recipient" class="w-full" :class="fieldClass">
+                <SelectValue placeholder="Choose someone" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="person in people" :key="person.id" :value="person.id">
+                  {{ person.fullName }} — {{ person.via }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <label for="compose-subject" class="mb-1.5 block text-sm font-medium text-ink">
               Subject
             </label>
-            <input
+            <Input
               id="compose-subject"
               v-model="subjectDraft"
               type="text"
               maxlength="120"
               required
               placeholder="What is this about?"
-              class="select-chevron w-full appearance-none rounded-md border border-hairline bg-surface py-2.5 ps-3 pe-9 text-sm text-ink placeholder:text-stone dark:border-white/10 dark:bg-white/[0.04]"
+              class="rounded-md px-3"
             />
           </div>
 
@@ -642,7 +646,7 @@ onMounted(async () => {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

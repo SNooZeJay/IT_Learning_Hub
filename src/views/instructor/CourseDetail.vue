@@ -170,8 +170,7 @@
                       </template>
                     </p>
                   </div>
-                  <span
-                    class="inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 text-xs font-medium"
+                  <Badge
                     :class="
                       quiz.status === 'published'
                         ? 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400'
@@ -179,7 +178,7 @@
                     "
                   >
                     {{ quizStatusLabel(quiz.status) }}
-                  </span>
+                  </Badge>
                 </div>
 
                 <!--
@@ -193,6 +192,7 @@
                 <button
                   type="button"
                   class="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+                  :aria-expanded="expandedKey === quiz.id"
                   @click="toggleKey(quiz.id)"
                 >
                   <ChevronRight
@@ -346,8 +346,7 @@
                     </div>
 
                     <div class="flex shrink-0 flex-wrap items-center gap-1">
-                      <span
-                        class="rounded px-2 py-0.5 text-xs font-medium"
+                      <Badge
                         :class="
                           assignment.status === 'published'
                             ? 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400'
@@ -355,7 +354,7 @@
                         "
                       >
                         {{ assignmentStatusLabel(assignment.status) }}
-                      </span>
+                      </Badge>
                       <button
                         type="button"
                         class="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.06]"
@@ -520,6 +519,7 @@ import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import Alert from '@/components/ui/Alert.vue'
 import Button from '@/components/ui/Button.vue'
+import { Badge } from '@/components/public/ui/badge'
 import CurriculumOutline from '@/components/curriculum/CurriculumOutline.vue'
 import ModuleForm from '@/components/curriculum/ModuleForm.vue'
 import LessonForm from '@/components/curriculum/LessonForm.vue'
