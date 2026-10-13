@@ -6,6 +6,14 @@
     role="region"
     :aria-label="ariaLabel"
   >
+    <!--
+      Visibility sentinel for the animation loop below. Zero-size, stretched
+      over the container's own box: the loop runs only while the marquee is
+      near the viewport instead of burning a requestAnimationFrame on every
+      frame of every page view, including the 90% where nobody ever scrolls
+      down to it. Observed, never painted.
+    -->
+    <span ref="viewportSentinel" class="pointer-events-none absolute inset-0" aria-hidden="true" />
     <template v-if="fadeOut">
       <template v-if="isVertical">
         <div
@@ -110,6 +118,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch, type CSSProperties } from 'vue'
+import { useElementVisibility } from '@/composables/useElementVisibility'
 
 export type LogoItemNode = {
   node: string
@@ -398,6 +407,25 @@ let cleanupResize: (() => void) | undefined
 let cleanupImages: (() => void) | undefined
 let cleanupAnimation: (() => void) | undefined
 
+/**
+ * The loop runs only while the marquee is near the viewport. It used to run
+ * from mount until unmount - a permanent rAF on every page view, including
+ * the ones where the marquee sits three screens down and never enters. Stopping
+ * keeps the velocity ref, so returning resumes mid-glide rather than jumping.
+ */
+const { target: viewportSentinel, inView: isLoopVisible } = useElementVisibility({
+  once: false,
+  rootMargin: '100px',
+})
+
+function syncAnimationLoop() {
+  cleanupAnimation?.()
+  cleanupAnimation = undefined
+  if (isLoopVisible.value) cleanupAnimation = startAnimationLoop()
+}
+
+watch(isLoopVisible, () => syncAnimationLoop())
+
 const cleanup = () => {
   cleanupResize?.()
   cleanupImages?.()
@@ -409,7 +437,7 @@ onMounted(async () => {
   setTimeout(() => {
     cleanupResize = setupResizeObserver()
     cleanupImages = setupImageLoader()
-    cleanupAnimation = startAnimationLoop()
+    syncAnimationLoop()
   }, 10)
 })
 
@@ -423,8 +451,9 @@ watch(
     await nextTick()
     cleanupImages?.()
     cleanupImages = setupImageLoader()
-    cleanupAnimation?.()
-    cleanupAnimation = startAnimationLoop()
+    // Through the gate, not around it: remeasuring must not restart an
+    // offscreen loop (see syncAnimationLoop).
+    syncAnimationLoop()
   },
   { deep: true },
 )
@@ -432,8 +461,7 @@ watch(
 watch(
   [() => props.speed, () => props.direction, () => props.hoverSpeed, () => props.pauseOnHover],
   () => {
-    cleanupAnimation?.()
-    cleanupAnimation = startAnimationLoop()
+    syncAnimationLoop()
   },
 )
 </script>

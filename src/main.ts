@@ -40,20 +40,46 @@ app.use(router)
  * default esbuild target rejects top-level await, and raising the target would
  * drop browser support for no real gain.
  *
- * Mounting after the session resolves means the first paint is the correct
- * screen rather than a signed-out flash on a page load that was actually
- * authenticated. `index.html` shows a splash until this replaces it.
+ * The lookup starts here but the mount does NOT wait for it. Be precise about
+ * what that buys, because the first version of this comment oversold it: the
+ * router guard awaits the same shared promise before resolving the first
+ * navigation - public routes included - so routed content still cannot paint
+ * until the session is known. What mounting early buys is overlap: compiling
+ * and mounting the app happens DURING the network round trip instead of after
+ * it, and the splash (which now outlives the mount - see below) covers the
+ * wait. Measured on a throttled phone, that overlap is the single largest
+ * slice of every public page's LCP improvement.
+ *
+ * Guarded routes still resolve only after the session is known, because the
+ * guard has not moved. Mounting first cannot flash a signed-out screen
+ * either: `App.vue` renders providers and an empty `RouterView` behind the
+ * splash until the guard resolves, so there is no wrong screen to see.
  */
-async function bootstrap(): Promise<void> {
+function bootstrap(): void {
   try {
-    await useAuthStore(pinia).initialize()
+    const ready = useAuthStore(pinia).initialize()
+    void ready.catch((error) => {
+      // A failed session lookup must not leave a blank page. The store already
+      // fails closed when Supabase is unconfigured, so mounting here is the
+      // recovery path, not an invitation to retry.
+      console.error('[bootstrap] session lookup failed, mounting anyway', error)
+    })
   } catch (error) {
-    // A failed session lookup must not leave a blank page. The store already
-    // fails closed when Supabase is unconfigured, so mounting here is the
-    // recovery path, not an invitation to retry.
+    // `useAuthStore()` itself throwing (a broken Pinia install) is the one
+    // failure the guard cannot cover, because nothing will ever navigate.
     console.error('[bootstrap] session lookup failed, mounting anyway', error)
   }
   app.mount('#app')
+  // The splash in index.html lives outside `#app` so mounting cannot destroy
+  // it. It comes down here, once the first navigation - session wait included -
+  // has resolved and there is a real route to look at instead. Removing it on
+  // mount would restore the blank shell on slow connections.
+  void router
+    .isReady()
+    .catch(() => {})
+    .then(() => {
+      document.getElementById('app-loading')?.remove()
+    })
 }
 
-void bootstrap()
+bootstrap()

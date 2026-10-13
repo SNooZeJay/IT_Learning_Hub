@@ -185,18 +185,17 @@ describe('landing motion layer', () => {
 
   describe('reveals', () => {
     it('uses the Reveal wrapper below the fold, never AnimatedContent directly', () => {
-      // Reveal hardcodes the one approved reveal (24px, 0.6s, once at 20%).
-      // AnimatedContent kills every page ScrollTrigger when any prop changes,
-      // so a reactive prop on it is a page-wide footgun - and Landing must not
-      // hand it any.
+      // Reveal hardcodes the one approved reveal (24px desktop fade / fade-only
+      // on small screens, 0.6s, once at 20%). AnimatedContent is a single-instance
+      // primitive - Landing must not hand it reactive props or render it directly.
       expect(landing).toMatch(/<Reveal\b/)
       expect(landing).not.toMatch(/<AnimatedContent\b/)
     })
 
     it('never touches the hero', () => {
-      // The hero has its own entrance system (lp-hero-step stagger plus a
-      // dedicated fade-in-lcp for the headline). A ScrollTrigger reveal that
-      // starts at opacity:0 would fight both and cost LCP.
+      // The hero has its own entrance system (lp-hero-step stagger; the LCP
+      // paragraph renders with no entrance at all). A ScrollTrigger reveal that
+      // starts at opacity:0 would fight it and cost LCP.
       const heroEnd = landing.indexOf('THE COURSE CAROUSEL')
       expect(heroEnd).toBeGreaterThan(-1)
       expect(landing.slice(0, heroEnd)).not.toMatch(/<Reveal\b/)

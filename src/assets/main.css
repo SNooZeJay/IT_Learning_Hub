@@ -1164,29 +1164,14 @@
 }
 
 /*
-  A fade with no travel, and no stagger delay.
+  REMOVED: `@utility fade-in-lcp`.
 
-  For an element that is the page's Largest Contentful Paint. LCP is recorded at the
-  moment that element is painted, and an entrance that starts at `opacity: 0` cannot be
-  painted until the animation has run - so a rise-and-fade on the LCP element spends the
-  metric on motion. Measured on the landing page, a 560ms rise after a 120ms stagger
-  delay accounted for 4,037ms of a 4,537ms LCP: 90% render delay, with load delay and
-  load time at zero, because the bytes were already there and the browser was waiting
-  for permission to show them.
-
-  `lp-stagger` is the right default and stays it. This is for the one element per page
-  that the metric is actually watching, where the same easing and the same opacity
-  transition are kept and only the transform - which is the part nobody can see on
-  body copy - is dropped.
+  It was a fade with no travel for the LCP element - better than the rise, but
+  still an entrance starting at `opacity: 0`, which still held the metric for
+  its full duration on every throttled load. The LCP paragraph now renders
+  with no entrance at all (see its comment in Landing.vue), so the utility had
+  no callers left, and this file does not keep options nothing uses.
 */
-@utility fade-in-lcp {
-  animation: motion-fade var(--ith-motion-base) var(--ith-ease-soft) both;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation-name: motion-fade;
-    animation-duration: var(--ith-motion-fast);
-  }
-}
 
 /*
   THE INTERACTIVE SURFACES: what a card, a button and a field do under a pointer.
@@ -1251,6 +1236,60 @@
     background-color var(--ith-motion-fast) var(--ith-ease-out),
     border-color var(--ith-motion-fast) var(--ith-ease-out),
     box-shadow var(--ith-motion-fast) var(--ith-ease-out);
+}
+
+/*
+  THE SMALL-SCREEN PAINT BUDGET: what the background costs on a phone.
+
+  Three utilities, one contract: full strength on desktop, stepped down under
+  767px, and no keyframes of their own - stillness under reduced motion falls
+  out of having nothing to disable, which is safer than a media query that has
+  to remember every animated property.
+
+  `lp-ambient-blur` replaces `blur-3xl` on the background blobs. A 64px blur
+  over a 36-42rem circle is the single most expensive paint on the public
+  pages (measured: layout+paint dominate the mobile trace), and on a 360px
+  viewport the difference between a 64px and a 32px blur is invisible - the
+  circle is already wider than the screen. The drift transform is untouched:
+  this utility only sets the blur radius, so `lp-drift` keeps owning motion.
+
+  `lp-glass-nav` replaces `bg-lp-card/85` + `backdrop-blur-xl` on the floating
+  nav pill. Backdrop blur repaints everything behind the bar on every scroll
+  frame; under 767px the bar goes solid instead, which is one flat layer and
+  no repaint. Desktop keeps the exact values the classes spelled out - 85%
+  card, 24px blur - so nothing visible changes there.
+
+  `lp-below-fold` goes on below-fold sections. `content-visibility: auto`
+  skips layout and paint until the section nears the viewport, and
+  `contain-intrinsic-size: auto 800px` reserves a plausible height so the
+  scrollbar does not jump on first visit (`auto` remembers the real size
+  afterwards). Never on the hero or anything holding the LCP element, and
+  never on an element whose own entrance starts at opacity 0 - a section the
+  browser skips must still be there when its reveal fires.
+*/
+@utility lp-ambient-blur {
+  filter: blur(64px);
+
+  @media (max-width: 767px) {
+    filter: blur(32px);
+  }
+}
+
+@utility lp-glass-nav {
+  background-color: color-mix(in srgb, var(--ith-lp-card) 85%, transparent);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+
+  @media (max-width: 767px) {
+    background-color: var(--ith-lp-card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@utility lp-below-fold {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
 }
 
 @utility no-scrollbar {

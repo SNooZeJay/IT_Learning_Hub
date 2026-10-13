@@ -46,17 +46,17 @@
       -->
       <div
         data-drift
-        class="absolute -top-48 -start-40 size-[36rem] rounded-full bg-lp-glow-green opacity-70 blur-3xl lp-drift motion-reduce:animate-none"
+        class="absolute -top-48 -start-40 size-[36rem] rounded-full bg-lp-glow-green opacity-70 lp-ambient-blur lp-drift motion-reduce:animate-none"
         style="--drift-t: 34s"
       ></div>
       <div
         data-drift
-        class="absolute -top-24 -end-48 size-[42rem] rounded-full bg-lp-glow-beige opacity-80 blur-3xl lp-drift motion-reduce:animate-none"
+        class="absolute -top-24 -end-48 size-[42rem] rounded-full bg-lp-glow-beige opacity-80 lp-ambient-blur lp-drift motion-reduce:animate-none"
         style="--drift-t: 44s"
       ></div>
       <div
         data-drift
-        class="absolute top-[38rem] start-1/4 size-[30rem] rounded-full bg-lp-glow-peach opacity-60 blur-3xl lp-drift motion-reduce:animate-none"
+        class="absolute top-[38rem] start-1/4 size-[30rem] rounded-full bg-lp-glow-peach opacity-60 lp-ambient-blur lp-drift motion-reduce:animate-none"
         style="--drift-t: 52s"
       ></div>
 
@@ -118,7 +118,7 @@
     -->
     <header class="sticky top-0 z-40 px-4 pt-4 md:px-6 md:pt-5">
       <div
-        class="mx-auto max-w-6xl rounded-3xl border border-lp-line bg-lp-card/85 shadow-lp-nav backdrop-blur-xl 2xsm:rounded-full"
+        class="mx-auto max-w-6xl rounded-3xl border border-lp-line shadow-lp-nav lp-glass-nav 2xsm:rounded-full"
       >
         <div
           class="flex flex-wrap items-center justify-center gap-x-2 gap-y-2 px-3 py-2.5 2xsm:flex-nowrap 2xsm:justify-between 2xsm:gap-x-3 2xsm:px-4 md:px-5"
@@ -335,36 +335,24 @@
             </h1>
 
             <!--
-              `fade-in-lcp` rather than `lp-hero-step`, and that is a performance
-              decision as much as a visual one.
+              No entrance on this paragraph, and that is a performance decision
+              as much as a visual one.
 
-              This paragraph is the largest contentful element on the page - Lighthouse
-              measured it as such, 380x78, the biggest painted block in the hero - and
-              LCP is only recorded once that element is actually painted. `lp-hero-step`
-              starts it at `opacity: 0` and runs a 560ms rise after a 120ms stagger
-              delay, so the browser waits out both before it can score the paint.
-              Measured on a throttled phone that was 4,037ms of a 4,537ms LCP: 90% render
-              delay on an element whose bytes had already arrived, with load delay and
-              load time both at zero.
+              This paragraph is the largest contentful element on the page -
+              measured under throttling as the LCP element - and anything that
+              starts it at `opacity: 0`, even a plain fade, holds the metric
+              until the animation runs. It used to carry `fade-in-lcp` (opacity
+              over the base duration, no travel); the fade still cost its full
+              duration on every throttled load for motion nobody can see at body
+              text size. So it renders statically now: same type, same place,
+              painted on the first frame that has it.
 
-              So this one element fades in over the base duration instead of rising on
-              the stagger. Same easing, same opacity transition, so it still arrives as
-              part of the sequence rather than popping in; what it no longer does is
-              hold the page's headline metric hostage to a 12px vertical travel nobody
-              can see at this text size.
-
-              The utility is named `fade-in-lcp` rather than `motion-*` because Tailwind
-              reserves the `motion-` prefix for `--animate-*` tokens, and a `@utility`
-              using it is silently not emitted - the first attempt at this had no effect
-              on the rendered page at all for exactly that reason.
-
-              The rest of the hero is untouched: the eyebrow above, the buttons and the
-              stat row all still carry `lp-hero-step` and still stagger in as a group.
+              The rest of the hero is untouched: the eyebrow above, the buttons
+              and the stat row all still carry `lp-hero-step` and still stagger
+              in as a group. None of them is the LCP element, so their entrances
+              cost nothing on the metric.
             -->
-            <p
-              :style="{ '--stagger-i': 2 }"
-              class="fade-in-lcp mt-6 max-w-xl text-base leading-relaxed text-lp-slate md:text-lg"
-            >
+            <p class="mt-6 max-w-xl text-base leading-relaxed text-lp-slate md:text-lg">
               IT Learning Hub gives you organised learning materials, lessons and quizzes — with
               your progress tracked from the first lesson to the last.
             </p>
@@ -683,7 +671,11 @@
         the band, not a rewrite of its claims. There is still no rating and no
         learner total - see the note at the top of the file.
       -->
-      <section class="mx-auto max-w-6xl px-4 pb-16 md:px-6 md:pb-24">
+      <!--
+        `lp-below-fold`: this band sits below the hero on every viewport, so its
+        layout and paint wait until it nears the viewport.
+      -->
+      <section class="lp-below-fold mx-auto max-w-6xl px-4 pb-16 md:px-6 md:pb-24">
         <Reveal>
           <SpotlightCard
             class-name="rounded-3xl border border-white/10 bg-gray-950 px-6 py-10 ring-1 ring-inset ring-white/[0.07] md:px-12 md:py-12"
@@ -695,7 +687,7 @@
               visibly the same object language. Static and heavily blurred.
             -->
             <div
-              class="pointer-events-none absolute -bottom-40 -end-24 size-[26rem] rounded-full bg-lp-glow-green opacity-25 blur-3xl"
+              class="pointer-events-none absolute -bottom-40 -end-24 size-[26rem] rounded-full bg-lp-glow-green opacity-25 lp-ambient-blur"
               aria-hidden="true"
             ></div>
 
@@ -770,7 +762,8 @@
         the four sections in between read as one continuous run - which is the
         rhythm the section list asks for.
       -->
-      <section>
+      <!-- `lp-below-fold`: below the hero on every viewport. -->
+      <section class="lp-below-fold">
         <div class="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-16">
           <p
             class="text-[11px] font-semibold tracking-[0.16em] text-lp-accent uppercase"
@@ -829,7 +822,8 @@
         because the reference's category grid is icon-led and a column of bare
         text headings looks like a table of contents.
       -->
-      <section>
+      <!-- `lp-below-fold`: below the hero on every viewport. -->
+      <section class="lp-below-fold">
         <div class="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-16">
           <div
             class="grid gap-10 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-16"
@@ -862,16 +856,25 @@
               four copies of six destinations. The catalogue link that follows
               this section is the one way forward, for everyone.
             -->
-            <LogoLoop
-              v-if="motionOK"
-              :logos="marqueeLogos"
-              :speed="60"
-              :gap="16"
-              fade-out
-              :fade-out-color="marqueeFade"
-              aria-label="Subjects you can study"
-              class="py-2"
-            >
+            <template v-if="motionOK">
+              <!--
+                The marquee mounts when it nears the viewport, not on first
+                paint: its track is four copies of six cards plus a permanent
+                rAF loop, and none of that earns its place in the critical path
+                of a page whose LCP is the hero above it. The placeholder holds
+                the band's height so the late mount shifts nothing.
+              -->
+              <div ref="marqueeSentinel">
+                <LogoLoop
+                  v-if="marqueeInView"
+                  :logos="marqueeLogos"
+                  :speed="60"
+                  :gap="16"
+                  fade-out
+                  :fade-out-color="marqueeFade"
+                  aria-label="Subjects you can study"
+                  class="py-2"
+                >
               <template #renderItem="{ index }">
                 <div
                   class="w-72 shrink-0 rounded-2xl border border-lp-line bg-lp-card p-5"
@@ -893,6 +896,9 @@
                 </div>
               </template>
             </LogoLoop>
+                <div v-else class="min-h-52" aria-hidden="true"></div>
+              </div>
+            </template>
 
             <dl v-else class="grid gap-4 sm:grid-cols-2">
               <div
@@ -934,7 +940,8 @@
         page's palette rather than duplicated onto this page: one component, one
         price rule, and the two surfaces cannot drift apart on the next edit.
       -->
-      <section class="border-y border-lp-line bg-lp-canvas-deep">
+      <!-- `lp-below-fold`: below the hero on every viewport. -->
+      <section class="lp-below-fold border-y border-lp-line bg-lp-canvas-deep">
         <div class="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-16">
           <Reveal>
             <div class="flex flex-wrap items-end justify-between gap-4">
@@ -1026,7 +1033,8 @@
         outline keeps a selected row, because that is what makes the pane read as
         a position inside a course rather than as a list.
       -->
-      <section class="border-t border-lp-line">
+      <!-- `lp-below-fold`: below the hero on every viewport. -->
+      <section class="lp-below-fold border-t border-lp-line">
         <div class="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-16">
           <Reveal>
             <h2
@@ -1168,7 +1176,8 @@ git --version<span
         pairs its button with one, and this product has neither, so inventing them
         would be a claim about a refund policy that does not exist.
       -->
-      <section class="mx-auto max-w-6xl px-4 pb-16 md:px-6 md:pb-24">
+      <!-- `lp-below-fold`: below the hero on every viewport. -->
+      <section class="lp-below-fold mx-auto max-w-6xl px-4 pb-16 md:px-6 md:pb-24">
         <Reveal>
           <div
             class="relative overflow-hidden rounded-3xl bg-gray-950 px-6 py-14 ring-1 ring-inset ring-white/[0.07] md:px-12 md:py-20"
@@ -1184,7 +1193,7 @@ git --version<span
             corner wash with no boundary to see.
           -->
           <div
-            class="pointer-events-none absolute -bottom-48 -start-32 size-[30rem] rounded-full bg-lp-glow-green opacity-40 blur-3xl"
+            class="pointer-events-none absolute -bottom-48 -start-32 size-[30rem] rounded-full bg-lp-glow-green opacity-40 lp-ambient-blur"
             aria-hidden="true"
           ></div>
 
@@ -1341,6 +1350,7 @@ import Reveal from '@/components/public/ui/Reveal/Reveal.vue'
 import SpotlightCard from '@/components/public/ui/SpotlightCard/SpotlightCard.vue'
 import LogoLoop from '@/components/public/ui/LogoLoop/LogoLoop.vue'
 import { useReducedMotion } from '@/composables/useReducedMotion'
+import { useElementVisibility } from '@/composables/useElementVisibility'
 import { useTheme } from '@/composables/useTheme'
 
 /**
@@ -1354,6 +1364,18 @@ import { useTheme } from '@/composables/useTheme'
  */
 const { motionOK } = useReducedMotion()
 const { isDarkMode } = useTheme()
+
+/**
+ * The marquee mounts late, not on first paint.
+ *
+ * Four copies of six cards plus a permanent rAF loop is real work, and the
+ * band sits screens below the hero. A 400px root margin starts it before the
+ * reader arrives, so nobody watches it assemble - and the placeholder div in
+ * the template holds its height meanwhile, so the mount shifts nothing.
+ */
+const { target: marqueeSentinel, inView: marqueeInView } = useElementVisibility({
+  rootMargin: '400px',
+})
 
 /**
  * The marquee fade color, per theme.

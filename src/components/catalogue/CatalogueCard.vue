@@ -68,6 +68,7 @@
         :src="course.thumbnailUrl"
         :alt="`Cover for ${course.title}`"
         loading="lazy"
+        decoding="async"
         class="size-full object-cover transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03] motion-reduce:group-hover:scale-100"
       />
       <div v-else class="flex size-full items-center justify-center">

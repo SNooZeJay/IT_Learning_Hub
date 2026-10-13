@@ -19,13 +19,13 @@
   <div class="relative isolate min-h-screen overflow-x-clip bg-lp-canvas text-lp-ink">
     <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
       <div
-        class="absolute -top-48 -start-40 size-[36rem] rounded-full bg-lp-glow-green opacity-70 blur-3xl"
+        class="absolute -top-48 -start-40 size-[36rem] rounded-full bg-lp-glow-green opacity-70 lp-ambient-blur"
       ></div>
       <div
-        class="absolute -top-24 -end-48 size-[42rem] rounded-full bg-lp-glow-beige opacity-80 blur-3xl"
+        class="absolute -top-24 -end-48 size-[42rem] rounded-full bg-lp-glow-beige opacity-80 lp-ambient-blur"
       ></div>
       <div
-        class="absolute top-[46rem] -end-32 size-[30rem] rounded-full bg-lp-glow-peach opacity-60 blur-3xl"
+        class="absolute top-[46rem] -end-32 size-[30rem] rounded-full bg-lp-glow-peach opacity-60 lp-ambient-blur"
       ></div>
     </div>
 
@@ -37,7 +37,7 @@
     -->
     <header class="sticky top-0 z-40 px-4 pt-4 md:px-6 md:pt-5">
       <div
-        class="mx-auto max-w-6xl rounded-3xl border border-lp-line bg-lp-card/85 shadow-lp-nav backdrop-blur-xl 2xsm:rounded-full"
+        class="mx-auto max-w-6xl rounded-3xl border border-lp-line shadow-lp-nav lp-glass-nav 2xsm:rounded-full"
       >
         <div
           class="flex flex-wrap items-center justify-center gap-x-2 gap-y-2 px-3 py-2.5 2xsm:flex-nowrap 2xsm:justify-between 2xsm:gap-x-3 2xsm:px-4 md:px-5"
@@ -165,6 +165,8 @@
                 v-if="course.thumbnailUrl"
                 :src="course.thumbnailUrl"
                 :alt="`Cover for ${course.title}`"
+                fetchpriority="high"
+                decoding="async"
                 class="size-full object-cover"
               />
               <div v-else class="flex size-full items-center justify-center">
@@ -234,7 +236,7 @@
               </div>
             </dl>
 
-            <section v-if="objectives.length" class="mt-12">
+            <section v-if="objectives.length" class="lp-below-fold mt-12">
               <h2 class="font-display text-2xl font-semibold tracking-tight text-lp-ink">
                 What you will learn
               </h2>
@@ -255,7 +257,7 @@
               </ul>
             </section>
 
-            <section class="mt-12">
+            <section class="lp-below-fold mt-12">
               <h2 class="font-display text-2xl font-semibold tracking-tight text-lp-ink">
                 Course outline
               </h2>

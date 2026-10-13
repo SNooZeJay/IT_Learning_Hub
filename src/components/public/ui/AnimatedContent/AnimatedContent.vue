@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch, useTemplateRef } from 'vue'
+import { onMounted, onUnmounted, useTemplateRef } from 'vue'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -39,6 +39,20 @@ const emit = defineEmits<{
 
 const containerRef = useTemplateRef<HTMLDivElement>('containerRef')
 
+/**
+ * One context per instance, reverted on unmount.
+ *
+ * This used to kill every ScrollTrigger on the page - `getAll().forEach(kill)`
+ * - whenever any prop changed or any instance unmounted, so one card
+ * re-rendering cancelled every other reveal mid-flight. Everything created
+ * here now lives in this instance's context (plus the matchMedia below it),
+ * and unmount reverts only what this instance owns. The prop watcher is gone
+ * with it: `Reveal` hardcodes its values, and a reactive prop on a reveal is
+ * the footgun, not a feature.
+ */
+let ctx: gsap.Context | null = null
+let mm: gsap.MatchMedia | null = null
+
 onMounted(() => {
   const el = containerRef.value
   if (!el) return
@@ -47,60 +61,20 @@ onMounted(() => {
   const offset = props.reverse ? -props.distance : props.distance
   const startPct = (1 - props.threshold) * 100
 
-  gsap.set(el, {
-    [axis]: offset,
-    scale: props.scale,
-    opacity: props.animateOpacity ? props.initialOpacity : 1,
-  })
+  const trigger = {
+    trigger: el,
+    start: `top ${startPct}%`,
+    toggleActions: 'play none none none',
+    once: true,
+  } as const
 
-  gsap.to(el, {
-    [axis]: 0,
-    scale: 1,
-    opacity: 1,
-    duration: props.duration,
-    ease: props.ease,
-    delay: props.delay,
-    onComplete: () => emit('complete'),
-    scrollTrigger: {
-      trigger: el,
-      start: `top ${startPct}%`,
-      toggleActions: 'play none none none',
-      once: true,
-    },
-  })
-})
-
-watch(
-  () => [
-    props.distance,
-    props.direction,
-    props.reverse,
-    props.duration,
-    props.ease,
-    props.initialOpacity,
-    props.animateOpacity,
-    props.scale,
-    props.threshold,
-    props.delay,
-  ],
-  () => {
-    const el = containerRef.value
-    if (!el) return
-
-    ScrollTrigger.getAll().forEach((t) => t.kill())
-    gsap.killTweensOf(el)
-
-    const axis = props.direction === 'horizontal' ? 'x' : 'y'
-    const offset = props.reverse ? -props.distance : props.distance
-    const startPct = (1 - props.threshold) * 100
-
+  const enter = (from: number) => {
     gsap.set(el, {
-      [axis]: offset,
+      [axis]: from,
       scale: props.scale,
       opacity: props.animateOpacity ? props.initialOpacity : 1,
     })
-
-    gsap.to(el, {
+    return gsap.to(el, {
       [axis]: 0,
       scale: 1,
       opacity: 1,
@@ -108,23 +82,27 @@ watch(
       ease: props.ease,
       delay: props.delay,
       onComplete: () => emit('complete'),
-      scrollTrigger: {
-        trigger: el,
-        start: `top ${startPct}%`,
-        toggleActions: 'play none none none',
-        once: true,
-      },
+      scrollTrigger: trigger,
     })
-  },
-  { deep: true },
-)
+  }
+
+  ctx = gsap.context(() => {
+    mm = gsap.matchMedia()
+    // Small screens get the fade with no travel: a 24px rise on a 360px
+    // viewport is proportionally three times the desktop motion, and the fade
+    // is the part that carries meaning. Transform/opacity only, either way.
+    mm.add('(max-width: 767px)', () => enter(0))
+    mm.add('(min-width: 768px)', () => enter(offset))
+  }, el)
+})
 
 onUnmounted(() => {
-  const el = containerRef.value
-  if (el) {
-    ScrollTrigger.getAll().forEach((t) => t.kill())
-    gsap.killTweensOf(el)
-  }
+  // matchMedia first: it owns the tweens created when a breakpoint matched
+  // after mount, which the context callback never saw run.
+  mm?.revert()
+  mm = null
+  ctx?.revert()
+  ctx = null
 })
 </script>
 

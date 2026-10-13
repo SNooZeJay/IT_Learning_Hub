@@ -127,6 +127,21 @@
       The comment above it used to warn that this could go stale and cost one wasted
       request. It did. The cost was not one request.
     -->
+    <!--
+      Preconnect the Supabase API origin.
+
+      Every public page fetches its content (catalogue, course, counts) from
+      this origin at runtime, and on mobile the LCP render delay is dominated
+      by that fetch - not by bytes. A preconnect saves the DNS + TLS handshake
+      (~one round trip on throttled 4G) before the app JavaScript even asks.
+
+      `%VITE_SUPABASE_URL%` is replaced by Vite at build time with the same
+      value the app reads at runtime, so the two cannot drift: if the build
+      runs without the variable, the literal placeholder survives and the
+      browser ignores the useless hint rather than fetching anything wrong.
+      `crossorigin` because the API is fetched in CORS mode.
+    -->
+    <link rel="preconnect" href="%VITE_SUPABASE_URL%" crossorigin />
     <meta
       name="description"
       content="IT Learning Hub - practical IT training with courses, quizzes and assignments."
@@ -149,6 +164,7 @@
       #app-loading {
         position: fixed;
         inset: 0;
+        z-index: 2000;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -226,10 +242,26 @@
     </script>
   </head>
   <body class="dark:bg-gray-900">
-    <div id="app">
-      <div id="app-loading" role="status" aria-label="Loading IT Learning Hub">
-        <div class="bar"></div>
-      </div>
+    <div id="app"></div>
+    <!--
+      The splash lives OUTSIDE `#app`, not inside it.
+
+      It used to be `#app`'s first child, so `app.mount()` destroyed it the
+      moment the JavaScript was ready - and since the mount no longer waits for
+      the session, that moment came seconds before the first route resolved on
+      a slow connection: a blank shell where a loading bar had been. Outside,
+      mounting cannot touch it; `main.ts` removes it once the router is ready,
+      which is after the first navigation (and the session wait inside it)
+      resolves. If the JavaScript fails to load at all, it stays - a loading
+      indicator forever is still more honest than a blank page.
+
+      `z-index` for the same reason: pre-navigation the app renders nothing,
+      but the removal and the first render race by a tick, and the app's own
+      chrome (sticky headers at z-40, the admin shell higher) must never win
+      that race and cover the indicator.
+    -->
+    <div id="app-loading" role="status" aria-label="Loading IT Learning Hub">
+      <div class="bar"></div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
