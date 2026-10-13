@@ -6,8 +6,8 @@
       aria-atomic="false"
     >
       <TransitionGroup
-        enter-active-class="transition-all duration-200 ease-out motion-reduce:transition-none"
-        leave-active-class="transition-all duration-150 ease-in motion-reduce:transition-none"
+        enter-active-class="transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out motion-reduce:transition-none"
+        leave-active-class="transition-[color,background-color,border-color,box-shadow,transform] duration-150 ease-in motion-reduce:transition-none"
         enter-from-class="opacity-0 translate-y-2"
         leave-to-class="opacity-0 translate-y-1"
       >
