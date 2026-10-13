@@ -1292,6 +1292,20 @@
   contain-intrinsic-size: auto 800px;
 }
 
+/*
+  Where this must NOT go: on any ancestor of a ScrollTrigger reveal.
+
+  ScrollTrigger measures trigger positions once, while `content-visibility`
+  is still rendering sections at estimated heights. As they render for real
+  the document height shifts under the cached positions, and the deepest
+  triggers strand below max-scroll: they never fire and their content sits at
+  opacity 0 forever. That shipped once on the landing page (panels and CTA
+  stayed invisible) and was fixed by removing the class from reveal-bearing
+  sections, not by refreshing triggers. CSS mount animations (`lp-stagger`)
+  are unaffected - they don't measure anything - so the catalogue grid and
+  the course page keep it.
+*/
+
 @utility no-scrollbar {
   /* Chrome, Safari and Opera */
   &::-webkit-scrollbar {

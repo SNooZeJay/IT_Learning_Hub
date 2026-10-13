@@ -672,10 +672,18 @@
         learner total - see the note at the top of the file.
       -->
       <!--
-        `lp-below-fold`: this band sits below the hero on every viewport, so its
-        layout and paint wait until it nears the viewport.
+        NOT `lp-below-fold` here, and that is load-bearing, not an omission.
+
+        This band holds a scroll reveal, and ScrollTrigger measures trigger
+        positions once while `content-visibility: auto` is still rendering
+        this section (and the ones above it) at estimated heights. As sections
+        render for real the document height shifts under the cached positions,
+        and the deepest triggers end up below max-scroll: they never fire and
+        their content sits at opacity 0 forever. Shipped exactly that way once
+        - the panels and CTA sections stayed invisible on desktop - so the
+        rule is: never put `content-visibility` on an ancestor of a reveal.
       -->
-      <section class="lp-below-fold mx-auto max-w-6xl px-4 pb-16 md:px-6 md:pb-24">
+      <section class="mx-auto max-w-6xl px-4 pb-16 md:px-6 md:pb-24">
         <Reveal>
           <SpotlightCard
             class-name="rounded-3xl border border-white/10 bg-gray-950 px-6 py-10 ring-1 ring-inset ring-white/[0.07] md:px-12 md:py-12"
@@ -762,8 +770,7 @@
         the four sections in between read as one continuous run - which is the
         rhythm the section list asks for.
       -->
-      <!-- `lp-below-fold`: below the hero on every viewport. -->
-      <section class="lp-below-fold">
+      <section>
         <div class="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-16">
           <p
             class="text-[11px] font-semibold tracking-[0.16em] text-lp-accent uppercase"
@@ -822,8 +829,7 @@
         because the reference's category grid is icon-led and a column of bare
         text headings looks like a table of contents.
       -->
-      <!-- `lp-below-fold`: below the hero on every viewport. -->
-      <section class="lp-below-fold">
+      <section>
         <div class="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-16">
           <div
             class="grid gap-10 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:gap-16"
@@ -940,8 +946,7 @@
         page's palette rather than duplicated onto this page: one component, one
         price rule, and the two surfaces cannot drift apart on the next edit.
       -->
-      <!-- `lp-below-fold`: below the hero on every viewport. -->
-      <section class="lp-below-fold border-y border-lp-line bg-lp-canvas-deep">
+      <section class="border-y border-lp-line bg-lp-canvas-deep">
         <div class="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-16">
           <Reveal>
             <div class="flex flex-wrap items-end justify-between gap-4">
@@ -1033,8 +1038,7 @@
         outline keeps a selected row, because that is what makes the pane read as
         a position inside a course rather than as a list.
       -->
-      <!-- `lp-below-fold`: below the hero on every viewport. -->
-      <section class="lp-below-fold border-t border-lp-line">
+      <section class="border-t border-lp-line">
         <div class="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-16">
           <Reveal>
             <h2
@@ -1176,8 +1180,7 @@ git --version<span
         pairs its button with one, and this product has neither, so inventing them
         would be a claim about a refund policy that does not exist.
       -->
-      <!-- `lp-below-fold`: below the hero on every viewport. -->
-      <section class="lp-below-fold mx-auto max-w-6xl px-4 pb-16 md:px-6 md:pb-24">
+      <section class="mx-auto max-w-6xl px-4 pb-16 md:px-6 md:pb-24">
         <Reveal>
           <div
             class="relative overflow-hidden rounded-3xl bg-gray-950 px-6 py-14 ring-1 ring-inset ring-white/[0.07] md:px-12 md:py-20"
