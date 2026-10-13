@@ -434,11 +434,37 @@ const routes: RouteRecordRaw[] = [
   },
 ]
 
+/**
+ * Where a navigation should land.
+ *
+ * Back and forward restore where the reader was; everything else starts at
+ * the top. The reload case is the one that needs stating: Vue Router persists
+ * the last restored scroll position into history.state, so after
+ * back-navigating deep and hitting refresh, `savedPosition` arrives non-null
+ * and a reload lands mid-page. A reload is a fresh look at a page, not a
+ * return to a reading position, so it always starts at the top.
+ *
+ * Pure except for one global read - the navigation timing entry - which is
+ * why the reload branch is a condition on it rather than a parameter. Under
+ * node (or any environment without the Navigation Timing API) there is no
+ * entry and the branch simply never fires.
+ */
+export function resolveScrollPosition(savedPosition: { left: number; top: number } | null): {
+  left: number
+  top: number
+} {
+  if (typeof performance !== 'undefined') {
+    const [entry] = performance.getEntriesByType('navigation')
+    if ((entry as PerformanceNavigationTiming | undefined)?.type === 'reload') {
+      return { left: 0, top: 0 }
+    }
+  }
+  return savedPosition ?? { left: 0, top: 0 }
+}
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  scrollBehavior(to, from, savedPosition) {
-    return savedPosition || { left: 0, top: 0 }
-  },
+  scrollBehavior: (to, from, savedPosition) => resolveScrollPosition(savedPosition),
   routes,
 })
 
