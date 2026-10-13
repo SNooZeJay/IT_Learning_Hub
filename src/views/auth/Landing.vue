@@ -1228,9 +1228,6 @@ git --version<span
     <!--
       Public footer: brand, link groups, copyright bar.
 
-      Same content, same four destinations, same `footerGroups` array and the same
-      `:to` on every link. Only the presentation changed.
-
       Charcoal in both themes, and fixed greys rather than the `lp-` tokens for
       the same reason as the CTA card above. Contrast on #0d0d0c, all measured:
         gray-200 #e5e3df  16.9:1   brand wordmark
@@ -1239,13 +1236,13 @@ git --version<span
       `gray-500` #787671 was the obvious choice for the copyright row and it
       measures 4.3:1 - under AA for 12px text - so it is used nowhere here.
 
-      Two columns of links, not the reference's three: this product has two link
-      groups, and padding the grid out with invented destinations is the one thing
-      a footer must not do. The brand block takes two of the four grid columns
-      instead, which gives the same wide, airy proportion the reference gets from
-      a narrow brand column beside three.
+      Three link groups, each one a route that exists - the Legal group points
+      at the same two pages the signup consent already cites, so the footer
+      stops being the one place on the public site that never mentioned them.
+      The brand block takes two of the five grid columns, which gives the same
+      wide, airy proportion a narrow brand column beside fewer groups would not.
 
-      No social icons either. The reference has four; this product has none, and
+      No social icons. The reference has four; this product has none, and
       the links would have nowhere to point.
 
       The top border is transparent in light mode - cream above charcoal needs no
@@ -1254,7 +1251,7 @@ git --version<span
     -->
     <footer class="border-t border-transparent bg-gray-950 dark:border-white/[0.07]">
       <div class="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-20">
-        <div class="grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-x-16">
+        <div class="grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-5 lg:gap-x-12">
           <div class="lg:col-span-2">
             <div class="flex items-center gap-2.5">
               <BrandMark class="size-8 shrink-0" />
@@ -1267,7 +1264,7 @@ git --version<span
             </p>
           </div>
 
-          <nav v-for="group in footerGroups" :key="group.title" :group>
+          <nav v-for="group in footerGroups" :key="group.title" :aria-label="group.title">
             <h2 class="text-[11px] font-semibold tracking-[0.16em] text-gray-400 uppercase">
               {{ group.title }}
             </h2>
@@ -1288,7 +1285,6 @@ git --version<span
           class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.07] pt-8 md:mt-16"
         >
           <p class="text-xs text-gray-400">© {{ year }} IT Learning Hub</p>
-          <p class="text-xs text-gray-400">Payments processed in Philippine pesos.</p>
         </div>
       </div>
     </footer>
@@ -1804,7 +1800,8 @@ const year = new Date().getFullYear()
 /**
  * Every link here is a route that exists. There is deliberately no Become an
  * instructor, About, Careers or Contact — those pages do not exist, and a footer
- * full of dead destinations is worse than a short one.
+ * full of dead destinations is worse than a short one. The Legal group points at
+ * the two public legal routes every signup consent checkbox already cites.
  */
 const footerGroups = [
   {
@@ -1819,6 +1816,13 @@ const footerGroups = [
     links: [
       { label: 'Sign in', to: '/auth/login' },
       { label: 'Reset password', to: '/auth/forgot-password' },
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
+      { label: 'Terms of Service', to: '/legal/terms' },
+      { label: 'Privacy Policy', to: '/legal/privacy' },
     ],
   },
 ] as const
