@@ -1,5 +1,6 @@
 import type { GradingQueueItem } from '@/services/instructor.service'
 import type { AdminPayment } from '@/services/admin.service'
+import type { StudentGrades } from '@/services/learning.service'
 
 /**
  * Quote one CSV field per RFC 4180: wrap in double quotes when it contains a
@@ -109,6 +110,63 @@ export function adminPaymentsToCsv(payments: AdminPayment[]): string {
     ].join(','),
   )
   return [header.join(','), ...rows].join('\r\n') + '\r\n'
+}
+
+/**
+ * A student's own transcript as CSV rows, header first: one row per quiz
+ * attempt, then one row per assignment, in the order the grades page shows
+ * them.
+ *
+ * Percentages stay as the page states them - a quiz out of 100, an assignment
+ * as its raw mark beside its max points - and anything unmarked stays blank.
+ * An in-progress attempt has no score yet, and an awaiting-marking assignment
+ * has no mark yet; writing zero in either cell would tell the reader the work
+ * was marked and failed, which is the one misreading a transcript must not
+ * produce.
+ *
+ * Certificates are deliberately absent. They are documents with their own
+ * route and print control, and flattening them into score rows would mix a
+ * credential with the attempts that earned it.
+ */
+export function studentGradesToCsv(grades: StudentGrades): string {
+  const header = ['Kind', 'Course', 'Item', 'Status', 'Score', 'Out of', 'Submitted at']
+  const quizRows = grades.quizAttempts.map((attempt) =>
+    [
+      field('Quiz'),
+      field(attempt.courseTitle),
+      field(`Attempt ${attempt.attemptNumber} — ${attempt.quizTitle}`),
+      field(
+        attempt.passed === true
+          ? 'Passed'
+          : attempt.passed === false
+            ? 'Failed'
+            : attempt.status === 'submitted'
+              ? 'Submitted'
+              : 'In progress',
+      ),
+      field(attempt.percentage),
+      field(attempt.percentage === null ? null : 100),
+      field(attempt.submittedAt),
+    ].join(','),
+  )
+  const assignmentRows = grades.assignments.map((item) =>
+    [
+      field('Assignment'),
+      field(item.courseTitle),
+      field(item.title),
+      field(
+        item.grade !== null
+          ? 'Graded'
+          : item.submissionStatus === 'submitted'
+            ? 'Awaiting marking'
+            : 'Not submitted',
+      ),
+      field(item.grade),
+      field(item.maxPoints),
+      field(item.submittedAt),
+    ].join(','),
+  )
+  return [header.join(','), ...quizRows, ...assignmentRows].join('\r\n') + '\r\n'
 }
 
 /**

@@ -4,7 +4,25 @@
       title="My grades"
       subtitle="Every quiz attempt, every marked assignment, and every certificate you hold."
       :crumbs="[{ label: 'Student', to: '/student/dashboard' }, { label: 'Grades' }]"
-    />
+    >
+      <template #actions>
+        <!--
+          Download exactly what this page shows: one row per quiz attempt and
+          per assignment. Certificates stay out (documents, not rows - they
+          have their own route and print control). Disabled when there is
+          nothing to download, because a header-only file looks like a result.
+        -->
+        <button
+          type="button"
+          class="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-hairline-strong bg-canvas px-3 py-2 text-sm font-medium text-ink transition hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="isLoading || !hasExportableRows"
+          @click="exportGrades"
+        >
+          <Download class="size-4" aria-hidden="true" />
+          Export CSV
+        </button>
+      </template>
+    </PageHeader>
 
     <LoadingState v-if="isLoading" label="Loading your grades" />
 
@@ -343,6 +361,7 @@ import {
   Clock,
   CircleCheck,
   CircleX,
+  Download,
   FileClock,
   FileText,
   GraduationCap,
@@ -354,6 +373,7 @@ import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import StatCard from '@/components/common/StatCard.vue'
 import { getStudentGrades } from '@/services/learning.service'
+import { studentGradesToCsv, downloadCsv } from '@/utils/csv'
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/types'
 import type { AssignmentGrade, GradeSummary, StudentGrades } from '@/services/learning.service'
@@ -385,6 +405,24 @@ const EMPTY_SUMMARY: GradeSummary = {
 }
 
 const summary = computed<GradeSummary>(() => grades.value?.summary ?? EMPTY_SUMMARY)
+
+/** The export carries rows, not the summary cards: nothing to download without them. */
+const hasExportableRows = computed(
+  () => (grades.value?.quizAttempts.length ?? 0) + (grades.value?.assignments.length ?? 0) > 0,
+)
+
+/**
+ * Download exactly the rows on screen, in the order they appear.
+ *
+ * Dated from the local clock rather than from the newest row, because an old
+ * transcript's newest row can be months back and naming the file after it
+ * would misstate when the file was made.
+ */
+function exportGrades(): void {
+  if (!grades.value) return
+  const today = new Date().toISOString().slice(0, 10)
+  downloadCsv(`my-grades-${today}.csv`, studentGradesToCsv(grades.value))
+}
 
 /**
  * An average with no attempts behind it is not zero. It is unknown, and saying

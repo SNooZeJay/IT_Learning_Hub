@@ -108,13 +108,36 @@ test.describe('Student', () => {
     // so open closed disclosures in order until the link appears - exactly what a
     // student does. If nothing opens it, the course genuinely has no reachable
     // lesson and the visibility assertion reports it.
+    //
+    // The outline loads after navigation, so no triggers yet means loading, not
+    // empty - wait for the first disclosure (or the honest no-modules sentence)
+    // before concluding anything. Without this the loop below counts zero
+    // triggers on a half-loaded page, opens nothing, and the test reports a
+    // defect that is really a race.
+    await expect(
+      page
+        .locator('[data-slot="accordion-trigger"]')
+        .first()
+        .or(page.getByText('has not published any modules')),
+      'the course outline never loaded',
+    ).toBeVisible({ timeout: 15000 })
+    //
+    // Accordion content mounts lazily - opening a module reveals its lessons'
+    // triggers - so the trigger list is re-queried every round and the loop runs
+    // until a link appears or a full round opens nothing. A fixed count taken
+    // once never sees the triggers that mount underneath it.
     if (!(await firstLesson.isVisible())) {
-      const triggers = page.locator('[data-slot="accordion-trigger"]')
-      const n = await triggers.count()
-      for (let i = 0; i < n && !(await firstLesson.isVisible()); i++) {
-        if ((await triggers.nth(i).getAttribute('aria-expanded')) === 'false') {
-          await triggers.nth(i).click()
+      for (let round = 0; round < 5 && !(await firstLesson.isVisible()); round++) {
+        const triggers = page.locator('[data-slot="accordion-trigger"]')
+        const n = await triggers.count()
+        let opened = 0
+        for (let i = 0; i < n && !(await firstLesson.isVisible()); i++) {
+          if ((await triggers.nth(i).getAttribute('aria-expanded')) === 'false') {
+            await triggers.nth(i).click()
+            opened++
+          }
         }
+        if (opened === 0) break
       }
     }
     await expect(firstLesson).toBeVisible()

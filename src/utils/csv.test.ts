@@ -1,7 +1,8 @@
 ﻿import { describe, it, expect } from 'vitest'
-import { adminPaymentsToCsv, gradingQueueToCsv } from './csv'
+import { adminPaymentsToCsv, gradingQueueToCsv, studentGradesToCsv } from './csv'
 import type { GradingQueueItem } from '@/services/instructor.service'
 import type { AdminPayment } from '@/services/admin.service'
+import type { AssignmentGrade, QuizGrade, StudentGrades } from '@/services/learning.service'
 
 /**
  * The grading queue as a CSV download.
@@ -133,5 +134,145 @@ describe('adminPaymentsToCsv', () => {
 
   it('an empty ledger still downloads a header, not an empty file', () => {
     expect(adminPaymentsToCsv([]).trim().split('\r\n')).toHaveLength(1)
+  })
+})
+
+/**
+ * The student's own transcript as a CSV download.
+ *
+ * A student proving a grade to an employer or a school office should not have
+ * to screenshot the page. The export carries exactly what the grades page
+ * shows - one row per quiz attempt and per assignment, with unmarked work
+ * blank rather than zero (blank says "not marked yet"; zero says "marked
+ * zero"). Certificates are documents, not rows: they have their own route and
+ * their own print control, so they stay out of this file.
+ */
+function quiz(overrides: Partial<QuizGrade> = {}): QuizGrade {
+  return {
+    attemptId: 'qa-1',
+    quizId: 'q-1',
+    quizTitle: 'Threats exam',
+    courseId: 'c-1',
+    courseTitle: 'Security+ Exam Preparation',
+    passingScore: 70,
+    attemptNumber: 1,
+    status: 'submitted',
+    score: 18,
+    maxScore: 20,
+    percentage: 90,
+    passed: true,
+    startedAt: '2026-10-09T03:58:00Z',
+    submittedAt: '2026-10-09T04:04:00Z',
+    ...overrides,
+  }
+}
+
+function assignment(overrides: Partial<AssignmentGrade> = {}): AssignmentGrade {
+  return {
+    assignmentId: 'a-1',
+    courseId: 'c-2',
+    courseTitle: 'Programming Foundations',
+    title: 'Decision table',
+    instructions: null,
+    dueAt: null,
+    maxPoints: 10,
+    published: true,
+    submissionId: 'as-1',
+    submittedAt: '2026-10-08T20:13:00Z',
+    submissionStatus: 'graded',
+    submissionText: 'Work',
+    submissionFile: null,
+    grade: 8,
+    feedback: null,
+    gradedAt: '2026-10-09T10:00:00Z',
+    ...overrides,
+  }
+}
+
+function transcript(): StudentGrades {
+  return {
+    quizAttempts: [quiz()],
+    assignments: [assignment()],
+    certificates: [],
+    summary: {
+      coursesEnrolled: 2,
+      coursesCompleted: 0,
+      quizzesAttempted: 1,
+      quizzesPassed: 1,
+      quizAverage: 90,
+      assignmentsSubmitted: 1,
+      assignmentsGraded: 1,
+      assignmentAverage: 80,
+      certificatesEarned: 0,
+      certificatesRevoked: 0,
+    },
+  }
+}
+
+describe('studentGradesToCsv', () => {
+  it('writes one header plus one row per attempt and assignment', () => {
+    const lines = studentGradesToCsv(transcript()).trim().split('\r\n')
+    expect(lines).toHaveLength(3)
+    expect(lines[0]).toBe('Kind,Course,Item,Status,Score,Out of,Submitted at')
+  })
+
+  it('marks a passed quiz passed with its percentage', () => {
+    const [, row] = studentGradesToCsv(transcript()).trim().split('\r\n')
+    const columns = row.split(',')
+    expect(columns[0]).toBe('Quiz')
+    expect(columns[3]).toBe('Passed')
+    expect(columns[4]).toBe('90')
+    expect(columns[5]).toBe('100')
+  })
+
+  it('leaves an in-progress attempt scoreless rather than zero', () => {
+    const grades = transcript()
+    grades.quizAttempts = [
+      quiz({
+        status: 'in_progress',
+        score: null,
+        maxScore: null,
+        percentage: null,
+        passed: null,
+        submittedAt: null,
+      }),
+    ]
+    const [, row] = studentGradesToCsv(grades).trim().split('\r\n')
+    const columns = row.split(',')
+    expect(columns[3]).toBe('In progress')
+    expect(columns[4]).toBe('')
+  })
+
+  it('marks a graded assignment with its raw mark, not just the percent', () => {
+    const [, , row] = studentGradesToCsv(transcript()).trim().split('\r\n')
+    const columns = row.split(',')
+    expect(columns[0]).toBe('Assignment')
+    expect(columns[3]).toBe('Graded')
+    expect(columns[4]).toBe('8')
+    expect(columns[5]).toBe('10')
+  })
+
+  it('calls awaiting marking what it is, with a blank score', () => {
+    const grades = transcript()
+    grades.assignments = [
+      assignment({ grade: null, feedback: null, gradedAt: null, submissionStatus: 'submitted' }),
+    ]
+    const [, , row] = studentGradesToCsv(grades).trim().split('\r\n')
+    const columns = row.split(',')
+    expect(columns[3]).toBe('Awaiting marking')
+    expect(columns[4]).toBe('')
+  })
+
+  it('quotes fields containing commas, quotes or newlines', () => {
+    const grades = transcript()
+    grades.quizAttempts = [quiz({ quizTitle: 'Threats, "live" fire\nexam' })]
+    expect(studentGradesToCsv(grades)).toContain('"Attempt 1 — Threats, ""live"" fire\nexam"')
+  })
+
+  it('an empty transcript still downloads a header, not an empty file', () => {
+    const grades = transcript()
+    grades.quizAttempts = []
+    grades.assignments = []
+    expect(studentGradesToCsv(grades).trim().split('\r\n')).toHaveLength(1)
   })
 })

@@ -52,12 +52,9 @@
         >
           <Circle class="size-4" aria-hidden="true" />
           Unread only
-          <span
-            class="rounded-full px-1.5 py-0.5 text-xs font-medium"
-            :class="showUnreadOnly ? 'bg-brand-600 text-white' : 'bg-surface text-slate'"
-          >
+          <Badge :class="showUnreadOnly ? 'bg-brand-600 text-white' : 'bg-surface text-slate'">
             {{ unreadCount }}
-          </span>
+          </Badge>
         </button>
       </div>
 
@@ -182,6 +179,7 @@ import {
   Check,
   CheckCheck,
   ChevronRight,
+  Circle,
   CircleDollarSign,
   CircleX,
   ClipboardCheck,
@@ -197,6 +195,7 @@ import ErrorState from '@/components/common/ErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import Alert from '@/components/ui/Alert.vue'
 import Button from '@/components/ui/Button.vue'
+import { Badge } from '@/components/public/ui/badge'
 import {
   listNotifications,
   markAllNotificationsRead,
