@@ -289,6 +289,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/instructor/Calendar.vue'),
         meta: { title: 'Calendar', roles: ['instructor'] },
       },
+      {
+        path: 'notifications',
+        name: 'instructor-notifications',
+        component: () => import('@/views/instructor/Notifications.vue'),
+        meta: { title: 'Notifications', roles: ['instructor'] },
+      },
     ],
   },
 
@@ -354,6 +360,12 @@ const routes: RouteRecordRaw[] = [
         name: 'admin-analytics',
         component: () => import('@/views/admin/Analytics.vue'),
         meta: { title: 'Platform analytics', roles: ['admin'] },
+      },
+      {
+        path: 'notifications',
+        name: 'admin-notifications',
+        component: () => import('@/views/admin/Notifications.vue'),
+        meta: { title: 'Notifications', roles: ['admin'] },
       },
     ],
   },

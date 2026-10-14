@@ -215,15 +215,14 @@
       </div>
 
       <!--
-        The footer link used to be `to="#"`, which resolves to the page you are
-        already on and looks like navigation. Students have a real
-        notifications screen; instructors and admins do not, so theirs points at
-        the dashboard rather than a page that was invented to fill the gap.
+        The footer link goes to the viewer's own notifications page. It used to
+        be student-only with a dashboard fallback for the other roles; every
+        role has the page now.
       -->
       <div class="mt-3 border-t border-hairline-soft pt-3">
         <RouterLink
           v-if="hasNotificationsPage"
-          to="/student/notifications"
+          :to="notificationsPath"
           class="flex w-full items-center justify-center rounded-md border border-hairline bg-canvas px-3 py-2 text-theme-sm font-medium text-slate shadow-theme-xs transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:bg-white/[0.06] dark:hover:text-gray-100"
           @click="closeDropdown"
         >
@@ -250,24 +249,21 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useUnreadNotifications } from '@/composables/useUnreadNotifications'
 import {
-  Award,
-  BadgeCheck,
   Bell,
   BellOff,
   CheckCheck,
   ChevronRight,
-  CircleDollarSign,
-  CircleX,
-  ClipboardCheck,
-  GraduationCap,
   LoaderCircle,
-  Megaphone,
-  MessageSquare,
   RefreshCw,
-  School,
   X,
 } from 'lucide-vue-next'
 import HeaderIconButton from '@/components/layout/HeaderIconButton.vue'
+import {
+  notificationIconFor,
+  notificationIconWrapClass,
+  notificationTypeLabel,
+} from '@/components/notifications/notificationMeta'
+import { notificationsPathFor } from '@/layouts/navigation'
 import {
   listNotifications,
   markAllNotificationsRead,
@@ -314,86 +310,34 @@ const buttonLabel = computed(() => {
   return `${unreadCount.value} unread notification${unreadCount.value === 1 ? '' : 's'}`
 })
 
-/** Only students have a notifications screen. Inventing one for the others
- *  would be a link to nowhere dressed as a feature. An unresolved role is
- *  treated as a student, which is also what `auth.homePath` does. */
-const hasNotificationsPage = computed(() => auth.role !== 'instructor' && auth.role !== 'admin')
+/**
+ * Where "view all" goes. Every role has its own notifications page now, so
+ * this is the per-role path beside the navigation - not a student-only link
+ * with a dashboard fallback. An unresolved role keeps the dashboard fallback
+ * below, because a link it cannot follow is worse than none.
+ */
+const hasNotificationsPage = computed(() => auth.role !== null)
+const notificationsPath = computed(() => notificationsPathFor(auth.role))
 
 const homePath = computed(() => auth.homePath)
 
 /**
- * Icon and wording per notification type.
+ * Icon and wording per notification type, shared with the notifications board.
  *
- * The same vocabulary as `views/student/Notifications.vue`, so a "Certificate
- * revoked" is called the same thing in the dropdown as on the page. Duplicated
- * rather than shared: `<script setup>` cannot export, and the mapping is small
- * enough that a wrong copy is cheaper to spot than a wrong abstraction. It
- * should be lifted into a shared module the next time the list is touched.
+ * This used to be a second copy of the board's map. It is imported now - the
+ * copy was the one this comment said to lift the next time the list was
+ * touched, and adding the instructor and admin boards is that time.
  */
-const TYPE_META: Record<NotificationType, { icon: typeof Award; label: string; wrap: string }> = {
-  enrolment_confirmed: {
-    icon: School,
-    label: 'Enrollment',
-    wrap: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400',
-  },
-  payment_received: {
-    icon: CircleDollarSign,
-    label: 'Payment',
-    wrap: 'bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-400',
-  },
-  quiz_graded: {
-    icon: ClipboardCheck,
-    label: 'Quiz result',
-    wrap: 'bg-warning-50 text-warning-600 dark:bg-warning-500/10 dark:text-warning-400',
-  },
-  assignment_graded: {
-    icon: Award,
-    label: 'Assignment marked',
-    wrap: 'bg-warning-50 text-warning-600 dark:bg-warning-500/10 dark:text-warning-400',
-  },
-  course_completed: {
-    icon: GraduationCap,
-    label: 'Course completed',
-    wrap: 'bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-400',
-  },
-  certificate_issued: {
-    icon: BadgeCheck,
-    label: 'Certificate issued',
-    wrap: 'bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-400',
-  },
-  certificate_revoked: {
-    icon: CircleX,
-    label: 'Certificate revoked',
-    wrap: 'bg-error-50 text-error-600 dark:bg-error-500/10 dark:text-error-400',
-  },
-  announcement: {
-    icon: Megaphone,
-    label: 'Announcement',
-    wrap: 'bg-surface text-slate dark:bg-white/[0.06]',
-  },
-  new_message: {
-    icon: MessageSquare,
-    label: 'Message',
-    wrap: 'bg-surface text-slate dark:bg-white/[0.06]',
-  },
-}
-
-/** Unknown types fall back rather than rendering nothing: the enum in Postgres
- *  can gain a value before this map does. */
-function metaFor(type: NotificationType) {
-  return TYPE_META[type] ?? { icon: BellOff, label: 'Update', wrap: 'bg-surface text-slate' }
-}
-
 function iconFor(type: NotificationType) {
-  return metaFor(type).icon
+  return notificationIconFor(type)
 }
 
 function typeLabel(type: NotificationType): string {
-  return metaFor(type).label
+  return notificationTypeLabel(type)
 }
 
 function iconWrapClass(type: NotificationType): string {
-  return metaFor(type).wrap
+  return notificationIconWrapClass(type)
 }
 
 async function load(): Promise<void> {

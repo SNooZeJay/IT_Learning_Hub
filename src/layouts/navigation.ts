@@ -26,8 +26,8 @@ export interface NavItem {
   /**
    * A count to show on the item, or `true` for a plain dot.
    *
-   * The unread-notification count is a number a student wants, not a red smear:
-   * 40 unread and 1 unread look identical as a dot, and the student is the only one
+   * The unread-notification count is a number the reader wants, not a red smear:
+   * 40 unread and 1 unread look identical as a dot, and the reader is the one
    * who can act on it.
    *
    * One vocabulary for both counts rather than a second mechanism, so the sidebar
@@ -39,9 +39,9 @@ export interface NavItem {
 /**
  * A labeled chunk of a role's navigation.
  *
- * The admin list holds ten destinations, past the 7±2 a person scans as one
+ * The admin list holds eleven destinations, past the 7±2 a person scans as one
  * group, so it renders as labeled chunks instead of one flat list. Student (8)
- * and instructor (8) stay flat: chunking a list that already scans adds chrome
+ * and instructor (9) stay flat: chunking a list that already scans adds chrome
  * without removing load. Groups carry no routes of their own - every destination
  * still lives in exactly one place, and the grouped render must contain the same
  * `to` set as the flat list or the sidebar has lost a page.
@@ -81,13 +81,8 @@ export const ROLE_NAVIGATION: Record<Role, NavItem[]> = {
     { label: 'Announcements', to: '/instructor/announcements', icon: Megaphone },
     { label: 'Insights', to: '/instructor/analytics', icon: ChartColumn },
     { label: 'Calendar', to: '/instructor/calendar', icon: CalendarDays },
+    { label: 'Notifications', to: '/instructor/notifications', icon: Bell, badge: 'notifications' },
     { label: 'Messages', to: '/messages', icon: MessageSquare, badge: 'messages' },
-    // No Notifications item for this role, and that is a real gap rather than an
-    // oversight: notifications are written for enrolled students, and
-    // `/student/notifications` is `roles: ['student']`. A link here would be refused by
-    // the guard. What an instructor needs instead is a way to reach the notifications
-    // for a course, and no such screen exists yet. Adding a dead item would be worse
-    // than the omission, so the list stays honest and the gap stays visible.
   ],
 
   admin: [
@@ -100,8 +95,30 @@ export const ROLE_NAVIGATION: Record<Role, NavItem[]> = {
     { label: 'Payments', to: '/admin/payments', icon: Wallet },
     { label: 'Announcements', to: '/admin/announcements', icon: Megaphone },
     { label: 'Analytics', to: '/admin/analytics', icon: ChartColumn },
+    { label: 'Notifications', to: '/admin/notifications', icon: Bell, badge: 'notifications' },
     { label: 'Messages', to: '/messages', icon: MessageSquare, badge: 'messages' },
   ],
+}
+
+/**
+ * Where the "view all notifications" link goes for each role.
+ *
+ * Every role with a sidebar Notifications item needs its own page, or the
+ * badge counts down to a screen the guard refuses. Kept beside the navigation
+ * it must agree with - the spec asserts the two cannot drift - rather than
+ * inside the header bell that renders the link.
+ */
+export function notificationsPathFor(role: Role | null): string {
+  switch (role) {
+    case 'student':
+      return '/student/notifications'
+    case 'instructor':
+      return '/instructor/notifications'
+    case 'admin':
+      return '/admin/notifications'
+    default:
+      return '/auth/login'
+  }
 }
 
 /**
@@ -144,7 +161,12 @@ const ADMIN_GROUPS: NavGroup[] = [
   {
     label: 'Operations',
     items: ROLE_NAVIGATION.admin.filter((item) =>
-      ['/admin/payments', '/admin/announcements', '/admin/analytics'].includes(item.to),
+      [
+        '/admin/payments',
+        '/admin/announcements',
+        '/admin/analytics',
+        '/admin/notifications',
+      ].includes(item.to),
     ),
   },
   { label: null, items: [ROLE_NAVIGATION.admin[ROLE_NAVIGATION.admin.length - 1]] },

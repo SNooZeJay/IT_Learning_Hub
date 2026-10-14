@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { ROLE_NAVIGATION, navigationGroupsFor, type NavItem } from '../navigation'
+import {
+  ROLE_NAVIGATION,
+  navigationGroupsFor,
+  notificationsPathFor,
+  type NavItem,
+} from '../navigation'
 
 function flatItems(): NavItem[] {
   return ROLE_NAVIGATION.admin
@@ -45,5 +50,33 @@ describe('admin navigation grouping', () => {
     expect(navigationGroupsFor('instructor')[0].items).toHaveLength(
       ROLE_NAVIGATION.instructor.length,
     )
+  })
+})
+
+/**
+ * Every role with a sidebar Notifications item needs the matching page, or the
+ * badge counts down to a screen the guard refuses. The mapping lives beside
+ * the navigation it must agree with rather than inside the header bell, so a
+ * new role gets its link in the same edit that adds its sidebar item.
+ */
+describe('notificationsPathFor', () => {
+  it('points each role at its own notifications page', () => {
+    expect(notificationsPathFor('student')).toBe('/student/notifications')
+    expect(notificationsPathFor('instructor')).toBe('/instructor/notifications')
+    expect(notificationsPathFor('admin')).toBe('/admin/notifications')
+  })
+
+  it('agrees with the sidebar: every role that declares the badge gets a path', () => {
+    for (const [role, items] of Object.entries(ROLE_NAVIGATION) as Array<
+      [Parameters<typeof notificationsPathFor>[0], NavItem[]]
+    >) {
+      if (items.some((item) => item.badge === 'notifications')) {
+        expect(notificationsPathFor(role)).toMatch(/^\/[^/]+\/notifications$/)
+      }
+    }
+  })
+
+  it('sends an unresolved role to the sign-in page, never to a guarded screen', () => {
+    expect(notificationsPathFor(null)).toBe('/auth/login')
   })
 })
